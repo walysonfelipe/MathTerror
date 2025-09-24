@@ -1,0 +1,615 @@
+@import url('https://fonts.googleapis.com/css2?family=Spectral+SC:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+
+@font-face {
+  font-family: 'FonteTerror';
+  src: url('assets/fonts/murder.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Assinatura';
+  src: url('assets/fonts/Signatures.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: "Spectral SC", serif;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* Vídeo em full-bleed com leve tom carmim */
+.bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  filter: brightness(0.50) contrast(1.05) saturate(1.05) hue-rotate(-6deg);
+}
+
+/* Vignette & Noise para atmosfera */
+.fx-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center,
+      rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .45) 75%, rgba(0, 0, 0, .85) 100%);
+  mix-blend-mode: multiply;
+}
+
+.fx-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: noiseShift .75s steps(2) infinite;
+}
+
+@keyframes noiseShift {
+  to {
+    transform: translate3d(1px, -1px, 0);
+  }
+}
+
+/* Overlay central */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.stack {
+  text-align: center;
+}
+
+.logo {
+  width: min(90vw, 360px);
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 10px 40px rgba(255, 0, 0, .25));
+  margin: 0 auto 18px;
+  animation: fadeInDown .6s ease both;
+}
+
+/* Controles (só o iniciar) */
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 10px 0 6px;
+  animation: fadeInUp .6s .12s ease both;
+}
+
+/* ---------- Botões com "líquido vermelho" (gradiente translúcido) ---------- */
+.btn {
+  font-family: "Spectral SC", serif;
+  appearance: none;
+  border: 1px solid rgba(255, 0, 0, .35);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 35px;
+  letter-spacing: 5px;
+  cursor: pointer;
+  transition: transform .08s ease, border-color .2s ease, box-shadow .25s ease, filter .25s ease;
+  backdrop-filter: blur(8px);
+  position: relative;
+  isolation: isolate;
+  will-change: transform, filter;
+}
+
+.modal-actions .btn {
+  font-family: "Creepster", cursive;
+  appearance: none;
+  border: 1px solid rgba(255, 0, 0, .35);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 20px;
+  letter-spacing: 5px;
+  cursor: pointer;
+  transition: transform .08s ease, border-color .2s ease, box-shadow .25s ease, filter .25s ease;
+  backdrop-filter: blur(8px);
+  position: relative;
+  isolation: isolate;
+  will-change: transform, filter;
+}
+
+/* Base “sangue” com movimento (conic + radial) */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  background:
+    radial-gradient(120% 140% at 10% 10%, rgba(255, 0, 0, .55), rgba(80, 0, 0, .35) 60%, transparent 70%),
+    radial-gradient(120% 200% at 90% 90%, rgba(180, 0, 0, .45), rgba(60, 0, 0, .35) 60%, transparent 70%),
+    conic-gradient(from 180deg at 50% 50%, rgba(255, 60, 60, .45), rgba(150, 0, 0, .35), rgba(255, 0, 0, .55), rgba(120, 0, 0, .35), rgba(255, 60, 60, .45));
+  filter: saturate(1.2) blur(.2px);
+  opacity: .92;
+  animation: bloodFlow 8s linear infinite;
+  background-size: 160% 160%, 160% 160%, 200% 200%;
+  background-position: 0% 0%, 100% 100%, 50% 50%;
+}
+
+@keyframes bloodFlow {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+  }
+
+  50% {
+    background-position: 100% 0%, 0% 100%, 55% 45%;
+  }
+
+  100% {
+    background-position: 0% 0%, 100% 100%, 50% 50%;
+  }
+}
+
+.btn:hover {
+  box-shadow: 0 10px 30px rgba(255, 0, 0, .25);
+  filter: brightness(1.05);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(.99);
+}
+
+/* Variações */
+.btn--blood {
+  border-color: rgba(255, 0, 0, .55);
+}
+
+.btn--blood-ghost {
+  border-color: rgba(255, 110, 110, .45);
+}
+
+.btn--blood-primary {
+  border-color: rgba(255, 40, 40, .65);
+}
+
+.btn--blood-primary::before {
+  background:
+    radial-gradient(120% 140% at 15% 15%, rgba(255, 0, 0, .62), rgba(80, 0, 0, .35) 60%, transparent 70%),
+    radial-gradient(120% 200% at 85% 85%, rgba(255, 60, 60, .55), rgba(60, 0, 0, .35) 60%, transparent 70%),
+    conic-gradient(from 90deg at 50% 50%, rgba(255, 70, 70, .6), rgba(170, 0, 0, .4), rgba(255, 0, 0, .65), rgba(120, 0, 0, .4), rgba(255, 70, 70, .6));
+}
+
+#skipBtn {
+  margin-top: 8px;
+  font-size: clamp(14px, 1.2vw, 16px);
+  letter-spacing: 2px;
+}
+
+/* Botão de fullscreen — fixo topo direito */
+.floating-fullscreen {
+  font-size: 20px;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 999;
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* Modal (popup de áudio) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .65);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  width: min(92vw, 420px);
+  background: rgba(20, 0, 0, .85);
+  border: 1px solid rgba(255, 0, 0, .35);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(255, 0, 0, .15);
+}
+
+.modal-title {
+  font-family: "Creepster", cursive;
+  font-size: 28px;
+  margin-bottom: 6px;
+  letter-spacing: .5px;
+}
+
+.modal-text {
+  opacity: .85;
+  margin-bottom: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  font-size: 3px !important;
+}
+
+/* Acessibilidade de foco */
+.btn:focus-visible {
+  outline: 2px dashed rgba(255, 0, 0, .75);
+  outline-offset: 3px;
+}
+
+/* Animações simples */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  .btn {
+    width: auto;
+  }
+
+  .logo {
+    width: min(80vw, 320px);
+  }
+}
+
+
+[hidden] {
+  display: none !important;
+}
+
+
+
+/* ====== CENA / STORY ====== */
+.scene {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  padding: 24px;
+  z-index: 10;
+  /* acima do vídeo e efeitos */
+}
+
+.scene-inner {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  /* personagem | história */
+  align-items: center;
+  /* antes estava "end" */
+  gap: clamp(12px, 3vw, 32px);
+  height: 100%;
+}
+
+/* Personagem sobe de baixo */
+.character {
+  width: min(80vw, 590px);
+  border-radius: 20px;
+  /* ajuste o valor como quiser */
+  overflow: hidden;
+  /* garante que o vídeo respeite as bordas */
+  max-width: 100%;
+  align-self: end;
+  justify-self: start;
+  transform: translateY(120%);
+  opacity: 0;
+  filter: drop-shadow(0 18px 50px rgba(255, 0, 0, .22));
+  animation: charRise .9s ease-out forwards;
+}
+
+@keyframes charRise {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Área rolável da história com máscara (fade no topo) */
+.story-box {
+  justify-self: end;
+  width: min(60vw, 820px);
+  min-height: min(46vh, 440px);
+  /* +altura útil */
+  align-self: start;
+  /* sobe dentro do grid */
+  margin-top: 12vh;
+  /* distância do topo */
+}
+
+
+.story-scroll {
+  max-height: min(46vh, 440px);
+  /* acompanha sua .story-box */
+  overflow-y: auto;
+  padding-right: 8px;
+  /* “folga” para não colar na borda */
+  scroll-behavior: smooth;
+  /* rolagem suave */
+}
+
+/* Máscara suave no topo (suporte WebKit/Chromium/Firefox modernos) */
+.story-box .story-scroll {
+  -webkit-mask-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, .75) 18px,
+      #000 42px,
+      #000 calc(100% - 0px));
+  mask-image: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, .75) 18px,
+      #000 42px,
+      #000 calc(100% - 0px));
+}
+
+/* Fallback visual: um véu no topo, caso a máscara não funcione */
+.story-box::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 42px;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+      rgba(20, 0, 0, 0.00),
+      rgba(20, 0, 0, 0.82) 60%,
+      rgba(20, 0, 0, 0.92));
+  opacity: .0;
+  /* fica off quando a máscara existe */
+}
+
+/* Cursor piscando já existe; sem mudanças */
+
+/* Botão continuar: leve entrada quando aparecer */
+#continueBtn[hidden] {
+  display: none !important;
+}
+
+#continueBtn {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+
+#continueBtn.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes caretBlink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.scene-actions {
+  display: grid;
+  place-items: center;
+  padding-top: 10px;
+  margin-top: -100px;
+}
+
+/* Responsivo */
+@media (max-width: 880px) {
+  .scene-inner {
+    grid-template-columns: 1fr;
+    /* empilha */
+    align-items: end;
+  }
+
+  .character {
+    justify-self: center;
+    width: min(68vw, 520px);
+  }
+
+  .story-box {
+    justify-self: center;
+    width: min(92vw, 820px);
+    min-height: 36vh;
+  }
+}
+
+
+/* ===== QUIZ ===== */
+.quiz {
+
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 12;
+}
+
+.quiz-inner {
+  width: min(92vw, 920px);
+  background: rgba(15, 0, 0, .65);
+  border: 1px solid rgba(255, 0, 0, .35);
+  border-radius: 18px;
+  padding: clamp(16px, 3vw, 28px);
+  box-shadow: 0 20px 60px rgba(255, 0, 0, .12);
+  backdrop-filter: blur(4px);
+}
+
+.quiz-title {
+  font-family: "Spectral SC", cursive;
+  font-size: clamp(6px, 3vw, 18px);
+  margin: 4px 0 16px;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .quiz-options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.quiz-options .btn {
+  width: 100%;
+  text-align: center;
+  font-size: clamp(16px, 1.6vw, 18px);
+  letter-spacing: 1.5px;
+}
+
+/* ====== SUPORTE À PERGUNTA/RESPOSTAS EM IMAGEM ====== */
+
+/* Imagem da PERGUNTA quando usada (questionImage) */
+.quiz-image {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 12px;
+  display: block;
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(255, 0, 0, 0.22);
+  border: 1px solid rgba(255, 0, 0, .28);
+}
+
+/* Botão de opção quando a alternativa é imagem */
+.quiz-option {
+  padding: 10px;
+  /* imagem domina o botão */
+}
+
+/* Estrutura visual da alternativa em imagem */
+.option-figure {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  place-items: center;
+}
+
+.option-image {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  /* evita estourar verticalmente */
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 0, 0, .28);
+  box-shadow: 0 10px 26px rgba(255, 0, 0, .15);
+  transition: transform .15s ease, filter .2s ease;
+}
+
+.quiz-option:hover .option-image {
+  transform: scale(1.02);
+  filter: brightness(1.05);
+}
+
+.option-caption {
+  font-size: 0.92rem;
+  letter-spacing: .4px;
+  opacity: .92;
+  text-align: center;
+}
+
+/* ===== ACERTO: blackout + vídeo ===== */
+.blackout {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+}
+
+.reward-video {
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+}
+
+/* ===== ERRO: flash rápido do centro ===== */
+.wrong-flash {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(70vw, 680px);
+  /* um pouco maior que antes */
+  max-width: 95vw;
+  transform: translate(-50%, -50%) scale(.6) rotate(0deg);
+  opacity: 0;
+  z-index: 9998;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 60px rgba(255, 0, 0, .45));
+}
+
+.wrong-flash.is-pop {
+  animation: flashJump 0.95s ease-out both;
+}
+
+@keyframes flashJump {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.70) rotate(-3deg);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.65) rotate(3deg);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.40) rotate(-2deg);
+  }
+
+  55% {
+    opacity: .85;
+    transform: translate(-50%, -50%) scale(1.50) rotate(2deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.20) rotate(-1deg);
+  }
+}
