@@ -1,51 +1,16 @@
-// ===================== ATIVAÇÃO DE ÁUDIO =====================
-// ===================== IMPORTS DOS MÓDULOS =====================
-import { bgVideo, startBtn, audioEnableBtn, audioDismissBtn } from './js/dom-elements.js';
-import { initFullscreen, onFullscreenChange, hideModal } from './js/fullscreen.js';
-import { enableAudio } from './js/audio.js';
-import { hideHome } from './js/game-state.js';
-import { startScene1, initSceneEvents } from './js/scenes.js';
+import { CONFIG } from './config.js';
+import { QUIZ, WRONG_IMAGES } from './quiz-data.js';
+import { quizSection, qTitle, qOptions, correctOverlay, rewardVideo, wrongFlash } from './dom-elements.js';
+import { shuffleInPlace, cloneWithShuffledOptions, letterForIndex, isABCDLabel } from './utils.js';
+import { RANDOMIZE_QUESTIONS } from './config.js';
+import { isFullscreen } from './fullscreen.js';
+import { resetGame } from './game-state.js';
 
-// ===================== INICIALIZAÇÃO GLOBAL =====================
-window.audioAtivo = false;
+let quizIndex = 0;
+let bloqueado = false;
+let QUIZ_DECK = [];
 
-// Inicializa o vídeo de fundo
-bgVideo?.play().catch(() => { });
-
-// Inicializa módulos
-initFullscreen();
-initSceneEvents();
-
-// ===================== ATIVAÇÃO DE ÁUDIO =====================
-audioEnableBtn?.addEventListener('click', async () => {
-  await enableAudio();
-  hideModal();
-});
-
-audioDismissBtn?.addEventListener('click', () => {
-  window.audioAtivo = false;
-  hideModal();
-});
-
-// ===================== INÍCIO DO JOGO =====================
-startBtn?.addEventListener('click', () => {
-  hideHome();
-  bgVideo.style.filter = 'brightness(0.4) contrast(1.1) saturate(1.1) hue-rotate(-6deg)';
-  setTimeout(startScene1, 250);
-});
-
-// Inicialização final
-onFullscreenChange();
-
-// ===================== QUIZ ENGINE =====================
-const quizSection = document.getElementById('quiz');
-const qTitle = document.getElementById('qTitle');
-const qOptions = document.getElementById('qOptions');
-const correctOverlay = document.getElementById('correctOverlay');
-const rewardVideo = document.getElementById('rewardVideo');
-const wrongFlash = document.getElementById('wrongFlash');
-
-function setQuizInteractivity(enabled) {
+export function setQuizInteractivity(enabled) {
   if (!quizSection) return;
   quizSection.style.pointerEvents = enabled ? 'auto' : 'none';
   qOptions.querySelectorAll('button').forEach(btn => {
@@ -53,79 +18,7 @@ function setQuizInteractivity(enabled) {
   });
 }
 
-// ===== NOVO FORMATO DO QUIZ =====
-// Agora cada "option" pode ser:
-// - string (texto)  OU
-// - objeto: { img: "caminho.png", alt: "descrição", label: "legenda opcional" }
-const QUIZ = [
-  // Pergunta em TEXTO + opções em IMAGEM
-  {
-    questionText: " Considere a funcao f (x) = 2x - 1. Qual dos gráficos abaixo corresponde a f?",
-    options: [
-      { img: "assets/images/quiz/resp1n.png",  alt: "Porta rangendo",     label: "a" },
-      { img: "assets/images/quiz/resp1s.png",  alt: "Porta trancada",     label: "b" },
-      { img: "assets/images/quiz/resp1_2n.png",alt: "Porta recém-pintada",label: "c" },
-      { img: "assets/images/quiz/resp1_3n.png",alt: "Porta sem maçaneta", label: "d" }
-    ],
-    answer: 1,
-    video: "assets/videos/door.mp4"
-  },
-  // Pergunta em TEXTO + opções em TEXTO (compatibilidade com seu formato antigo)
-  {
-    questionText: "Sejam A = {1,2,3,4} e B = {3,4,5,6}. Qual é A ∪ B?",
-    options: ["{1,2,3,4}", "{3,4,5,6}", "{1,2,3,4,5,6}", "{1,2}"],
-    answer: 2,
-    video: "assets/videos/door.mp4"
-  },
-  {
-    questionText: "Sejam A = {2,4, 6,8} e B - {1,2,3,4}. Qual é A ∪ B?",
-    options: ["{2,4}", "{1,2,3,4,6,8} ", "{1,3}", "{6,8}"],
-    answer: 1,
-    video: "assets/videos/door.mp4"
-  },
-  {
-    questionText: "Sejam A = {2,4, 6,8} e B = {1,2,3,4}. Qual é A ∩ B?",
-    options: ["{1,3}", "{2,4}", "{1,2,3,4,6,8} ", "{6,8}"],
-    answer: 1,
-    video: "assets/videos/door.mp4"
-  },
-  {
-    questionText: "Sejam A = {1,3,5, 7,9} e B = {3,6,9}. Qual é A <> B?",
-    options: ["{1,5,7}", "{3,6,9}", "{1,3,5,7,9} ", "{5,7,9}"],
-    answer: 0,
-    video: "assets/videos/door.mp4"
-  },
-];
-
-const WRONG_IMAGES = ["assets/images/horror.png"];
-
-let quizIndex = 0;
-let bloqueado = false;
-
-// ======= SHUFFLE UTILS (Fisher–Yates) =======
-function shuffleInPlace(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// Clona a pergunta e (opcionalmente) embaralha as opções
-function cloneWithShuffledOptions(q) {
-  if (!RANDOMIZE_OPTIONS) return { ...q };
-  const optIdx = Array.from({ length: q.options.length }, (_, i) => i);
-  shuffleInPlace(optIdx);
-
-  const newOptions = optIdx.map(i => q.options[i]);
-  const newAnswer  = optIdx.indexOf(q.answer);
-
-  return { ...q, options: newOptions, answer: newAnswer };
-}
-
-let QUIZ_DECK = [];  // baralho vigente desta partida
-
-function startQuiz() {
+export function startQuiz() {
   // monta deck
   if (RANDOMIZE_QUESTIONS) {
     const idxs = Array.from({ length: QUIZ.length }, (_, i) => i);
@@ -142,21 +35,10 @@ function startQuiz() {
   wrongFlash.hidden = true;
 
   setQuizInteractivity(true);
-
   renderQuestion();
 }
 
-// ===== Helpers para rótulos A/B/C/D/E =====
-function letterForIndex(i) {
-  const letters = ['A','B','C','D','E','F','G'];
-  return letters[i] || String(i + 1);
-}
-function isABCDLabel(val) {
-  return typeof val === 'string' && /^[a-e]$/i.test(val);
-}
-
-// ====== render com suporte a pergunta/alternativas em imagem e rótulo sequencial ======
-function renderQuestion() {
+export function renderQuestion() {
   if (!quizSection) return;
   const node = QUIZ_DECK[quizIndex];
 
@@ -202,9 +84,6 @@ function renderQuestion() {
       }
 
       // Legenda:
-      // - se vier "a/b/c/d/e", troca pela letra da posição;
-      // - se vier outra coisa (ex.: “reta crescente”), exibe "A — reta crescente";
-      // - se não vier nada, exibe só a letra.
       const figcap = document.createElement('figcaption');
       figcap.className = 'option-caption';
 
@@ -230,7 +109,7 @@ function renderQuestion() {
   });
 }
 
-function onAnswer(i) {
+export function onAnswer(i) {
   if (bloqueado) return;
   const node = QUIZ_DECK[quizIndex];
   const correto = (i === node.answer);
@@ -241,7 +120,7 @@ function onAnswer(i) {
   }
 }
 
-function flashWrong() {
+export function flashWrong() {
   if (!wrongFlash) return;
 
   if (bloqueado) return;
@@ -265,7 +144,7 @@ function flashWrong() {
     }
   } catch { }
 
-  // Duração dinâmica da animação — usa os @keyframes 'flashJump' do CSS
+  // Duração dinâmica da animação
   const durMs = Math.max(200, CONFIG.JUMPSCARE_DURATION_MS | 0);
   wrongFlash.style.animation = 'none';
   void wrongFlash.offsetWidth; // reflow
@@ -274,18 +153,15 @@ function flashWrong() {
   // Ao terminar o jumpscare: esconde e reseta o jogo
   setTimeout(() => {
     wrongFlash.hidden = true;
-    resetGame(); // reset limpa UI e volta à tela inicial
+    resetGame();
   }, durMs + 60);
 }
 
-async function playCorrect(videoPath) {
+export async function playCorrect(videoPath) {
   if (bloqueado) return;
   bloqueado = true;
 
-  // TRAVA cliques durante o acerto
   setQuizInteractivity(false);
-
-  // blackout ON
   correctOverlay.hidden = false;
 
   if (videoPath) {
@@ -307,7 +183,6 @@ async function playCorrect(videoPath) {
     };
     rewardVideo.addEventListener('ended', proximo);
   } else {
-    // sem vídeo: blackout curto
     setTimeout(avançar, 100);
   }
 }
@@ -319,7 +194,7 @@ function avançar() {
 
   quizIndex++;
   if (quizIndex < QUIZ_DECK.length) {
-    setQuizInteractivity(true); // reabilita para a próxima pergunta
+    setQuizInteractivity(true);
     renderQuestion();
   } else {
     fimDoQuiz();
@@ -327,7 +202,6 @@ function avançar() {
 }
 
 function fimDoQuiz() {
-  // mensagem rápida e reset automático (usa AUTO_RESET_DELAY)
   qTitle.textContent = "Parabéns! Você atravessou o corredor.";
   qOptions.innerHTML = "";
 
@@ -340,4 +214,17 @@ function fimDoQuiz() {
   setTimeout(() => {
     resetGame();
   }, CONFIG.AUTO_RESET_DELAY);
+}
+
+export function resetQuizUI() {
+  quizIndex = 0;
+  bloqueado = false;
+  if (quizSection) {
+    quizSection.hidden = true;
+    qOptions.innerHTML = "";
+    qTitle.textContent = "";
+    quizSection.style.pointerEvents = 'auto';
+  }
+  correctOverlay.hidden = true;
+  wrongFlash.hidden = true;
 }
