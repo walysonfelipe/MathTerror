@@ -1,11 +1,16 @@
 // ===================== CONTROLES BÁSICOS =====================
 export const startBtn = document.getElementById('startBtn');
+export const survivalBtn = document.getElementById('survivalBtn');
 export const fullscreenBtn = document.getElementById('fullscreenBtn');
 export const bgMusic = document.getElementById('bgMusic');
 export const bgVideo = document.getElementById('bgVideo');
 export const audioModal = document.getElementById('audioModal');
 export const audioEnableBtn = document.getElementById('audioEnableBtn');
 export const audioDismissBtn = document.getElementById('audioDismissBtn');
+
+export const statusBar = document.getElementById('statusBar');
+export const livesEl = document.getElementById('lives');
+export const scoreEl = document.getElementById('score');
 
 // ===================== STORY / CENA =====================
 export const scene1 = document.getElementById('scene1');
@@ -17,6 +22,7 @@ export const skipBtn = document.getElementById('skipBtn');
 
 // Áudios
 export const typeSfxEl = document.getElementById('typeSfx');
+export const pulseSfx = document.getElementById('pulseSfx');
 export const narration = document.getElementById('narration');
 
 // ===================== QUIZ ENGINE =====================

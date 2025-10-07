@@ -46,6 +46,8 @@
                     </svg>
                     Iniciar
                 </button>
+
+                <button id="survivalBtn" class="btn btn--blood">Modo Sobrevivência</button>
             </div>
         </div>
     </div>
@@ -98,11 +100,17 @@
     <!-- Flash de ERRO (imagem aleatória) -->
     <img id="wrongFlash" class="wrong-flash" alt="" hidden />
 
+    <div id="statusBar" class="status-bar" hidden>
+        <span id="lives">Vidas: 3</span>
+        <span id="score">Pontuação: 0</span>
+    </div>
+
     <!-- SFX: máquina de escrever -->
     <audio id="typeSfx" src="assets/audio/tip.mp3" preload="auto"></audio>
     <audio id="narration" src="assets/audio/Eleven.mp3" preload="auto"></audio>
     <audio id="jumpSfx" src="assets/audio/susto.mp3" preload="auto"></audio>
-    
+    <audio id="pulseSfx" src="assets/audio/pulse.mp3" preload="auto" loop></audio>
+
     <!-- Módulos JavaScript -->
     <script type="module" src="script.js"></script>
 </body>

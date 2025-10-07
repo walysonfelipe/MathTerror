@@ -613,3 +613,125 @@ body {
     transform: translate(-50%, -50%) scale(1.20) rotate(-1deg);
   }
 }
+
+/* ===== APENAS BOTÕES DO OVERLAY PRINCIPAL ===== */
+.controls .btn {
+  font-family: "Spectral SC", serif;
+  font-weight: 600;
+  border: 1px solid rgba(255, 0, 0, 0.45);
+  color: #fff;
+  padding: 10px 18px; /* 🔹 menor altura e largura */
+  border-radius: 10px;
+  font-size: clamp(14px, 2.2vw, 22px); /* 🔹 reduzido, mas ainda legível */
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: rgba(40, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  transition: all 0.25s ease;
+  box-shadow: 0 0 14px rgba(255, 0, 0, 0.12);
+}
+
+/* Sangue pulsante */
+.controls .btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 30, 30, 0.45), transparent 60%),
+              radial-gradient(circle at 70% 70%, rgba(100, 0, 0, 0.35), transparent 60%);
+  filter: blur(8px);
+  opacity: 0.45;
+  animation: btnBloodPulse 3s ease-in-out infinite alternate;
+}
+
+/* Reflexo no hover */
+.controls .btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+  transform: skewX(-25deg);
+  transition: all 0.5s ease;
+}
+
+/* Hover */
+.controls .btn:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+  border-color: rgba(255, 60, 60, 0.65);
+  filter: brightness(1.1);
+}
+
+.controls .btn:hover::after {
+  left: 120%;
+}
+
+/* Clique */
+.controls .btn:active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(0.9);
+}
+
+/* Pulso */
+@keyframes btnBloodPulse {
+  0% { opacity: 0.35; transform: scale(1); }
+  100% { opacity: 0.75; transform: scale(1.1); }
+}
+
+/* Botão principal “Iniciar” */
+.controls .btn--blood-primary {
+  background: rgba(150, 0, 0, 0.4);
+  border-color: rgba(255, 70, 70, 0.65);
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.18);
+}
+
+.controls .btn--blood-primary:hover {
+  background: rgba(200, 0, 0, 0.5);
+  border-color: rgba(255, 90, 90, 0.85);
+  box-shadow: 0 0 35px rgba(255, 0, 0, 0.28);
+}
+
+/* Botão secundário “Modo Sobrevivência” */
+.controls .btn--blood {
+  background: rgba(80, 0, 0, 0.4);
+  border-color: rgba(255, 0, 0, 0.4);
+}
+
+.controls .btn--blood:hover {
+  background: rgba(120, 0, 0, 0.5);
+  border-color: rgba(255, 60, 60, 0.7);
+}
+
+/* Responsividade: botões menores no mobile */
+@media (max-width: 480px) {
+  .controls .btn {
+    font-size: 14px;
+    padding: 8px 14px;
+    letter-spacing: 2px;
+  }
+}
+
+#statusBar {
+  position: fixed !important;
+  top: 10px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99999 !important; /* 🔹 mais alto que o quiz */
+  background: rgba(20, 0, 0, 0.85);
+  border: 1px solid rgba(255, 0, 0, 0.45);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-family: 'Spectral SC', serif;
+  font-size: clamp(14px, 2vw, 18px);
+  letter-spacing: 1px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+  pointer-events: none; /* impede que clique interfira no jogo */
+}
