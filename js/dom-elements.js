@@ -1,6 +1,7 @@
 // ===================== CONTROLES BÁSICOS =====================
 export const startBtn = document.getElementById('startBtn');
 export const survivalBtn = document.getElementById('survivalBtn');
+export const rankingBtn = document.getElementById('rankingBtn');
 export const fullscreenBtn = document.getElementById('fullscreenBtn');
 export const bgMusic = document.getElementById('bgMusic');
 export const bgVideo = document.getElementById('bgVideo');

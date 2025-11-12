@@ -13,7 +13,7 @@ export const CONFIG = {
 
   // Duração do jumpscare (imagem de erro) na tela, em ms
   // Ex.: 800 = rápido | 1200 = médio | 1800 = demorado
-  JUMPSCARE_DURATION_MS: 1800,
+  JUMPSCARE_DURATION_MS: 3000,
 
   // Tempo (ms) até resetar pro início após VENCER (o erro já reseta ao fim do jumpscare)
   AUTO_RESET_DELAY: 1800

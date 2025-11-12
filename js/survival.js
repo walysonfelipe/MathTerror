@@ -269,37 +269,224 @@ function endSurvival() {
   clearTimeout(survivalTimer);
   hideStatusBar();
   resetPulse();
-  // Atualiza UI com mensagem de fim
-  if (qTitle) qTitle.textContent = `Fim do Modo Sobrevivência!`; 
-  if (qOptions) {
-    qOptions.innerHTML = '';
-    const p = document.createElement('p');
-    p.style.opacity = '0.9';
-    p.style.margin = '8px 0 14px';
-    p.textContent = `Sua pontuação foi ${survivalScore}.`; 
-    qOptions.appendChild(p);
+
+  const playerName = window.currentPlayer || 'Jogador';
+  const scores = JSON.parse(localStorage.getItem('scores') || '[]');
+
+  // Salva pontuação
+  scores.push({ name: playerName, score: survivalScore, date: new Date().toISOString() });
+  scores.sort((a, b) => b.score - a.score);
+  const topScores = scores.slice(0, 10);
+  localStorage.setItem('scores', JSON.stringify(topScores));
+
+  // Limpa tela
+  qTitle.innerHTML = '';
+  qOptions.innerHTML = '';
+
+  // 🔻 Cria contêiner com mesmo estilo base da interface
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-inner';
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.alignItems = 'center';
+  wrap.style.justifyContent = 'center';
+  wrap.style.gap = '18px';
+  wrap.style.animation = 'fadeInUp 0.8s ease-out both';
+
+  // 🎬 Título principal
+  const title = document.createElement('h2');
+  title.textContent = '🩸 Fim do Modo Sobrevivência';
+  title.style.fontFamily = '"Creepster", cursive';
+  title.style.fontSize = '2.2rem';
+  title.style.color = '#ff1a1a';
+  title.style.textShadow = '0 0 25px rgba(255,0,0,.45)';
+  title.style.letterSpacing = '2px';
+  wrap.appendChild(title);
+
+  // 💀 Bloco com pontuação
+  const info = document.createElement('div');
+  info.innerHTML = `
+    <p style="font-size:1.3rem; letter-spacing:1px;">Jogador: <strong>${playerName}</strong></p>
+    <p style="font-size:1.3rem;">Pontuação: <strong style="color:#ff2c2c">${survivalScore}</strong></p>
+  `;
+  info.style.color = '#fff';
+  info.style.textAlign = 'center';
+  wrap.appendChild(info);
+
+  // 😈 Caso não tenha atingido 3 pontos
+  if (survivalScore < 3) {
+    const low = document.createElement('p');
+    low.textContent = 'Você não sobreviveu tempo suficiente... tente novamente!';
+    low.style.fontFamily = '"Spectral SC", serif';
+    low.style.color = '#ccc';
+    low.style.opacity = '.85';
+    low.style.textShadow = '0 0 8px #400';
+    low.style.fontSize = '1.1rem';
+    low.style.marginTop = '8px';
+    wrap.appendChild(low);
+  } else {
+    // 🏆 Ranking
+    const rankTitle = document.createElement('h3');
+    rankTitle.textContent = '🏆 Top 10 Sobreviventes';
+    rankTitle.style.fontFamily = '"Creepster", cursive';
+    rankTitle.style.color = '#ffcc00';
+    rankTitle.style.textShadow = '0 0 20px rgba(255,200,0,0.4)';
+    rankTitle.style.fontSize = '1.6rem';
+    rankTitle.style.marginTop = '10px';
+    wrap.appendChild(rankTitle);
+
+    const list = document.createElement('div');
+    list.style.width = '100%';
+    list.style.maxHeight = '200px';
+    list.style.overflowY = 'auto';
+    list.style.display = 'flex';
+    list.style.flexDirection = 'column';
+    list.style.gap = '8px';
+    list.style.marginTop = '6px';
+
+    topScores.forEach((s, i) => {
+      const medal = ['🥇', '🥈', '🥉'][i] || '🎯';
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.background = 'rgba(40,0,0,.45)';
+      row.style.border = '1px solid rgba(255,0,0,.25)';
+      row.style.borderRadius = '10px';
+      row.style.padding = '8px 14px';
+      row.style.transition = 'transform .25s ease';
+      row.style.fontSize = '1.05rem';
+      row.style.color = '#fff';
+
+      if (s.name === playerName && s.score === survivalScore) {
+        row.style.background = 'rgba(150,0,0,.55)';
+        row.style.boxShadow = '0 0 22px rgba(255,0,0,.25)';
+        row.style.transform = 'scale(1.02)';
+      }
+
+      row.innerHTML = `
+        <span>${medal} ${s.name}</span>
+        <span style="color:#ff2c2c;font-weight:600;">${s.score}</span>
+      `;
+
+      row.addEventListener('mouseover', () => (row.style.transform = 'scale(1.04)'));
+      row.addEventListener('mouseout', () => (row.style.transform = s.name === playerName ? 'scale(1.02)' : 'scale(1)'));
+
+      list.appendChild(row);
+    });
+
+    wrap.appendChild(list);
   }
-  // Resetar para tela inicial depois de um delay
-  setTimeout(() => {
-    resetGame();
-  }, SURVIVAL_RESET_DELAY);
+
+  // 🔁 Botão jogar novamente — usa classe global
+  const retry = document.createElement('button');
+  retry.className = 'btn btn--blood-primary';
+  retry.textContent = 'Jogar Novamente 🔄';
+  retry.style.marginTop = '20px';
+  retry.addEventListener('click', () => resetGame());
+  wrap.appendChild(retry);
+
+  qOptions.appendChild(wrap);
 }
+
+
+
 
 // ===================== FUNÇÃO DE INICIALIZAÇÃO =====================
 // Esta é a função pública que inicia o modo sobrevivência. Ela deve ser
 // importada e chamada a partir do script principal quando o usuário
 // selecionar o Modo Sobrevivência.
 export function startSurvival() {
-  // Configura estado inicial
-  survivalScore = 0;
-  survivalLives = SURVIVAL_LIVES;
-  survivalActive = true;
-  resetPulse();
-  buildSurvivalDeck();
-  // Mostra quiz e status bar
-  quizSection.hidden = false;
-  correctOverlay.hidden = true;
-  wrongFlash.hidden = true;
-  showStatusBar();
-  nextSurvivalQuestion();
+  // Sempre pede o nome de novo
+  showNameScreen((playerName) => {
+    // Configura estado inicial
+    survivalScore = 0;
+    survivalLives = SURVIVAL_LIVES;
+    survivalActive = true;
+    resetPulse();
+    buildSurvivalDeck();
+
+    // Guarda nome atual na memória temporária (não fixa)
+    window.currentPlayer = playerName;
+
+    // Mostra quiz e status bar
+    quizSection.hidden = false;
+    correctOverlay.hidden = true;
+    wrongFlash.hidden = true;
+    showStatusBar();
+    nextSurvivalQuestion();
+  });
 }
+
+
+
+
+// ===================== TELA DE NOME DO JOGADOR =====================
+function showNameScreen(onSubmit) {
+  // Evita duplicar
+  if (document.getElementById('nameScreen')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'nameScreen';
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.background = 'rgba(0,0,0,0.9)';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.zIndex = '9999';
+  overlay.style.color = '#fff';
+  overlay.style.fontFamily = 'Inter, sans-serif';
+  overlay.style.textAlign = 'center';
+  overlay.style.padding = '20px';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Digite seu nome para começar';
+  title.style.fontSize = '1.5rem';
+  title.style.marginBottom = '16px';
+  overlay.appendChild(title);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Seu nome...';
+  input.maxLength = 20;
+  input.style.padding = '10px 14px';
+  input.style.border = 'none';
+  input.style.borderRadius = '8px';
+  input.style.fontSize = '1rem';
+  input.style.marginBottom = '12px';
+  input.style.width = '220px';
+  input.style.textAlign = 'center';
+  overlay.appendChild(input);
+
+  const button = document.createElement('button');
+  button.textContent = 'Começar ▶';
+  button.style.background = '#e50914';
+  button.style.border = 'none';
+  button.style.color = '#fff';
+  button.style.padding = '10px 20px';
+  button.style.fontSize = '1rem';
+  button.style.borderRadius = '8px';
+  button.style.cursor = 'pointer';
+  button.style.transition = 'background 0.2s';
+  button.addEventListener('mouseover', () => (button.style.background = '#f6121d'));
+  button.addEventListener('mouseout', () => (button.style.background = '#e50914'));
+
+  overlay.appendChild(button);
+
+  button.addEventListener('click', () => {
+    const name = input.value.trim();
+    if (!name) {
+      input.style.border = '2px solid #f33';
+      input.focus();
+      return;
+    }
+    localStorage.setItem('playerName', name);
+    document.body.removeChild(overlay);
+    onSubmit(name);
+  });
+
+  document.body.appendChild(overlay);
+}
+

@@ -1,11 +1,12 @@
 // ===================== ATIVAÇÃO DE ÁUDIO =====================
 // ===================== IMPORTS DOS MÓDULOS =====================
-import { bgVideo, startBtn, survivalBtn, audioEnableBtn, audioDismissBtn } from './js/dom-elements.js';
+import { bgVideo, startBtn, survivalBtn, audioEnableBtn, audioDismissBtn, rankingBtn } from './js/dom-elements.js';
 import { initFullscreen, onFullscreenChange, hideModal } from './js/fullscreen.js';
 import { enableAudio } from './js/audio.js';
 import { hideHome } from './js/game-state.js';
 import { startScene1, initSceneEvents } from './js/scenes.js';
 import { startSurvival } from './js/survival.js';
+import { showRankingScreen } from './js/ranking.js';
 
 // ===================== INICIALIZAÇÃO GLOBAL =====================
 window.audioAtivo = false;
@@ -38,6 +39,10 @@ startBtn?.addEventListener('click', () => {
 survivalBtn?.addEventListener('click', () => {
   hideHome();
   startSurvival();
+});
+
+rankingBtn?.addEventListener('click', () => {
+   showRankingScreen();
 });
 
 
