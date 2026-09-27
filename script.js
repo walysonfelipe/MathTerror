@@ -15,8 +15,14 @@ function waitUntilPlayable(media) {
   return new Promise(resolve => {
     media.addEventListener('canplay', resolve, { once: true });
     media.addEventListener('error', resolve, { once: true });
+    // Com <source>, a falha dispara na última source, não no <video>
+    media.querySelector('source:last-of-type')?.addEventListener('error', resolve, { once: true });
   });
 }
+
+// Nunca prende a tela na logo (rede lenta, Safari segurando mídia etc.)
+const LOADING_TIMEOUT_MS = 5000;
+const timeout = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ===================== INICIALIZAÇÃO GLOBAL =====================
 window.audioAtivo = false;
@@ -24,10 +30,11 @@ window.audioAtivo = false;
 // Inicializa o vídeo de fundo
 bgVideo?.play().catch(() => { });
 
-// Inicia o carregamento da trilha e revela o menu assim que ambos estiverem prontos.
+// Inicia o carregamento da trilha, mas revela o menu só esperando o vídeo:
+// o Safari do iPhone não baixa áudio antes de um toque, então a música nunca ficaria "pronta".
 const bgMusic = document.getElementById('bgMusic');
 bgMusic?.load();
-Promise.all([waitUntilPlayable(bgVideo), waitUntilPlayable(bgMusic)]).then(() => {
+Promise.race([waitUntilPlayable(bgVideo), timeout(LOADING_TIMEOUT_MS)]).then(() => {
   document.body.classList.remove('is-loading');
   document.body.classList.add('is-ready');
 });
