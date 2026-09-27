@@ -1,7 +1,5 @@
-import { scene1, storyTextEl, continueBtn, storyScrollEl, bgVideo } from './dom-elements.js';
+import { bgVideo } from './dom-elements.js';
 import { stopAllAudio } from './audio.js';
-import { resetQuizUI } from './quiz.js';
-import { abortStoryTyping } from './story.js';
 import { stopRunnerMode } from './runner-mode.js';
 
 export function showHome() {
@@ -16,23 +14,8 @@ export function hideHome() {
   if (ov) ov.style.display = 'none';
 }
 
-export function resetStoryUI() {
-  if (storyTextEl) storyTextEl.textContent = "";
-  if (continueBtn) {
-    continueBtn.hidden = true;
-    continueBtn.classList.remove('is-visible');
-  }
-  if (storyScrollEl) storyScrollEl.scrollTop = 0;
-}
-
 export function resetGame() {
-  abortStoryTyping();
   stopRunnerMode();
   stopAllAudio();
-
-  if (scene1) scene1.hidden = true;
-  resetStoryUI();
-  resetQuizUI();
-
   showHome();
 }

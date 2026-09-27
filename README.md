@@ -18,25 +18,18 @@
 
 ---
 
-## 🕹️ Modos de Jogo
+## 🕹️ Fuga Infernal
 
-| Modo | Descrição |
-|------|-----------|
-| **🎬 Modo História** | Narrativa com efeito máquina de escrever e narração por voz. Responda os desafios para abrir as portas e avançar pelo corredor. |
-| **💀 Modo Sobrevivência** | Responda o máximo de questões antes de perder suas 3 vidas. Cronômetro de 15 segundos por questão, pontuação progressiva e jumpscares a cada erro. |
-| **🏆 Ranking** | Tabela com os 10 melhores resultados salvos localmente no navegador. |
+Um corredor infinito sobre plataformas de lava: pule os buracos e, a cada checkpoint, responda a questão antes que o boss alcance você. Acertou, a porta abre e a corrida continua; errou ou caiu, perde uma das 3 vidas.
 
 ---
 
 ## ✨ Funcionalidades
 
-- 🔊 **Áudio imersivo** — música de fundo, efeitos de digitação, narração e som de pulso que acelera conforme o tempo acaba
-- 👻 **Jumpscares** — imagens de terror surgem na tela ao errar uma resposta
-- 🎥 **Vídeos de recompensa** — ao acertar, uma animação especial é exibida
+- 🔊 **Áudio imersivo** — música de fundo, pulo, queda, porta abrindo e pulso que acelera conforme o boss se aproxima
 - ⛶ **Modo tela cheia** — experiência otimizada em fullscreen
 - 🔀 **Aleatorização** — perguntas e alternativas embaralhadas a cada partida
 - 📱 **Responsivo** — funciona em desktop e dispositivos móveis
-- ⌨️ **Atalhos de teclado** — responda com as teclas 1–4
 
 ---
 
@@ -48,23 +41,20 @@ MathTerror/
 ├── style.css               # Estilos e efeitos visuais
 ├── script.js               # Módulo de entrada (bootstrap)
 ├── js/
-│   ├── config.js           # Configurações gerais (velocidades, tempos)
+│   ├── config.js           # Configurações gerais (aleatorização)
 │   ├── dom-elements.js     # Referências aos elementos do DOM
 │   ├── quiz-data.js        # Banco de questões de Cálculo 1
-│   ├── quiz.js             # Lógica do quiz (modo história)
-│   ├── story.js            # Narrativa com efeito typewriter
-│   ├── survival.js         # Modo sobrevivência
-│   ├── ranking.js          # Sistema de ranking local
-│   ├── scenes.js           # Gerenciamento de cenas
-│   ├── audio.js            # Controle de áudio e SFX
+│   ├── runner-mode.js      # Fuga Infernal (corrida, boss, portas, questões)
+│   ├── hud.js              # Vidas e pontos
+│   ├── audio.js            # Música de fundo
 │   ├── fullscreen.js       # Toggle de tela cheia
 │   ├── game-state.js       # Estado global do jogo
 │   └── utils.js            # Funções utilitárias
 ├── assets/
 │   ├── audio/              # Músicas e efeitos sonoros
 │   ├── fonts/              # Tipografias temáticas
-│   ├── images/             # Logo, horror, imagens do quiz
-│   └── videos/             # Vídeos de intro e recompensa
+│   ├── images/             # Logo, sprites do jogo, HUD e imagens do quiz
+│   └── videos/             # Vídeo de fundo do menu
 └── README.md
 ```
 

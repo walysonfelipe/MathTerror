@@ -1,7 +1,4 @@
 // ===================== CONTROLES BÁSICOS =====================
-export const startBtn = document.getElementById('startBtn');
-export const survivalBtn = document.getElementById('survivalBtn');
-export const rankingBtn = document.getElementById('rankingBtn');
 export const runnerBtn = document.getElementById('runnerBtn');
 export const fullscreenBtn = document.getElementById('fullscreenBtn');
 export const bgMusic = document.getElementById('bgMusic');
@@ -14,23 +11,5 @@ export const statusBar = document.getElementById('statusBar');
 export const livesEl = document.getElementById('lives');
 export const scoreEl = document.getElementById('score');
 
-// ===================== STORY / CENA =====================
-export const scene1 = document.getElementById('scene1');
-export const storyTextEl = document.getElementById('storyText');
-export const storyScrollEl = document.querySelector('.story-scroll');
-export const char1 = document.getElementById('char1');
-export const continueBtn = document.getElementById('continueBtn');
-export const skipBtn = document.getElementById('skipBtn');
-
 // Áudios
-export const typeSfxEl = document.getElementById('typeSfx');
 export const pulseSfx = document.getElementById('pulseSfx');
-export const narration = document.getElementById('narration');
-
-// ===================== QUIZ ENGINE =====================
-export const quizSection = document.getElementById('quiz');
-export const qTitle = document.getElementById('qTitle');
-export const qOptions = document.getElementById('qOptions');
-export const correctOverlay = document.getElementById('correctOverlay');
-export const rewardVideo = document.getElementById('rewardVideo');
-export const wrongFlash = document.getElementById('wrongFlash');
