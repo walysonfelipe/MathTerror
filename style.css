@@ -157,3 +157,22 @@ body.is-ready .bg-video{animation:introVideoIn .55s ease-out both}
 .game-over-actions{display:flex}
 .game-over-actions .btn{width:auto;min-height:40px}
 }
+
+/* ===== MOBILE: áreas seguras (notch/câmera) com viewport-fit=cover =====
+   O cenário ocupa a tela inteira; HUD e pergunta ficam fora do notch. */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px),(orientation:landscape) and (max-height:500px){
+.runner,body{--safe-t:env(safe-area-inset-top,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);--safe-b:env(safe-area-inset-bottom,0px);--q-top:calc(12px + var(--safe-t) + var(--hud-w) * 104 / 761)}
+#statusBar.status-bar{top:calc(6px + var(--safe-t));left:calc(12px + var(--safe-l))}
+.game-header{top:calc(6px + var(--safe-t));right:calc(52px + var(--safe-r))}
+#fullscreenBtn{top:calc(6px + var(--safe-t));right:calc(12px + var(--safe-r))}
+.runner-question{left:calc(8px + var(--safe-l));right:calc(8px + var(--safe-r));bottom:calc(8px + var(--safe-b))}
+.overlay{padding-left:calc(24px + var(--safe-l));padding-right:calc(24px + var(--safe-r))}
+}
+.rotate-screen{padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))}
+/* Aberto pela Tela de Início já está em tela cheia: o botão não faz sentido */
+body.is-standalone #fullscreenBtn{display:none}
+body.is-standalone .game-header{right:calc(12px + env(safe-area-inset-right,0px))}
+
+/* ===== Vídeo de fundo no Safari: sem o botão nativo de play por cima ===== */
+.bg-video{pointer-events:none}
+.bg-video::-webkit-media-controls,.bg-video::-webkit-media-controls-start-playback-button,.bg-video::-webkit-media-controls-overlay-play-button{display:none!important;-webkit-appearance:none}

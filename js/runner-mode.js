@@ -5,7 +5,7 @@
 // Acertou: o boss recua e a corrida continua. Demorou demais: o boss pega a coruja.
 
 import { QUIZ } from './quiz-data.js';
-import { livesEl, scoreEl, statusBar, pulseSfx, audioModal } from './dom-elements.js';
+import { livesEl, scoreEl, statusBar, pulseSfx } from './dom-elements.js';
 import { needsRotation, isPhone } from './orientation.js';
 import { shuffleInPlace, cloneWithShuffledOptions, letterForIndex, isABCDLabel } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
@@ -257,8 +257,8 @@ function frame(now) {
   if (!active) return;
   const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
   lastTime = now;
-  // Celular em pé ou popup de áudio aberto: congela a corrida
-  if (needsRotation() || (audioModal && !audioModal.hidden)) {
+  // Celular em pé ou algum popup aberto: congela a corrida
+  if (needsRotation() || document.querySelector('.modal-backdrop:not([hidden])')) {
     raf = requestAnimationFrame(frame);
     return;
   }

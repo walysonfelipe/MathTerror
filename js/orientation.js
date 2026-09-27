@@ -16,6 +16,40 @@ export function needsRotation() {
   return portraitQuery.matches;
 }
 
+// Aberto pelo ícone da Tela de Início: já roda sem as barras do navegador.
+export function isStandalone() {
+  return navigator.standalone === true || window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+}
+
+function canFullscreen() {
+  const el = document.documentElement;
+  return !!(el.requestFullscreen || el.webkitRequestFullscreen);
+}
+
+// iPhone no Safari: sem tela cheia para páginas, o caminho é a Tela de Início.
+function needsInstallHint() {
+  return isPhone() && !canFullscreen() && !isStandalone();
+}
+
+const INSTALL_HINT_KEY = 'mathterror:install-hint-seen';
+
+export function showInstallHint() {
+  const modal = document.getElementById('installModal');
+  if (!modal) return;
+  modal.hidden = false;
+  setTimeout(() => document.getElementById('installDismissBtn')?.focus({ preventScroll: true }), 0);
+}
+
+// Mostra a dica sozinha só na primeira visita; depois fica no botão de tela cheia.
+export function maybeShowInstallHint() {
+  if (!needsInstallHint()) return;
+  try {
+    if (localStorage.getItem(INSTALL_HINT_KEY)) return;
+    localStorage.setItem(INSTALL_HINT_KEY, '1');
+  } catch { }
+  showInstallHint();
+}
+
 export function lockLandscape() {
   if (!isPhone()) return;
   screen.orientation?.lock?.('landscape').catch(() => { });
@@ -42,9 +76,19 @@ export function initOrientation() {
     if (isPhone()) enterFullscreenLandscape();
   }, { capture: true, once: true });
 
-  // iPhone não tem tela cheia para páginas: fica só o aviso para girar.
+  document.body.classList.toggle('is-standalone', isStandalone());
+
+  // iPhone não tem tela cheia para páginas: os botões explicam a Tela de Início.
   const rotateBtn = document.getElementById('rotateBtn');
-  const el = document.documentElement;
-  if (rotateBtn) rotateBtn.hidden = !(el.requestFullscreen || el.webkitRequestFullscreen);
-  rotateBtn?.addEventListener('click', enterFullscreenLandscape);
+  if (rotateBtn && isStandalone()) rotateBtn.hidden = true;
+  rotateBtn?.addEventListener('click', () => {
+    if (needsInstallHint()) showInstallHint();
+    else enterFullscreenLandscape();
+  });
+  document.getElementById('fullscreenBtn')?.addEventListener('click', () => {
+    if (needsInstallHint()) showInstallHint();
+  });
+  document.getElementById('installDismissBtn')?.addEventListener('click', () => {
+    document.getElementById('installModal').hidden = true;
+  });
 }

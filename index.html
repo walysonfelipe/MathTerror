@@ -3,11 +3,20 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>MathTerror</title>
     <meta name="description" content="Aprenda Cálculo 1 em um jogo de terror: corra, enfrente desafios de conjuntos, funções e gráficos e sobreviva ao MathTerror." />
     <link rel="canonical" href="https://mathterror.walysonassis.online/" />
     <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon.png" />
+
+    <!-- Tela cheia no iPhone: aberto pela Tela de Início roda sem as barras do Safari -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MathTerror" />
+    <meta name="theme-color" content="#08090a" />
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
@@ -41,9 +50,11 @@
     </div>
 
     <!-- Vídeo de background -->
-    <video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="auto">
+    <video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback>
+        <!-- Celular/tablet: versão leve (~5 MB) em mp4, que o Safari do iPhone toca -->
+        <source media="(pointer: coarse)" src="https://res.cloudinary.com/movierental/video/upload/q_auto:eco,w_960/v1790514018/inicio_lwek82.mp4" type="video/mp4" />
         <source src="https://res.cloudinary.com/movierental/video/upload/v1790514018/inicio_lwek82.webm" type="video/webm" />
-        <!-- Safari do iPhone: nem sempre toca webm -->
+        <!-- Safari no desktop: nem sempre toca webm -->
         <source src="https://res.cloudinary.com/movierental/video/upload/v1790514018/inicio_lwek82.mp4" type="video/mp4" />
         Seu navegador não suporta vídeo HTML5.
     </video>
@@ -92,6 +103,17 @@
         <h2 class="rotate-title" id="rotateTitle">Gire o celular</h2>
         <p class="rotate-text">MathTerror é jogado com o celular deitado.</p>
         <button id="rotateBtn" class="btn btn--blood-primary" type="button">Jogar em tela cheia</button>
+    </div>
+
+    <!-- iPhone: como jogar em tela cheia (Safari não tem tela cheia para sites) -->
+    <div id="installModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="installTitle" hidden>
+        <div class="modal">
+            <h2 class="modal-title" id="installTitle">Jogar em tela cheia</h2>
+            <p class="modal-text">No iPhone, toque em <strong>Compartilhar</strong> <span aria-hidden="true">(□↑)</span> e depois em <strong>Adicionar à Tela de Início</strong>. Abra o MathTerror pelo ícone criado para jogar sem as barras do Safari.</p>
+            <div class="modal-actions">
+                <button id="installDismissBtn" class="btn btn--blood-primary" type="button">Entendi</button>
+            </div>
+        </div>
     </div>
 
     <!-- Áudio de fundo -->
