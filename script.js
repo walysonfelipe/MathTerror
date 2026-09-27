@@ -1,5 +1,5 @@
 // ===================== IMPORTS DOS MÓDULOS =====================
-import { bgVideo, runnerBtn } from './js/dom-elements.js';
+import { bgVideo, gameVideo, runnerBtn } from './js/dom-elements.js';
 import { initFullscreen, onFullscreenChange } from './js/fullscreen.js';
 import { isAudioEnabled, setAudioEnabled, onAudioChange } from './js/audio.js';
 import { hideHome } from './js/game-state.js';
@@ -25,22 +25,19 @@ const LOADING_TIMEOUT_MS = 5000;
 const timeout = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // ===================== INICIALIZAÇÃO GLOBAL =====================
-// Inicializa o vídeo de fundo. O Safari (ex.: Modo Pouca Energia) pode barrar o
-// autoplay; nesse caso tenta de novo a cada toque/clique até o vídeo rodar.
+// Inicializa o vídeo de fundo. O Safari (ex.: Modo Pouca Energia, app em segundo plano)
+// pode barrar ou pausar o autoplay; cada toque/clique retoma o vídeo que está aparecendo
+// (menu ou partida).
 function playBgVideo() {
-  if (!bgVideo || !bgVideo.paused) return;
-  bgVideo.muted = true;
-  bgVideo.play().catch(() => { });
+  const video = document.body.classList.contains('in-game') ? gameVideo : bgVideo;
+  if (!video || !video.paused) return;
+  video.muted = true;
+  video.play().catch(() => { });
 }
 playBgVideo();
 ['pointerdown', 'touchend', 'click'].forEach(type => {
   document.addEventListener(type, playBgVideo, { capture: true, passive: true });
 });
-bgVideo?.addEventListener('playing', () => {
-  ['pointerdown', 'touchend', 'click'].forEach(type => {
-    document.removeEventListener(type, playBgVideo, { capture: true });
-  });
-}, { once: true });
 
 // Revela o menu só esperando o vídeo: a trilha toca em streaming quando o som liga.
 Promise.race([waitUntilPlayable(bgVideo), timeout(LOADING_TIMEOUT_MS)]).then(() => {

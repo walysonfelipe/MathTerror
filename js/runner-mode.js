@@ -19,6 +19,7 @@ const QUESTION_SECONDS = 30;     // tempo da barra encher (boss pega a coruja), 
 const BOSS_APPEAR_AT = 0.7;      // o boss só entra na tela quando a barra passa de 70%
 const ERROR_SPEEDUP = 0.75;      // cada erro deixa o boss 75% mais rápido nesta questão
 const WRONG_PENALTY = 0.1;       // saltinho para frente a cada erro (0–1)
+const MAX_ERRORS = 3;            // 3 erros na mesma pergunta: o boss pega a coruja (fim de partida)
 const SPEED_START = 330;         // unidades/segundo
 const SPEED_GAIN = 1.08;         // aumento de velocidade a cada checkpoint
 const GRAVITY = 2600;
@@ -894,7 +895,7 @@ function answer(correct, button) {
     updateStatusBar();                                // coração da vez esvazia mais um pouco
     currentDoor().rattleAt = clock;
     boss.progress = Math.min(1, boss.progress + WRONG_PENALTY);
-    if (boss.progress >= 1) caught();
+    if (errors >= MAX_ERRORS || boss.progress >= 1) caught();
     else if (boss.mode === 'stalk') bossLeap(bossTargetX());   // salta para frente e ruge
   }
 }

@@ -3,6 +3,7 @@ export const runnerBtn = document.getElementById('runnerBtn');
 export const fullscreenBtn = document.getElementById('fullscreenBtn');
 export const bgMusic = document.getElementById('bgMusic');
 export const bgVideo = document.getElementById('bgVideo');
+export const gameVideo = document.getElementById('gameVideo');
 
 export const statusBar = document.getElementById('statusBar');
 export const livesEl = document.getElementById('lives');

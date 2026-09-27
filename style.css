@@ -211,3 +211,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 @media(pointer:coarse) and (orientation:landscape) and (max-height:600px),(orientation:landscape) and (max-height:500px){
 .runner-question.is-game-over{--go-top:var(--q-top)}
 }
+
+/* ===== Fundo da partida: game-bg.mp4 aparece com fade só durante o jogo ===== */
+.game-video{opacity:0;transition:opacity .6s ease;filter:brightness(.9) contrast(1.08) saturate(1.1)}   /* mais claro que o do menu: o canvas já escurece por cima */
+body.is-ready .game-video{animation:none}
+body.in-game .game-video{opacity:1}
