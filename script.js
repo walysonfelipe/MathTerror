@@ -4,6 +4,7 @@ import { initFullscreen, onFullscreenChange, hideModal } from './js/fullscreen.j
 import { enableAudio } from './js/audio.js';
 import { hideHome } from './js/game-state.js';
 import { startRunnerMode } from './js/runner-mode.js';
+import { initOrientation } from './js/orientation.js';
 
 // Mantém só a logo na tela até vídeo e música poderem começar a tocar.
 function waitUntilPlayable(media) {
@@ -33,6 +34,7 @@ Promise.all([waitUntilPlayable(bgVideo), waitUntilPlayable(bgMusic)]).then(() =>
 
 // Inicializa módulos
 initFullscreen();
+initOrientation();
 
 // ===================== ATIVAÇÃO DE ÁUDIO =====================
 audioEnableBtn?.addEventListener('click', async () => {

@@ -1,4 +1,5 @@
 import { fullscreenBtn, audioModal, audioEnableBtn } from './dom-elements.js';
+import { lockLandscape } from './orientation.js';
 
 let modalJaMostradoNesteFS = false;
 
@@ -26,6 +27,8 @@ export function onFullscreenChange() {
     modalJaMostradoNesteFS = false;
     return;
   }
+
+  lockLandscape();
 
   if (!window.audioAtivo && !modalJaMostradoNesteFS) {
     modalJaMostradoNesteFS = true;

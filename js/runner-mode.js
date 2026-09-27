@@ -5,7 +5,8 @@
 // Acertou: o boss recua e a corrida continua. Demorou demais: o boss pega a coruja.
 
 import { QUIZ } from './quiz-data.js';
-import { livesEl, scoreEl, statusBar, pulseSfx } from './dom-elements.js';
+import { livesEl, scoreEl, statusBar, pulseSfx, audioModal } from './dom-elements.js';
+import { needsRotation, isPhone } from './orientation.js';
 import { shuffleInPlace, cloneWithShuffledOptions, letterForIndex, isABCDLabel } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
 import { renderLives, renderScore, resetLives } from './hud.js';
@@ -256,6 +257,11 @@ function frame(now) {
   if (!active) return;
   const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
   lastTime = now;
+  // Celular em pé ou popup de áudio aberto: congela a corrida
+  if (needsRotation() || (audioModal && !audioModal.hidden)) {
+    raf = requestAnimationFrame(frame);
+    return;
+  }
   clock += dt;
   stateTime += dt;
   update(dt);
@@ -1039,7 +1045,7 @@ export function startRunnerMode() {
   root.className = 'runner';
   root.innerHTML = `
     <canvas class="runner-canvas" aria-label="Coruja correndo pelas plataformas"></canvas>
-    <p class="runner-hint">ESPAÇO, ↑ ou toque para pular · ESC para sair</p>
+    <p class="runner-hint">${isPhone() ? 'TOQUE NA TELA PARA PULAR' : 'ESPAÇO, ↑ ou toque para pular · ESC para sair'}</p>
     <section class="runner-question" hidden></section>`;
   document.body.appendChild(root);
   canvas = root.querySelector('canvas');

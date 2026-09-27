@@ -92,3 +92,68 @@ body.is-ready .bg-video{animation:introVideoIn .55s ease-out both}
 @keyframes introLogoIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 @keyframes introVideoIn{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.loading-logo{animation:none}.loading-intro,body.is-ready .bg-video{transition:none;animation:none}}
+
+/* ===== MOBILE: aviso para deitar o celular (js/orientation.js) ===== */
+.rotate-screen{display:none}
+@media(pointer:coarse) and (orientation:portrait) and (max-width:600px){
+.rotate-screen{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 38%,#4a1215 0,#08090a 70%)}
+.rotate-phone{width:54px;height:92px;margin-bottom:18px;border:3px solid #e9e6de;border-radius:10px;box-shadow:0 0 22px #df302e88;animation:rotatePhone 2.2s ease-in-out infinite}
+.rotate-title{font:700 20px Montserrat,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#f1e8df}
+.rotate-text{font:12px var(--mono);line-height:1.6;color:var(--muted);max-width:260px}
+.rotate-screen .btn{margin-top:10px;font:11px var(--mono);letter-spacing:1px}
+}
+@keyframes rotatePhone{0%,20%{transform:rotate(0)}55%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@media(prefers-reduced-motion:reduce){.rotate-phone{animation:none;transform:rotate(-90deg)}}
+
+/* ===== MOBILE DEITADO: HUD, botões e menu =====
+   Celular deitado = tela de toque em paisagem com pouca altura, ou qualquer tela
+   deitada com até 500px de altura (simuladores). Desktop não entra aqui.
+   HUD separado: VIDAS/PONTOS no canto esquerdo, som e tela cheia no direito. */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px),(orientation:landscape) and (max-height:500px){
+.runner,body{--hud-w:clamp(170px,27vw,220px);--q-top:calc(12px + var(--hud-w) * 104 / 761)}
+#statusBar.status-bar{top:6px;bottom:auto;left:12px;right:auto;transform:none;width:var(--hud-w)}
+.game-header{top:6px;left:auto;right:52px;gap:0}
+#soundBtn{width:74px;height:26px}
+#fullscreenBtn{top:6px;right:12px;width:31px;height:26px}
+.runner-hint{bottom:44px;font-size:9px;letter-spacing:1px}
+.overlay{padding:44px 24px 12px}
+.game-menu{max-width:340px}
+.logo{width:auto;max-width:min(300px,100%);max-height:calc(100dvh - 130px);margin:0 auto 14px}
+.menu-choice{min-height:48px;padding:8px 14px}
+.menu-choice strong{font-size:12px}
+.modal-backdrop{padding:12px}
+.modal{padding:16px 20px;max-height:calc(100dvh - 24px)}
+.modal-title{font-size:18px;margin:0 0 8px}
+.modal-text{font-size:12px;line-height:1.5;margin-bottom:14px}
+.modal-actions .btn{min-height:40px;padding:8px 14px}
+}
+
+/* ===== MOBILE DEITADO: pergunta ocupa a tela toda abaixo do HUD, sem rolagem ===== */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px),(orientation:landscape) and (max-height:500px){
+.runner-question{top:var(--q-top);bottom:8px;left:8px;right:8px;transform:none;width:auto;height:auto;max-height:none;display:flex;flex-direction:column;overflow-y:auto;padding:10px 14px}
+.runner:has(.runner-question:not([hidden])) .runner-hint{opacity:0}
+.runner-question-head{gap:10px;margin-bottom:6px}
+.runner-question-head .hud-label{font-size:8px;letter-spacing:1.5px}
+.runner-question-head progress{height:4px;margin-top:0}
+.runner-question .quiz-title{font-size:clamp(14px,4.4dvh,18px);line-height:1.35;margin:0 0 8px}
+/* Respostas crescem para preencher o espaço: alvos grandes para o dedo */
+.quiz-options{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);gap:8px}
+.quiz-options .btn{min-height:40px;font-size:clamp(13px,4dvh,16px);padding:6px 14px}
+/* Alternativas com gráfico: quatro lado a lado e imagem limitada à altura que sobra */
+.quiz-options:has(.option-figure){grid-template-columns:repeat(4,1fr)}
+.quiz-options:has(.option-figure) .btn{padding:6px;min-height:0;display:flex}
+.option-figure{gap:4px;width:100%;min-height:0;grid-template-rows:minmax(0,1fr) auto}
+.option-image{height:100%;max-height:none;min-height:0;background:none}
+.option-caption{font-size:11px}
+.quiz-image{max-height:28dvh;margin:6px auto}
+.answer-feedback{margin-top:6px;min-height:14px;font-size:10px}
+/* Fim de partida: centralizado e compacto */
+.runner-question.is-game-over{top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);display:block;width:min(460px,calc(100% - 24px));max-height:calc(100dvh - 16px)}
+.game-over-card{padding:16px 20px}
+.game-over-card:before{font-size:120px;top:-22px}
+.game-over-title{font-size:22px;margin:8px 0 4px}
+.game-over-result{margin:10px 0 12px;padding:8px;gap:18px}
+.game-over-result strong{font-size:34px}
+.game-over-actions{display:flex}
+.game-over-actions .btn{width:auto;min-height:40px}
+}
