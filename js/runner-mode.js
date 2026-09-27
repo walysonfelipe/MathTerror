@@ -855,7 +855,8 @@ function renderQuestion(node) {
     btn.addEventListener('click', () => answer(i === node.answer, btn));
     options.appendChild(btn);
   });
-  requestAnimationFrame(() => options.querySelector('button')?.focus({ preventScroll: true }));
+  // Foco automático é para teclado; no celular o contorno parecia resposta já marcada
+  if (!isPhone()) requestAnimationFrame(() => options.querySelector('button')?.focus({ preventScroll: true }));
 }
 
 function updateThreatLabel() {
@@ -1002,7 +1003,7 @@ function gameOver(reason) {
     startRunnerMode();
   });
   panel.querySelector('[data-action="home"]').addEventListener('click', resetGame);
-  requestAnimationFrame(() => retry.focus({ preventScroll: true }));
+  if (!isPhone()) requestAnimationFrame(() => retry.focus({ preventScroll: true }));
 }
 
 // ===================== INÍCIO / PARADA =====================
@@ -1039,6 +1040,8 @@ export function startRunnerMode() {
   panel = root.querySelector('.runner-question');
   hint = root.querySelector('.runner-hint');
   canvas.addEventListener('pointerdown', onPointerDown);
+  // Toques rápidos no canvas não podem virar seleção/zoom do navegador (Safari)
+  canvas.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('resize', resize);
   resize();

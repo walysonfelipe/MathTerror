@@ -176,3 +176,9 @@ body.is-standalone .game-header{right:calc(12px + env(safe-area-inset-right,0px)
 /* ===== Vídeo de fundo no Safari: sem o botão nativo de play por cima ===== */
 .bg-video{pointer-events:none}
 .bg-video::-webkit-media-controls,.bg-video::-webkit-media-controls-start-playback-button,.bg-video::-webkit-media-controls-overlay-play-button{display:none!important;-webkit-appearance:none}
+
+/* ===== Toques no celular: sem seleção azul, sem menu de imagem, sem zoom de toque duplo =====
+   Tocar rápido (pular) fazia o navegador selecionar textos/imagens como um "Ctrl+A". */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+img,video,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
+input,textarea{-webkit-user-select:text;user-select:text}
