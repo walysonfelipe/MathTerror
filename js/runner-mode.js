@@ -23,15 +23,19 @@ const GRAVITY = 2600;
 const JUMP_VELOCITY = -1080;
 
 // ===================== SPRITES =====================
-// owl-sheet.webp: grade 4x4 de 254x214, quadros alinhados pelos pés.
-const OWL = { src: 'assets/images/owl-sheet.webp', w: 254, h: 214, cols: 4 };
+// owl-sheet.webp: grade 4x4 de 312x270, de perfil olhando para a direita.
+// Quadros alinhados pelos pés (base) e pelo centro do corpo (horizontal).
+// Linha 1: 0 parada · 1 piscando · 2 olho fechado · 3 passada
+// Linhas 2–3: corrida, 3 quadros por passo (passada → apoio → impulso), trocando de pé
+// Linha 4: pulo — 12 agacha · 13 decola · 14 no ar (asas abertas) · 15 aterrissa
+const OWL = { src: 'assets/images/owl-sheet.webp', w: 312, h: 270, cols: 4 };
 const OWL_ANIMS = {
-  idle: { frames: [0, 0, 0, 3, 0, 0, 1, 2, 1, 0], fps: 6 },  // parada, piscando
-  // corrida (4 pé direito à frente · 5 passagem · 6 pé esquerdo à frente · 7 passagem):
-  // controlada pela distância percorrida em drawOwl, não pelo relógio.
-  flap: { frames: [8, 9, 10, 11, 10, 9], fps: 14 },          // comemorando / assustada
-  // pulo (escolhido pela física em owlPose): 12 agacha · 13 subindo · 14 descendo · 15 aterrissando
+  idle: { frames: [0, 0, 0, 0, 0, 1, 2, 1, 0, 0], fps: 6 },  // parada, piscando
 };
+// Corrida controlada pela distância percorrida, não pelo relógio.
+// Passo 1: 3 → 4 → 5 · passo 2: 6 → 7 → 8 · passo 3: 9 → 10 → 11
+const RUN_FRAMES = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+const RUN_STEP = 3;                  // quadros por passo
 // ground-sheet.webp: grade 3x4 de 244x108, alinhados pelo topo da plataforma.
 const GROUND = { src: 'assets/images/ground-sheet.webp', w: 244, h: 108, cols: 3, count: 12 };
 // boss-sheet.webp: grade 4x4 de 258x235, pés no chão e bico alinhado. Olha para a direita.
@@ -84,15 +88,12 @@ const BOSS_RETREAT_SPEED = 320;      // fugindo depois de levar um acerto
 const BOSS_STRIDE = 14;              // unidades por quadro de caminhada
 const BOSS_GRAVITY = 3200;
 const BOSS_LEAP_TIME = 0.6;          // tempo no ar de cada salto
-const RUN_FRAMES = [4, 5, 6, 7];
-const STRIDE = 26;                   // unidades percorridas por quadro de corrida (evita pé deslizando)
+const STRIDE = 18;                   // unidades percorridas por quadro de corrida (evita pé deslizando)
 const RUN_BOB = 7;                   // quanto o corpo sobe na passagem entre os passos
 const CROUCH_TIME = 0.08;            // agachada antes de sair do chão (quadro 12)
 const LAND_TIME = 0.16;              // aterrissagem antes de voltar a correr (quadro 15)
 const JUMP_BUFFER = 0.15;            // aperto logo antes de tocar o chão já vale como pulo
-// Deslocamento horizontal (px da folha) que põe o bico de cada quadro na mesma
-// posição da corrida; sem isso a cabeça "pula" para frente no quadro 13.
-const FRAME_DX = { 12: 7, 13: -38, 14: -3, 15: 11 };
+const HOP_TIME = CELEBRATE_TIME;      // um pulinho de comemoração parado no lugar
 
 const images = {};
 function loadImage(src) {
@@ -193,6 +194,7 @@ function launch() {
   owl.jumpedAt = clock;
   owl.jumping = true;
   kickDust(6, -1);
+  playJumpSfx();
 }
 
 function kickDust(count, direction) {
@@ -302,8 +304,13 @@ function update(dt) {
       kickDust(8, 1);
       if (state === 'run' && clock - owl.bufferedAt < JUMP_BUFFER) owl.crouchAt = clock;
       owl.bufferedAt = -1;
-    } else if (owl.y > viewH + OWL_H) {
-      fellInPit();
+    } else {
+      // Passou da altura do chão sem plataforma embaixo: não tem mais como pousar
+      if (!fallSounded && owl.y > groundY + 4) {
+        fallSounded = true;
+        playFallSfx();
+      }
+      if (owl.y > viewH + OWL_H) fellInPit();
     }
   }
 
@@ -323,7 +330,10 @@ function update(dt) {
   } else if (state === 'resume') {
     // Acertou: comemora, a porta abre, a coruja entra e sai do outro lado
     const door = currentDoor();
-    if (stateTime >= CELEBRATE_TIME && door.openAt < 0) door.openAt = clock;
+    if (stateTime >= CELEBRATE_TIME && door.openAt < 0) {
+      door.openAt = clock;
+      playDoorSfx();
+    }
     if (stateTime >= ENTER_START) {
       const k = Math.min(1, (stateTime - ENTER_START) / ENTER_TIME);
       const before = owl.x;
@@ -365,7 +375,8 @@ function fellInPit() {
     gameOver('A coruja caiu na lava.');
     return;
   }
-  // Renasce caindo do céu na próxima plataforma segura.
+  // Renasce caindo do céu na próxima plataforma segura. O assobio da queda para aqui.
+  stopFallSfx();
   const next = segments.find(seg => seg.x + seg.w > owl.x + OWL_W) || segments[segments.length - 1];
   owl.x = Math.min(markerX, Math.max(owl.x, next.x + TILE_W * 0.6));
   owl.y = -OWL_H;
@@ -374,6 +385,7 @@ function fellInPit() {
   owl.crouchAt = -1;
   owl.jumping = false;
   owl.invulnerableUntil = clock + 1.5;
+  fallSounded = false;
 }
 
 // ===================== DESENHO =====================
@@ -433,7 +445,17 @@ function owlPose() {
     const a = OWL_ANIMS[name];
     return { frame: a.frames[Math.floor(time * a.fps) % a.frames.length] };
   };
-  if (state === 'caught' || state === 'over') return loop('flap', stateTime);
+  // Pulinho no lugar: agacha, sobe de asas abertas e aterrissa
+  const hop = time => {
+    const p = (time / HOP_TIME) % 1;
+    const air = Math.min(1, Math.max(0, (p - 0.12) / 0.72));
+    const frame = p < 0.12 ? 12 : p < 0.4 ? 13 : p < 0.84 ? 14 : 15;
+    return { frame, bob: Math.sin(Math.PI * air) * 34 };
+  };
+  // Pega pelo boss / fim de jogo: encolhida, tremendo
+  if (state === 'caught' || state === 'over') {
+    return { frame: 12, sx: 1 + Math.sin(clock * 45) * 0.02, sy: 0.97 };
+  }
 
   // 1) Começando a pular: agacha no chão
   if (owl.crouchAt >= 0) {
@@ -464,22 +486,24 @@ function owlPose() {
     };
   }
 
-  if (state === 'resume' && stateTime < ENTER_START) return loop('flap', stateTime);
-  if (state === 'checkpoint') return answering ? loop('flap', stateTime) : loop('idle', stateTime);
+  if (state === 'resume' && stateTime < CELEBRATE_TIME) return hop(stateTime);
+  if (state === 'resume' && stateTime < ENTER_START) return loop('idle', 0);
+  if (state === 'checkpoint') return loop('idle', stateTime);
 
-  // 4) Correndo: passos acompanham o chão, corpo sobe na passagem e balança
+  // 4) Correndo: a cada passo o corpo sobe na passada e desce no apoio, trocando de pé
   const n = RUN_FRAMES.length;
   const current = Math.floor(runPhase) % n;
-  const step = Math.sin(Math.PI * runPhase / 2);      // 0 no apoio, ±1 na passagem
-  const planted = 1 - step * step;
+  const stepPhase = (runPhase % RUN_STEP) / RUN_STEP;  // 0 → 1 dentro do passo
+  const lift = Math.cos(Math.PI * stepPhase) ** 2;     // 1 na passada · 0 no apoio
+  const planted = 1 - lift;
   return {
     frame: RUN_FRAMES[current],
     next: RUN_FRAMES[(current + 1) % n],
-    blend: Math.max(0, (runPhase % 1 - 0.65) / 0.35),
-    bob: RUN_BOB * step * step,
-    rot: (4 + step * 2.5) * deg,
-    sx: 1 + planted * 0.025,
-    sy: 1 - planted * 0.03,
+    blend: Math.max(0, (runPhase % 1 - 0.7) / 0.3),
+    bob: RUN_BOB * lift,
+    rot: (1.5 + lift * 1.5) * deg,
+    sx: 1 + planted * 0.02,
+    sy: 1 - planted * 0.025,
   };
 }
 
@@ -522,8 +546,7 @@ function drawOwl() {
     ctx.globalAlpha = alpha * owlAlpha;
     const sx = (frame % OWL.cols) * OWL.w;
     const sy = Math.floor(frame / OWL.cols) * OWL.h;
-    const dx = (FRAME_DX[frame] || 0) * OWL_W / OWL.w;
-    ctx.drawImage(img, sx, sy, OWL.w, OWL.h, -OWL_W / 2 + dx, -OWL_H + pivotY - (pose.bob || 0), OWL_W, OWL_H);
+    ctx.drawImage(img, sx, sy, OWL.w, OWL.h, -OWL_W / 2, -OWL_H + pivotY - (pose.bob || 0), OWL_W, OWL_H);
   };
   if (pose.blend >= 1) {
     drawFrame(pose.next, 1);
@@ -903,6 +926,44 @@ function grabFrameStart(frame) {
 }
 
 // ===================== ÁUDIO =====================
+const doorSfx = new Audio('assets/audio/porta.mp3');
+const owlJumpSfx = new Audio('assets/audio/jump.mp3');
+const fallSfx = new Audio('assets/audio/voicebosch-falling-whistle-cartoon-180579.mp3');
+const FALL_SFX_START = 0.55;         // pula o silêncio do começo do arquivo
+const FALL_SFX_END = 4;              // quedas que ainda deixam vida: corta no segundo 4
+const FALL_SFX_END_LAST = 9;         // queda que tira a última vida: vai até o segundo 9
+let fallSounded = false;             // o assobio já tocou nesta queda
+let fallSfxEnd = FALL_SFX_END;
+
+fallSfx.addEventListener('timeupdate', () => {
+  if (fallSfx.currentTime >= fallSfxEnd) stopFallSfx();
+});
+
+function playFallSfx() {
+  if (!window.audioAtivo) return;
+  // Toca antes de descontar a vida: com 1 vida restante, esta é a queda final
+  fallSfxEnd = lives <= 1 ? FALL_SFX_END_LAST : FALL_SFX_END;
+  fallSfx.currentTime = FALL_SFX_START;
+  fallSfx.play().catch(() => { });
+}
+
+function stopFallSfx() {
+  fallSfx.pause();
+  fallSfx.currentTime = 0;
+}
+
+function playJumpSfx() {
+  if (!window.audioAtivo) return;
+  owlJumpSfx.currentTime = 0;
+  owlJumpSfx.play().catch(() => { });
+}
+
+function playDoorSfx() {
+  if (!window.audioAtivo) return;
+  doorSfx.currentTime = 0;
+  doorSfx.play().catch(() => { });
+}
+
 function updatePulse() {
   if (!pulseSfx || !window.audioAtivo) return;
   pulseSfx.loop = true;
@@ -961,6 +1022,8 @@ export function stopRunnerMode() {
   active = false;
   cancelAnimationFrame(raf);
   resetPulse();
+  stopFallSfx();
+  fallSounded = false;
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('resize', resize);
   root?.remove();
