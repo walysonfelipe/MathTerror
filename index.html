@@ -10,8 +10,8 @@
     <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon.png" />
 
     <!-- Tela cheia no iPhone: aberto pela Tela de Início roda sem as barras do Safari -->
-    <link rel="manifest" href="manifest.json" />
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icon-180.png" />
+    <link rel="manifest" href="manifest.json?v=2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icon-180.png?v=2" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -85,18 +85,6 @@
         
     </main>
 
-    <!-- Popup para ativar áudio (só em fullscreen) -->
-    <div id="audioModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="audioTitle" hidden>
-        <div class="modal">
-            <h2 class="modal-title" id="audioTitle">Ativar Áudio?</h2>
-            <p class="modal-text">Recomendado usar fones. O som fica melhor em tela cheia.</p>
-            <div class="modal-actions">
-                <button id="audioEnableBtn" class="btn btn--blood-primary">Ativar Áudio</button>
-                <button id="audioDismissBtn" class="btn btn--blood-ghost">Continuar sem áudio</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Aviso para deitar o celular (só aparece em celular na vertical) -->
     <div id="rotateScreen" class="rotate-screen" role="alertdialog" aria-labelledby="rotateTitle">
         <div class="rotate-phone" aria-hidden="true"></div>
@@ -116,16 +104,14 @@
         </div>
     </div>
 
-    <!-- Áudio de fundo -->
-    <audio id="bgMusic" src="https://res.cloudinary.com/movierental/video/upload/v1790514088/fundo_kqv5is.mp3" preload="auto" loop></audio>
+    <!-- Trilha de fundo (32 MB; no celular js/audio.js troca pela versão de 96 kbps) — toca em streaming -->
+    <audio id="bgMusic" src="https://res.cloudinary.com/movierental/video/upload/v1790514088/fundo_kqv5is.mp3" preload="metadata" loop></audio>
 
     <div id="statusBar" class="status-bar" aria-label="Status da partida" hidden>
         <div class="vitality-widget"><span class="hud-label">VIDAS</span><span id="lives" class="life-pips" role="img" aria-label="3 vidas"></span></div>
         <div class="score-widget"><span class="hud-label">PONTOS</span><span id="score" class="score-value">0</span></div>
     </div>
 
-    <audio id="jumpSfx" src="assets/audio/susto.mp3" preload="auto"></audio>
-    <audio id="pulseSfx" src="assets/audio/pulse.mp3" preload="auto" loop></audio>
 
     <!-- Módulos JavaScript -->
     <script type="module" src="script.js"></script>

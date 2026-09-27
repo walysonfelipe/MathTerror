@@ -1,41 +1,14 @@
-import { fullscreenBtn, audioModal, audioEnableBtn } from './dom-elements.js';
+import { fullscreenBtn } from './dom-elements.js';
 import { lockLandscape } from './orientation.js';
-
-let modalJaMostradoNesteFS = false;
 
 export function isFullscreen() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
 
-export function showModal() {
-  if (!audioModal) return;
-  audioModal.hidden = false;
-  if (audioEnableBtn) setTimeout(() => audioEnableBtn.focus({ preventScroll: true }), 0);
-}
-
-export function hideModal() {
-  if (!audioModal) return;
-  audioModal.hidden = true;
-}
-
 export function onFullscreenChange() {
   const ativo = isFullscreen();
   fullscreenBtn?.setAttribute('aria-pressed', ativo ? 'true' : 'false');
-
-  if (!ativo) {
-    hideModal();
-    modalJaMostradoNesteFS = false;
-    return;
-  }
-
-  lockLandscape();
-
-  if (!window.audioAtivo && !modalJaMostradoNesteFS) {
-    modalJaMostradoNesteFS = true;
-    setTimeout(() => {
-      if (isFullscreen() && !window.audioAtivo) showModal();
-    }, 120);
-  }
+  if (ativo) lockLandscape();
 }
 
 export function initFullscreen() {

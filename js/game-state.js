@@ -1,5 +1,5 @@
 import { bgVideo } from './dom-elements.js';
-import { stopAllAudio } from './audio.js';
+import { stopAllEffects } from './audio.js';
 import { stopRunnerMode } from './runner-mode.js';
 
 export function showHome() {
@@ -16,6 +16,6 @@ export function hideHome() {
 
 export function resetGame() {
   stopRunnerMode();
-  stopAllAudio();
+  stopAllEffects();   // a trilha continua no menu
   showHome();
 }

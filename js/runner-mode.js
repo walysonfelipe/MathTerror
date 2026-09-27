@@ -5,7 +5,8 @@
 // Acertou: o boss recua e a corrida continua. Demorou demais: o boss pega a coruja.
 
 import { QUIZ } from './quiz-data.js';
-import { livesEl, scoreEl, statusBar, pulseSfx } from './dom-elements.js';
+import { livesEl, scoreEl, statusBar } from './dom-elements.js';
+import { playSfx, setAudioEnabled } from './audio.js';
 import { needsRotation, isPhone } from './orientation.js';
 import { shuffleInPlace, cloneWithShuffledOptions, letterForIndex, isABCDLabel } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
@@ -650,11 +651,7 @@ function updateBoss(dt) {
         shake = 1.6;
         lives = 0;                                     // pegou a coruja: todos os corações ficam vazios
         updateStatusBar();
-        const jumpSfx = document.getElementById('jumpSfx');
-        if (window.audioAtivo && jumpSfx) {
-          jumpSfx.currentTime = 0;
-          jumpSfx.play().catch(() => { });
-        }
+        playSfx('scare');
       }
       const liftAt = grabFrameStart(9);                // ergueu a coruja: tremor do rugido
       if (boss.modeTime >= liftAt) shake = Math.max(shake, 0.35);
@@ -932,57 +929,44 @@ function grabFrameStart(frame) {
 }
 
 // ===================== ÁUDIO =====================
-const doorSfx = new Audio('assets/audio/porta.mp3');
-const owlJumpSfx = new Audio('assets/audio/jump.mp3');
-const fallSfx = new Audio('assets/audio/voicebosch-falling-whistle-cartoon-180579.mp3');
+// Tudo passa pelo provider (js/audio.js): aqui só decide o que tocar e quando.
 const FALL_SFX_START = 0.55;         // pula o silêncio do começo do arquivo
 const FALL_SFX_END = 4;              // quedas que ainda deixam vida: corta no segundo 4
 const FALL_SFX_END_LAST = 9;         // queda que tira a última vida: vai até o segundo 9
 let fallSounded = false;             // o assobio já tocou nesta queda
-let fallSfxEnd = FALL_SFX_END;
-
-fallSfx.addEventListener('timeupdate', () => {
-  if (fallSfx.currentTime >= fallSfxEnd) stopFallSfx();
-});
+let fallSfx = null;
+let pulseSfx = null;
 
 function playFallSfx() {
-  if (!window.audioAtivo) return;
   // Toca antes de descontar a vida: com 1 vida restante, esta é a queda final
-  fallSfxEnd = lives <= 1 ? FALL_SFX_END_LAST : FALL_SFX_END;
-  fallSfx.currentTime = FALL_SFX_START;
-  fallSfx.play().catch(() => { });
+  const end = lives <= 1 ? FALL_SFX_END_LAST : FALL_SFX_END;
+  stopFallSfx();
+  fallSfx = playSfx('fall', { offset: FALL_SFX_START, duration: end - FALL_SFX_START });
 }
 
 function stopFallSfx() {
-  fallSfx.pause();
-  fallSfx.currentTime = 0;
+  fallSfx?.stop();
+  fallSfx = null;
 }
 
 function playJumpSfx() {
-  if (!window.audioAtivo) return;
-  owlJumpSfx.currentTime = 0;
-  owlJumpSfx.play().catch(() => { });
+  playSfx('jump');
 }
 
 function playDoorSfx() {
-  if (!window.audioAtivo) return;
-  doorSfx.currentTime = 0;
-  doorSfx.play().catch(() => { });
+  playSfx('door');
 }
 
+// Batimento: mais alto e mais rápido conforme o boss chega perto
 function updatePulse() {
-  if (!pulseSfx || !window.audioAtivo) return;
-  pulseSfx.loop = true;
-  pulseSfx.volume = 0.2 + boss.progress * 0.8;
-  pulseSfx.playbackRate = 0.95 + boss.progress * 0.7;
-  if (pulseSfx.paused) pulseSfx.play().catch(() => { });
+  if (!pulseSfx || pulseSfx.stopped) pulseSfx = playSfx('pulse', { loop: true });
+  pulseSfx?.setVolume(0.2 + boss.progress * 0.8);
+  pulseSfx?.setRate(0.95 + boss.progress * 0.7);
 }
 
 function resetPulse() {
-  if (!pulseSfx) return;
-  pulseSfx.pause();
-  pulseSfx.currentTime = 0;
-  pulseSfx.playbackRate = 1;
+  pulseSfx?.stop();
+  pulseSfx = null;
 }
 
 // ===================== HUD =====================
@@ -1037,8 +1021,10 @@ export function stopRunnerMode() {
   if (statusBar) statusBar.hidden = true;
 }
 
+// Sempre chamado de um clique (Iniciar / Tentar novamente): liga todo o áudio no gesto.
 export function startRunnerMode() {
   stopRunnerMode();
+  setAudioEnabled(true);
   [OWL.src, GROUND.src, BOSS.src, DOOR.src, GRAB.src].forEach(loadImage);
 
   root = document.createElement('div');
