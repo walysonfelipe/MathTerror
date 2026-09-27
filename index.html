@@ -5,6 +5,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MathTerror</title>
+    <meta name="description" content="Aprenda Cálculo 1 em um jogo de terror: corra, enfrente desafios de conjuntos, funções e gráficos e sobreviva ao MathTerror." />
+    <link rel="canonical" href="https://mathterror.walysonassis.online/" />
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="MathTerror" />
+    <meta property="og:title" content="MathTerror — Fuga Infernal" />
+    <meta property="og:description" content="Aprenda Cálculo 1 em um jogo de terror. Corra, resolva desafios matemáticos e sobreviva à Fuga Infernal." />
+    <meta property="og:url" content="https://mathterror.walysonassis.online/" />
+    <meta property="og:image" content="https://mathterror.walysonassis.online/assets/images/mathog.jpg" />
+    <meta property="og:image:secure_url" content="https://mathterror.walysonassis.online/assets/images/mathog.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="628" />
+    <meta property="og:image:alt" content="MathTerror: corujas enfrentam desafios matemáticos em um cenário de terror." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MathTerror — Fuga Infernal" />
+    <meta name="twitter:description" content="Aprenda Cálculo 1 em um jogo de terror. Corra, resolva desafios matemáticos e sobreviva à Fuga Infernal." />
+    <meta name="twitter:image" content="https://mathterror.walysonassis.online/assets/images/mathog.jpg" />
 
     <!-- Tipografia "horror" -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +35,11 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 
-<body>
+<body class="is-loading">
+    <div id="loadingIntro" class="loading-intro" role="status" aria-label="Carregando MathTerror">
+        <img src="assets/images/logo.webp" alt="MathTerror" class="loading-logo" fetchpriority="high" />
+    </div>
+
     <!-- Vídeo de background -->
     <video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="auto">
         <source src="https://res.cloudinary.com/movierental/video/upload/v1790514018/inicio_lwek82.webm" type="video/webm" />
@@ -60,7 +85,7 @@
     </div>
 
     <!-- Áudio de fundo -->
-    <audio id="bgMusic" src="https://res.cloudinary.com/movierental/video/upload/v1790514088/fundo_kqv5is.mp3" preload="none" loop></audio>
+    <audio id="bgMusic" src="https://res.cloudinary.com/movierental/video/upload/v1790514088/fundo_kqv5is.mp3" preload="auto" loop></audio>
 
     <div id="statusBar" class="status-bar" aria-label="Status da partida" hidden>
         <div class="vitality-widget"><span class="hud-label">VIDAS</span><span id="lives" class="life-pips" role="img" aria-label="3 vidas"></span></div>

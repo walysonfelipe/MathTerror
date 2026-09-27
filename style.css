@@ -82,3 +82,13 @@ progress{appearance:none;display:block;width:100%;border:0;height:3px;background
 #soundBtn:focus-visible,#fullscreenBtn:focus-visible{outline:2px solid #ff6a4d;outline-offset:2px}
 .game-header{right:99px}
 @media(max-width:700px){#soundBtn{width:108px;height:38px}#fullscreenBtn{top:16px;right:18px;width:46px;height:38px}.game-header{top:16px;right:72px}}
+
+/* Intro: a logo stays on screen until the remote media can play. */
+.loading-intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#08090a;opacity:1;visibility:visible;transition:opacity .45s cubic-bezier(.3,0,1,1),visibility .45s}
+.loading-logo{display:block;width:min(350px,72vw);height:auto;filter:drop-shadow(0 8px 28px #000);animation:introLogoIn .7s cubic-bezier(.2,0,0,1) both}
+body.is-loading .bg-video,body.is-loading .fx-vignette,body.is-loading .fx-noise,body.is-loading .overlay,body.is-loading .game-header,body.is-loading #fullscreenBtn{visibility:hidden}
+body.is-ready .loading-intro{opacity:0;visibility:hidden;pointer-events:none}
+body.is-ready .bg-video{animation:introVideoIn .55s ease-out both}
+@keyframes introLogoIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes introVideoIn{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.loading-logo{animation:none}.loading-intro,body.is-ready .bg-video{transition:none;animation:none}}
