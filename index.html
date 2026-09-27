@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MathTerror</title>
+
+    <!-- Tipografia "horror" -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Montserrat:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Vídeo de background -->
+    <video id="bgVideo" class="bg-video" autoplay muted loop playsinline>
+        <source src="assets/videos/inicio.webm" type="video/webm" />
+        Seu navegador não suporta vídeo HTML5.
+    </video>
+
+    <!-- Efeitos -->
+    <div class="fx-vignette" aria-hidden="true"></div>
+    <div class="fx-noise" aria-hidden="true"></div>
+
+    <!-- Botão de FULLSCREEN (fixo topo direito) -->
+    <button id="fullscreenBtn" class="btn btn--blood floating-fullscreen" aria-pressed="false"
+        aria-label="Alternar tela cheia">
+        ⛶
+    </button>
+
+    <div class="game-header" aria-label="Configurações do jogo">
+        <span class="session-label"><i aria-hidden="true"></i> MATHTERROR</span>
+        <button id="soundBtn" class="btn utility" aria-pressed="false">Som desligado</button>
+    </div>
+    <main class="overlay">
+        <div class="menu-reticle" aria-hidden="true"></div>
+        <div class="game-menu">
+            
+            <img src="assets/images/logo.png" alt="MathTerror" class="logo" />
+            
+            <nav class="controls" aria-label="Menu principal">
+                <button id="startBtn" class="btn menu-choice btn--blood-primary"><span class="menu-arrow" aria-hidden="true">▸</span><span><strong>INICIAR HISTÓRIA</strong></span><kbd>01</kbd></button>
+                <button id="survivalBtn" class="btn menu-choice"><span class="menu-arrow" aria-hidden="true">▸</span><span><strong>SOBREVIVÊNCIA</strong></span><kbd>02</kbd></button>
+                <button id="rankingBtn" class="btn menu-choice"><span class="menu-arrow" aria-hidden="true">▸</span><span><strong>RANKING</strong></span><kbd>03</kbd></button>
+            </nav>
+        </div>
+        
+    </main>
+
+    <!-- Popup para ativar áudio (só em fullscreen) -->
+    <div id="audioModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="audioTitle" hidden>
+        <div class="modal">
+            <h2 class="modal-title" id="audioTitle">Ativar Áudio?</h2>
+            <p class="modal-text">Recomendado usar fones. O som fica melhor em tela cheia.</p>
+            <div class="modal-actions">
+                <button id="audioEnableBtn" class="btn btn--blood-primary">Ativar Áudio</button>
+                <button id="audioDismissBtn" class="btn btn--blood-ghost">Continuar sem áudio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Áudio de fundo -->
+    <audio id="bgMusic" src="assets/audio/fundo.mp3" preload="auto" loop></audio>
+
+    <section id="scene1" class="scene" hidden>
+        <div class="scene-inner">
+            <img id="char1" class="character" src="assets/images/p.png" alt="Personagem">
+
+            <div class="story-box"><span class="eyebrow">CAPÍTULO 01 · O CORREDOR</span>
+                <div class="story-scroll">
+                    <div id="storyText" class="story-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="scene-actions">
+            <button id="continueBtn" class="btn btn--blood-primary" hidden>Continuar ▶</button>
+            <button id="skipBtn" class="btn btn--blood-ghost">Pular diálogo ⏭</button>
+        </div>
+    </section>
+
+    <!-- ===== QUIZ ===== -->
+    <section id="quiz" class="quiz" hidden>
+        <div class="quiz-inner">
+            <div class="mission-hud">
+                <div class="quiz-meta"><span class="hud-label">OBJETIVO ATUAL</span><span id="modeLabel" class="eyebrow">MODO HISTÓRIA</span><span id="questionProgress"></span><progress id="questionMeter" max="100" value="0" aria-label="Progresso da partida"></progress></div>
+                <div id="timerPanel" class="timer-panel" hidden aria-label="Contagem regressiva">
+                    <span class="hud-label">TEMPO</span>
+                    <div class="clock-readout">
+                        <svg class="clock-ring" viewBox="0 0 64 64" aria-hidden="true">
+                            <circle class="clock-ring-track" cx="32" cy="32" r="27"></circle>
+                            <circle id="timerRing" class="clock-ring-value" cx="32" cy="32" r="27"></circle>
+                        </svg>
+                        <strong id="timerText" aria-live="off">15</strong><span class="clock-unit">SEG</span>
+                    </div>
+                    <progress id="timerMeter" max="15" value="15" aria-label="Tempo restante"></progress>
+                </div>
+            </div>
+            <div class="challenge-label"><span aria-hidden="true">⌖</span> DESAFIO MATEMÁTICO <span class="challenge-line"></span></div>
+            <h2 id="qTitle" class="quiz-title"></h2>
+            <p class="question-instruction" id="questionInstruction">Selecione uma resposta · teclas 1–4</p>
+            <div id="qOptions" class="quiz-options"></div>
+            <p id="answerFeedback" class="answer-feedback" role="status" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <!-- Overlay de ACERTO: blackout + vídeo -->
+    <div id="correctOverlay" class="blackout" hidden>
+        <video id="rewardVideo" class="reward-video" playsinline autoplay></video>
+        <button id="skipRewardBtn" class="btn reward-skip">Continuar →</button>
+    </div>
+
+    <!-- Flash de ERRO (imagem aleatória) -->
+    <img id="wrongFlash" class="wrong-flash" alt="" hidden />
+
+    <div id="statusBar" class="status-bar" aria-label="Status da partida" hidden>
+        <div class="vitality-widget"><span class="hud-label">VIDAS</span><span id="lives" class="life-pips" role="img" aria-label="3 vidas"></span></div>
+        <div class="score-widget"><span class="hud-label">PONTOS</span><span id="score" class="score-value">0</span></div>
+    </div>
+
+    <!-- SFX: máquina de escrever -->
+    <audio id="typeSfx" src="assets/audio/tip.mp3" preload="auto"></audio>
+    <audio id="narration" src="assets/audio/Eleven.mp3" preload="auto"></audio>
+    <audio id="jumpSfx" src="assets/audio/susto.mp3" preload="auto"></audio>
+    <audio id="pulseSfx" src="assets/audio/pulse.mp3" preload="auto" loop></audio>
+
+    <!-- Módulos JavaScript -->
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>
