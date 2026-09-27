@@ -2,6 +2,7 @@ import { scene1, storyTextEl, continueBtn, storyScrollEl, bgVideo } from './dom-
 import { stopAllAudio } from './audio.js';
 import { resetQuizUI } from './quiz.js';
 import { abortStoryTyping } from './story.js';
+import { stopRunnerMode } from './runner-mode.js';
 
 export function showHome() {
   document.body.classList.remove("in-game");
@@ -26,6 +27,7 @@ export function resetStoryUI() {
 
 export function resetGame() {
   abortStoryTyping();
+  stopRunnerMode();
   stopAllAudio();
 
   if (scene1) scene1.hidden = true;

@@ -28,6 +28,7 @@ import {
 } from './utils.js';
 import { CONFIG } from './config.js';
 import { resetGame, hideHome } from './game-state.js';
+import { renderLives, renderScore, resetLives } from './hud.js';
 
 // ===================== CONFIGURAÇÕES DO MODO =====================
 // Número inicial de vidas para o modo sobrevivência.
@@ -96,16 +97,8 @@ function showStatusBar() {
 
 function updateStatusBar() {
   if (!statusBar) return;
-  livesEl.replaceChildren();
-  livesEl.setAttribute('aria-label', `${survivalLives} de ${SURVIVAL_LIVES} vidas restantes`);
-  for (let index = 0; index < SURVIVAL_LIVES; index++) {
-    const heart = document.createElement('span');
-    heart.className = `life-pip${index >= survivalLives ? ' is-lost' : ''}`;
-    heart.setAttribute('aria-hidden', 'true');
-    heart.textContent = '♥';
-    livesEl.appendChild(heart);
-  }
-  scoreEl.textContent = String(survivalScore);
+  renderLives(livesEl, survivalLives, SURVIVAL_LIVES);
+  renderScore(scoreEl, survivalScore);
 }
 
 function hideStatusBar() {
@@ -405,6 +398,7 @@ export function startSurvival() {
     survivalLives = SURVIVAL_LIVES;
     survivalActive = true;
     resetPulse();
+    resetLives(livesEl);
     buildSurvivalDeck();
 
     // Guarda nome atual na memória temporária (não fixa)

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/logo.png" alt="MathTerror Logo" width="420" />
+  <img src="assets/images/logo.webp" alt="MathTerror Logo" width="420" />
 </p>
 
 <h3 align="center">🎮 Aprenda matemática… se tiver coragem.</h3>

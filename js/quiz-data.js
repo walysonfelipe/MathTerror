@@ -4,10 +4,10 @@ export const QUIZ = [
   {
     questionText: " Considere a funcao f (x) = 2x - 1. Qual dos gráficos abaixo corresponde a f?",
     options: [
-      { img: "assets/images/quiz/resp1n.png", alt: "Porta rangendo", label: "a" },
-      { img: "assets/images/quiz/resp1s.png", alt: "Porta trancada", label: "b" },
-      { img: "assets/images/quiz/resp1_2n.png", alt: "Porta recém-pintada", label: "c" },
-      { img: "assets/images/quiz/resp1_3n.png", alt: "Porta sem maçaneta", label: "d" }
+      { img: "assets/images/quiz/resp1n.webp", alt: "Porta rangendo", label: "a" },
+      { img: "assets/images/quiz/resp1s.webp", alt: "Porta trancada", label: "b" },
+      { img: "assets/images/quiz/resp1_2n.webp", alt: "Porta recém-pintada", label: "c" },
+      { img: "assets/images/quiz/resp1_3n.webp", alt: "Porta sem maçaneta", label: "d" }
     ],
     answer: 1,
     video: "assets/videos/door.mp4"
@@ -65,10 +65,10 @@ export const QUIZ = [
   {
     questionText: "Qual dos gráficos abaixo representa uma função quadrática?",
     options: [
-      { img: "assets/images/quiz/retacrescente.png", alt: "Reta crescente", label: "a" },
-      { img: "assets/images/quiz/parabola.png", alt: "Parábola voltada para cima", label: "b" },
-      { img: "assets/images/quiz/curva.png", alt: "Curva senoidal", label: "c" },
-      { img: "assets/images/quiz/reta.png", alt: "Reta decrescente", label: "d" }
+      { img: "assets/images/quiz/retacrescente.webp", alt: "Reta crescente", label: "a" },
+      { img: "assets/images/quiz/parabola.webp", alt: "Parábola voltada para cima", label: "b" },
+      { img: "assets/images/quiz/curva.webp", alt: "Curva senoidal", label: "c" },
+      { img: "assets/images/quiz/reta.webp", alt: "Reta decrescente", label: "d" }
     ],
     answer: 1,
     video: "assets/videos/door.mp4"
@@ -128,4 +128,4 @@ export const QUIZ = [
   },
 ];
 
-export const WRONG_IMAGES = ["assets/images/horror.png"];
+export const WRONG_IMAGES = ["assets/images/horror.webp"];
