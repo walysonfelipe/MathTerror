@@ -16,9 +16,12 @@ export function needsRotation() {
   return portraitQuery.matches;
 }
 
-// Aberto pelo ícone da Tela de Início: já roda sem as barras do navegador.
+// Celular aberto pelo ícone da Tela de Início: já roda sem as barras do navegador.
+// Só vale para celular: no desktop display-mode também casa com F11/app instalado,
+// e lá o botão de tela cheia tem que continuar aparecendo.
 export function isStandalone() {
-  return navigator.standalone === true || window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+  if (navigator.standalone === true) return true;   // iPhone
+  return isPhone() && window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
 }
 
 function canFullscreen() {

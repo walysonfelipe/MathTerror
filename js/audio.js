@@ -121,8 +121,9 @@ export function playSfx(name, { volume = 1, rate = 1, offset = 0, duration, loop
       playing.delete(handle);
       try { source.stop(); } catch { }
     },
-    setVolume(v) { gain.gain.value = v; },
-    setRate(r) { source.playbackRate.value = r; },
+    // Mudanças suaves (~50 ms) para não estalar quando o valor pula
+    setVolume(v) { gain.gain.setTargetAtTime(v, ctx.currentTime, 0.05); },
+    setRate(r) { source.playbackRate.setTargetAtTime(r, ctx.currentTime, 0.05); },
   };
   source.onended = () => { handle.stopped = true; playing.delete(handle); };
   playing.add(handle);

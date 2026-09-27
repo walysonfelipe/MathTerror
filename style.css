@@ -23,8 +23,8 @@ progress{appearance:none;display:block;width:100%;border:0;height:3px;background
 .vitality-widget,.score-widget{display:flex;align-items:center;gap:12px;padding:10px 16px}
 .vitality-widget{border-right:1px solid #ffffff24}.status-bar .hud-label{font-size:8px;letter-spacing:1.5px;color:#aaa19a;white-space:nowrap}.life-pips{display:flex;gap:6px}.life-pip{font-family:Arial,sans-serif;font-size:19px;line-height:1;color:#df413d;text-shadow:0 0 9px #c1272780}.life-pip.is-lost{color:#454448;text-shadow:none;opacity:.55}.score-value{font-size:18px;color:#f0dfba;min-width:22px;text-align:right}
 @media(max-width:700px){.status-bar{top:auto;left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:max-content;min-height:50px}.vitality-widget,.score-widget{gap:8px;padding:8px 12px}.life-pip{font-size:17px}.score-value{font-size:16px}}
-/* Tela de derrota integrada ao cenário e ao HUD. */
-.game-over-card{position:relative;overflow:hidden;padding:clamp(24px,5vw,42px);text-align:center;background:radial-gradient(ellipse at 50% 0%,#78202028,transparent 60%),linear-gradient(145deg,#111416,#090a0c)}.game-over-card:before{content:'×';position:absolute;right:18px;top:-34px;font:180px/1 var(--mono);color:#b32b2520;pointer-events:none}.game-over-kicker{position:relative;color:#dd7065;font:9px var(--mono);letter-spacing:2px}.game-over-title{position:relative;margin:14px 0 6px;font:clamp(25px,4vw,36px) Georgia,serif;color:#f1e8df}.game-over-result{display:flex;align-items:center;justify-content:center;gap:26px;margin:26px 0 12px;padding:18px;border-block:1px solid #ffffff20}.game-over-result span{font:9px var(--mono);letter-spacing:1.5px;color:#a39b93}.game-over-result strong{font:52px/.9 var(--mono);color:#e1c89c;text-shadow:0 0 22px #d0a77433}.game-over-actions{position:relative;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}.game-over-actions .btn{font:10px var(--mono);letter-spacing:1px;min-height:46px}@media(max-width:700px){.game-over-card{padding:28px 20px}.game-over-result{margin:20px 0 10px}.game-over-result strong{font-size:44px}.game-over-actions{display:grid}.game-over-actions .btn{width:100%}}
+/* Tela de derrota: ver "FIM DE PARTIDA com sprites" no fim do arquivo. */
+
 /* Cronômetro circular com leitura imediata de arcade. */
 
 
@@ -63,9 +63,9 @@ progress{appearance:none;display:block;width:100%;border:0;height:3px;background
 @keyframes heartBeat{from{background-position:0 0}to{background-position:100% 0}}
 @keyframes heartBreak{from{background-position:0 50%}to{background-position:100% 50%}}
 @keyframes heartFill{from{background-position:0 100%}to{background-position:100% 100%}}
-#statusBar .score-value{display:inline-block;transform-origin:left center;min-width:0;text-align:left;font:700 4.2cqw/1 var(--mono);letter-spacing:.35cqw;color:#f3dcc0;text-shadow:0 0 1.4cqw #ff3b1f99,0 1px 0 #000}
+#statusBar .score-value{--digit-h:5.4cqw;display:inline-flex;align-items:center;gap:.1cqw;transform-origin:left center;min-width:0;filter:drop-shadow(0 0 .8cqw #ff3b1f80) drop-shadow(0 1px 0 #000)}
 #statusBar .score-value.is-bump{animation:scoreBump .45s ease-out}
-@keyframes scoreBump{35%{transform:scale(1.35);color:#ffe8a8;text-shadow:0 0 2.4cqw #ff6a2fcc}}
+@keyframes scoreBump{35%{transform:scale(1.35);filter:brightness(1.35) drop-shadow(0 0 1.6cqw #ff6a2fcc)}}
 @media(max-width:700px){#statusBar.status-bar{top:auto;bottom:14px;width:calc(100vw - 24px)}}
 @media(prefers-reduced-motion:reduce){#statusBar .life-pip.is-alive,#statusBar .life-pip.is-filling{animation:none;background-position:0 0}#statusBar .life-pip.is-breaking{animation:none;background-position:100% 50%}}
 /* ===== Botões de som e tela cheia com sprite (sound-btn-sheet.webp / fullscreen-btn-sheet.webp, 3x2) ===== */
@@ -147,15 +147,6 @@ body.is-ready .bg-video{animation:introVideoIn .55s ease-out both}
 .option-caption{font-size:11px}
 .quiz-image{max-height:28dvh;margin:6px auto}
 .answer-feedback{margin-top:6px;min-height:14px;font-size:10px}
-/* Fim de partida: centralizado e compacto */
-.runner-question.is-game-over{top:50%;left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);display:block;width:min(460px,calc(100% - 24px));max-height:calc(100dvh - 16px)}
-.game-over-card{padding:16px 20px}
-.game-over-card:before{font-size:120px;top:-22px}
-.game-over-title{font-size:22px;margin:8px 0 4px}
-.game-over-result{margin:10px 0 12px;padding:8px;gap:18px}
-.game-over-result strong{font-size:34px}
-.game-over-actions{display:flex}
-.game-over-actions .btn{width:auto;min-height:40px}
 }
 
 /* ===== MOBILE: áreas seguras (notch/câmera) com viewport-fit=cover =====
@@ -182,3 +173,41 @@ body.is-standalone .game-header{right:calc(12px + env(safe-area-inset-right,0px)
 html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 img,video,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 input,textarea{-webkit-user-select:text;user-select:text}
+
+/* ===== Coração perdendo vida a cada erro na pergunta (hearts-sheet linha 3, de trás para frente) =====
+   --drain-x vem de js/hud.js: 60% quase cheio · 40% metade · 20% quase vazio. */
+#statusBar .life-pip.is-draining{background-position:var(--drain-x) 100%;animation:heartDrain .45s ease-out}
+#statusBar .life-pip.is-draining.is-critical{animation:heartDrain .45s ease-out,heartCritical .7s ease-in-out .45s infinite}
+#statusBar .life-pip.is-refilling{animation:heartRefill .45s steps(3,jump-none) both,heartBeat .95s steps(6,jump-none) .45s infinite}
+@keyframes heartDrain{30%{transform:scale(.72);filter:brightness(1.8) drop-shadow(0 0 6px #ff2a1a)}}
+@keyframes heartCritical{50%{opacity:.5;filter:drop-shadow(0 0 5px #ff2a1a)}}
+@keyframes heartRefill{from{background-position:var(--drain-x) 100%}to{background-position:100% 100%}}
+@media(prefers-reduced-motion:reduce){#statusBar .life-pip.is-draining,#statusBar .life-pip.is-draining.is-critical{animation:none}#statusBar .life-pip.is-refilling{animation:none;background-position:0 0}}
+
+/* ===== FIM DE PARTIDA com sprites (gameover-panel / gameover-buttons / digits-sheet) =====
+   Tudo posicionado em cqw sobre o painel de 1619x971 px (1cqw = 16,19 px da arte),
+   então o cartão fica igual em qualquer tamanho. Medidas tiradas da própria imagem. */
+.runner-question.is-game-over{--go-top:110px;top:calc(var(--go-top) + (100dvh - var(--go-top) - 10px) / 2);left:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);display:block;width:min(760px,calc(100% - 32px),calc((100dvh - var(--go-top) - 16px) * 1619 / 971));height:auto;max-height:none;padding:0;overflow:visible;background:none;border:0;box-shadow:none}
+.game-over-card{position:relative;width:100%;aspect-ratio:1619/971;background:url(assets/images/gameover-panel.webp) center/100% 100% no-repeat;container-type:inline-size;filter:drop-shadow(0 18px 40px #000d)}
+.go-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* Motivo: no lugar do título apagado da arte (x 299–1314, y 248–354) */
+.game-over-title{position:absolute;left:12%;right:12%;top:15.3cqw;height:6.6cqw;margin:0;display:flex;align-items:center;justify-content:center;white-space:nowrap;font:400 6.3cqw/1 Georgia,'Times New Roman',serif;color:#f4e6cf;text-shadow:0 .25cqw 0 #3a1a10,0 .4cqw 1.2cqw #000,0 0 2cqw #ff6a2f33}
+/* Pontuação: à direita de "QUESTÕES CERTAS", entre as duas linhas (centro y 489) */
+.game-over-result{position:absolute;left:53.5%;top:30.2cqw;transform:translateY(-50%);margin:0;padding:0;border:0}
+.go-number{--digit-h:8.6cqw;display:flex;align-items:center;gap:.2cqw;filter:drop-shadow(0 .3cqw .6cqw #000)}
+.sprite-digit{display:block;height:var(--digit-h);width:calc(var(--digit-h) * var(--w) / 214);background:url(assets/images/digits-sheet.webp) no-repeat;background-size:calc(var(--digit-h) * 1680 / 214) var(--digit-h);background-position:calc(var(--digit-h) * (-168 * var(--d) - (168 - var(--w)) / 2) / 214) 0}
+/* Botões: lado a lado na faixa de baixo (centro y 705) */
+.game-over-actions{position:absolute;left:0;right:0;top:39.8cqw;display:flex;justify-content:center;gap:2cqw;margin:0}
+.go-btn{width:34.6cqw;aspect-ratio:1200/257.5;padding:0;border:0;border-radius:0;min-height:0;background:url(assets/images/gameover-buttons.webp) 0 0/100% 200% no-repeat;transition:filter .15s,transform .1s;filter:drop-shadow(0 .4cqw .8cqw #000c)}
+.go-btn--home{background-position:0 100%}
+.go-btn:hover,.go-btn:focus-visible{filter:brightness(1.22) drop-shadow(0 0 1.4cqw #ff3b1fb0)}
+.go-btn:active{transform:scale(.97)}
+/* Foco de teclado = o mesmo brilho do hover, sem retângulo por cima da arte */
+.go-btn:focus-visible{outline:none;filter:brightness(1.3) drop-shadow(0 0 .5cqw #ffd29a) drop-shadow(0 0 1.6cqw #ff3b1f)}
+.game-over-card{animation:goCardIn .45s cubic-bezier(.2,0,0,1) both}
+@keyframes goCardIn{from{opacity:0;transform:scale(.94)}}
+@media(prefers-reduced-motion:reduce){.game-over-card{animation:none}}
+/* Celular deitado: centraliza abaixo da barra de VIDAS/PONTOS */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:600px),(orientation:landscape) and (max-height:500px){
+.runner-question.is-game-over{--go-top:var(--q-top)}
+}

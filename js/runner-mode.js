@@ -10,7 +10,7 @@ import { playSfx, setAudioEnabled } from './audio.js';
 import { needsRotation, isPhone } from './orientation.js';
 import { shuffleInPlace, cloneWithShuffledOptions, letterForIndex, isABCDLabel } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
-import { renderLives, renderScore, resetLives } from './hud.js';
+import { renderLives, renderScore, resetLives, spriteNumber } from './hud.js';
 
 // ===================== CONFIGURAÇÕES DO MODO =====================
 const LIVES = 3;
@@ -49,10 +49,13 @@ const BOSS_ANIMS = {
   guard: { frames: [12, 12, 15, 12, 12, 15], fps: 3 },   // já perto: posição de luta
 };
 const BOSS_WALK = [4, 5, 6, 7];
-// door-sheet.webp: 4 modelos de porta (linhas) × 4 quadros (fechada → aberta), 217x214.
-// A pedra fica no mesmo lugar em todos os quadros da linha; só a porta se mexe.
-const DOOR = { src: 'assets/images/door-sheet.webp', w: 217, h: 214, cols: 4, models: 4 };
-const DOOR_CENTER = [0.41, 0.44, 0.43, 0.42];   // centro da passagem de cada modelo (fração da largura)
+// door-pass-sheet.webp (gerado de image.png): grade 4x5 de 472x252, coruja e porta juntas.
+// Toda célula alinhada pelo arco da porta (centro em x=244), então a porta fica parada no mundo.
+// 0–15: passagem (chega · empurra a porta · entra · sai do outro lado) · 16: fechada · 17: aberta.
+const PASS = { src: 'assets/images/door-pass-sheet.webp', w: 472, h: 252, cols: 4, doorX: 244, ground: 242, frames: 16, closed: 16, open: 17 };
+// Centro da coruja em relação ao centro da porta em cada quadro (px do sprite, medido).
+const PASS_OWL_DX = [-172, -144, -144, -104, -105, -92, -68, -77, -25, -12, -7, -5, 108, 123, 132, 152];
+const PASS_DOOR_FRAME = 4;           // quadro em que a coruja empurra a porta (som)
 // grab-sheet.webp: captura, boss e coruja juntos. Grade 4x3 de 296x297, boss firme no chão.
 // Linha 1 (0–3): estica o braço · Linha 2 (4–7): agarra e puxa · Linha 3 (8–11): ergue a coruja rugindo.
 const GRAB = { src: 'assets/images/grab-sheet.webp', w: 296, h: 297, cols: 4 };
@@ -72,14 +75,13 @@ const SURFACE = TILE_H * 0.14;       // distância do topo do sprite até o chã
 const OWL_H = 150;
 const OWL_W = OWL_H * OWL.w / OWL.h;
 const FOOT = OWL_W * 0.16;           // meia largura dos pés para colisão
-const DOOR_H = OWL_H * 2.2;
-const DOOR_W = DOOR_H * DOOR.w / DOOR.h;
-const DOOR_OPEN_TIME = 0.6;          // porta abrindo (4 quadros)
+const PASS_SCALE = 1;                // unidades do mundo por px do sprite (coruja do mesmo tamanho da corrida)
+const PASS_DRAW_W = PASS.w * PASS_SCALE;
+const PASS_DRAW_H = PASS.h * PASS_SCALE;
 // Sequência depois do acerto (segundos desde o acerto):
 const CELEBRATE_TIME = 0.45;         // coruja comemora
-const ENTER_START = CELEBRATE_TIME + DOOR_OPEN_TIME;
-const ENTER_TIME = 0.8;              // coruja anda para dentro da porta
-const EXIT_FADE = 0.4;               // coruja reaparece do outro lado
+const PASS_FRAME_TIME = 0.1;         // cada quadro da passagem pela porta
+const PASS_TIME = PASS.frames * PASS_FRAME_TIME;
 const BOSS_H = OWL_H * 1.75;
 // Na captura a cena fica 1,3x maior que o boss normal: ele "cresce" por cima da coruja.
 const GRAB_H = BOSS_H * (GRAB.h / 235) * 1.3;
@@ -119,10 +121,10 @@ let score = 0;
 let speed = SPEED_START;
 let segments = [];        // plataformas: { x, w, tiles: [índices] }
 let markerX = 0;          // posição do próximo checkpoint
-let doors = [];           // portas no mundo: { x, model, openAt, rattleAt }
+let doors = [];           // portas no mundo: { x (centro), passAt, rattleAt }
 let legStartX = 0;
 
-const owl = { x: 0, y: 0, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0, enter: 0, fadeInAt: -1, hiddenUntilX: 0 };
+const owl = { x: 0, y: 0, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0 };
 // progress: ameaça de 0 (longe) a 1 (pegou). x/y em coordenadas de tela, y = altura acima do chão.
 const boss = { progress: 0, mode: 'hidden', modeTime: 0, x: 0, y: 0, vx: 0, vy: 0, facing: 1, walking: false, phase: 0, landedAt: -1, onLand: null };
 let clock = 0;            // tempo total do modo, em segundos
@@ -159,14 +161,15 @@ function buildLeg(fromX, startX) {
   x += 110;
   const last = addSegment(x, Math.ceil((end - x) / TILE_STEP) + 6);
   markerX = Math.max(end, last.x + TILE_STEP * 2);
-  // Porta fechada logo à frente de onde a coruja para
-  const model = Math.floor(Math.random() * DOOR.models);
-  doors.push({ model, x: doorwayX(markerX) - DOOR_W * DOOR_CENTER[model], openAt: -1, rattleAt: -1 });
+  // Porta fechada à frente: a coruja parada em markerX fica onde está no 1º quadro da passagem
+  doors.push({ x: markerX - PASS_OWL_DX[0] * PASS_SCALE, passAt: -1, rattleAt: -1 });
 }
 
-// Centro da passagem da porta no mundo, para uma coruja parada em stopX.
-function doorwayX(stopX) {
-  return stopX + OWL_W * 0.75;
+// Posição da coruja (mundo) durante a passagem: vai do 1º ao último quadro em ritmo
+// constante, para a câmera não dar trancos quando ela some dentro da porta.
+function passOwlX(door, t) {
+  const from = PASS_OWL_DX[0], to = PASS_OWL_DX[PASS.frames - 1];
+  return door.x + (from + (to - from) * Math.min(1, t / PASS_TIME)) * PASS_SCALE;
 }
 
 function currentDoor() {
@@ -282,10 +285,6 @@ function update(dt) {
     const before = owl.x;
     owl.x = Math.min(owl.x + speed * dt, markerX);
     if (owl.grounded) runPhase = (runPhase + (owl.x - before) / STRIDE) % RUN_FRAMES.length;
-    if (owl.hiddenUntilX && owl.x >= owl.hiddenUntilX) {
-      owl.hiddenUntilX = 0;
-      owl.fadeInAt = clock;
-    }
     if (owl.x >= markerX && owl.grounded) enterCheckpoint();
   }
 
@@ -330,26 +329,21 @@ function update(dt) {
       bossEnter();
       updateThreatLabel();
     }
-    if (boss.mode !== 'hidden') updatePulse();
+    updatePulse();                                   // batimento cresce desde o começo da pergunta
     const meter = panel.querySelector('progress');
     if (meter) meter.value = boss.progress;
     if (boss.progress >= 1) caught();
   } else if (state === 'resume') {
-    // Acertou: comemora, a porta abre, a coruja entra e sai do outro lado
+    // Acertou: comemora e depois o sprite da porta mostra a coruja passando por ela
     const door = currentDoor();
-    if (stateTime >= CELEBRATE_TIME && door.openAt < 0) {
-      door.openAt = clock;
-      playDoorSfx();
-    }
-    if (stateTime >= ENTER_START) {
-      const k = Math.min(1, (stateTime - ENTER_START) / ENTER_TIME);
-      const before = owl.x;
-      owl.x = markerX + (doorwayX(markerX) - markerX) * Math.min(1, k / 0.6);
-      runPhase = (runPhase + (owl.x - before) / STRIDE) % RUN_FRAMES.length;
-      owl.enter = Math.max(0, (k - 0.35) / 0.65);    // encolhe e escurece entrando na porta
-      if (k >= 1) {
-        owl.enter = 0;
-        owl.hiddenUntilX = door.x + DOOR_W * 0.95;    // segue invisível e aparece do outro lado
+    if (stateTime >= CELEBRATE_TIME && door.passAt < 0) door.passAt = clock;
+    if (door.passAt >= 0) {
+      const t = clock - door.passAt;
+      if (t >= PASS_DOOR_FRAME * PASS_FRAME_TIME && t - dt < PASS_DOOR_FRAME * PASS_FRAME_TIME) playDoorSfx();
+      owl.x = passOwlX(door, t);                     // a câmera acompanha a coruja do sprite
+      if (t >= PASS_TIME) {
+        // Sai correndo exatamente de onde a coruja do último quadro ficou
+        runPhase = 0;
         setState('run');
         speed *= SPEED_GAIN;
         const lastSeg = segments[segments.length - 1];
@@ -361,7 +355,7 @@ function update(dt) {
   // Remove plataformas que já saíram da tela
   const camera = owl.x - owlScreenX;
   segments = segments.filter(seg => seg.x + seg.w > camera - TILE_W);
-  doors = doors.filter((door, i) => i === doors.length - 1 || door.x + DOOR_W > camera - 50);
+  doors = doors.filter((door, i) => i === doors.length - 1 || door.x + PASS_DRAW_W > camera - 50);
 
   // Brasas subindo do chão
   if (Math.random() < dt * 14) {
@@ -433,15 +427,29 @@ function draw() {
   ctx.restore();
 }
 
+// Fechada até o acerto · quadros da passagem (coruja incluída) · aberta depois.
+function passFrame(door) {
+  if (door.passAt < 0) return PASS.closed;
+  const frame = Math.floor((clock - door.passAt) / PASS_FRAME_TIME);
+  return frame < PASS.frames ? frame : PASS.open;
+}
+
+function isPassing() {
+  const door = currentDoor();
+  return state === 'resume' && door && door.passAt >= 0;
+}
+
 function drawDoors(camera) {
-  const img = loadImage(DOOR.src);
+  const img = loadImage(PASS.src);
   for (const door of doors) {
-    const x = door.x - camera;
-    if (x > viewW || x + DOOR_W < 0) continue;
-    const frame = door.openAt < 0 ? 0 : Math.min(3, Math.floor((clock - door.openAt) / DOOR_OPEN_TIME * 4));
+    const left = door.x - camera - PASS.doorX * PASS_SCALE;
+    if (left > viewW || left + PASS_DRAW_W < 0) continue;
+    const frame = passFrame(door);
     // Errou: a porta trancada chacoalha
     const rattle = clock - door.rattleAt < 0.35 ? Math.sin((clock - door.rattleAt) * 70) * 4 * (1 - (clock - door.rattleAt) / 0.35) : 0;
-    ctx.drawImage(img, frame * DOOR.w, door.model * DOOR.h, DOOR.w, DOOR.h, x + rattle, groundY + 6 - DOOR_H, DOOR_W, DOOR_H);
+    const sx = (frame % PASS.cols) * PASS.w;
+    const sy = Math.floor(frame / PASS.cols) * PASS.h;
+    ctx.drawImage(img, sx, sy, PASS.w, PASS.h, left + rattle, groundY + 2 - PASS.ground * PASS_SCALE, PASS_DRAW_W, PASS_DRAW_H);
   }
 }
 
@@ -494,7 +502,6 @@ function owlPose() {
   }
 
   if (state === 'resume' && stateTime < CELEBRATE_TIME) return hop(stateTime);
-  if (state === 'resume' && stateTime < ENTER_START) return loop('idle', 0);
   if (state === 'checkpoint') return loop('idle', stateTime);
 
   // 4) Correndo: a cada passo o corpo sobe na passada e desce no apoio, trocando de pé
@@ -525,15 +532,10 @@ function drawOwl() {
     ctx.fill();
   });
 
-  // Entrando na porta: encolhe (vai para o fundo), escurece e some.
-  // Saindo do outro lado: reaparece aos poucos.
-  const depth = 1 - owl.enter * 0.45;
-  const fadeIn = owl.fadeInAt < 0 ? 1 : Math.min(1, (clock - owl.fadeInAt) / EXIT_FADE);
-  const owlAlpha = owl.hiddenUntilX ? 0 : (1 - owl.enter * owl.enter) * fadeIn;
-  if (owlAlpha <= 0) return;
+  if (isPassing()) return;                           // a coruja está dentro do sprite da porta
 
   // Sombra no chão (só quando existe chão embaixo)
-  if (supportUnder(owl.x) && owl.enter < 0.3) {
+  if (supportUnder(owl.x)) {
     const lift = Math.max(0, groundY - owl.y);
     ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0.15, 0.55 - lift / 500)})`;
     ctx.beginPath();
@@ -545,12 +547,11 @@ function drawOwl() {
   const pose = owlPose();
   const pivotY = pose.center ? OWL_H / 2 : 0;          // no ar gira pelo meio do corpo
   ctx.save();
-  ctx.translate(owlScreenX, owl.y + 2 - pivotY - owl.enter * 10);
+  ctx.translate(owlScreenX, owl.y + 2 - pivotY);
   ctx.rotate(pose.rot || 0);
-  ctx.scale((pose.sx || 1) * depth, (pose.sy || 1) * depth);
-  if (owl.enter > 0) ctx.filter = `brightness(${1 - owl.enter * 0.75})`;
+  ctx.scale(pose.sx || 1, pose.sy || 1);
   const drawFrame = (frame, alpha) => {
-    ctx.globalAlpha = alpha * owlAlpha;
+    ctx.globalAlpha = alpha;
     const sx = (frame % OWL.cols) * OWL.w;
     const sy = Math.floor(frame / OWL.cols) * OWL.h;
     ctx.drawImage(img, sx, sy, OWL.w, OWL.h, -OWL_W / 2, -OWL_H + pivotY - (pose.bob || 0), OWL_W, OWL_H);
@@ -649,7 +650,7 @@ function updateBoss(dt) {
       const grabAt = grabFrameStart(4);                // momento em que ele agarra
       if (boss.modeTime >= grabAt && boss.modeTime - dt < grabAt) {
         shake = 1.6;
-        lives = 0;                                     // pegou a coruja: todos os corações ficam vazios
+        lives = 0;                                     // pegou a coruja: rachando só os corações que restavam
         updateStatusBar();
         playSfx('scare');
       }
@@ -890,6 +891,7 @@ function answer(correct, button) {
     feedback.textContent = 'Errou! O boss avançou.';
     errors++;
     updateThreatLabel();
+    updateStatusBar();                                // coração da vez esvazia mais um pouco
     currentDoor().rattleAt = clock;
     boss.progress = Math.min(1, boss.progress + WRONG_PENALTY);
     if (boss.progress >= 1) caught();
@@ -958,11 +960,15 @@ function playDoorSfx() {
   playSfx('door');
 }
 
-// Batimento: mais alto e mais rápido conforme o boss chega perto
+// Batimento: começa baixinho na pergunta e fica mais alto e mais rápido conforme o boss chega.
+// Curva > 1 guarda o susto para o fim: ~8% no início, ~60% quando o boss aparece (70%), 100% colado.
+const PULSE_MIN_VOLUME = 0.08;
+const PULSE_CURVE = 1.4;
 function updatePulse() {
-  if (!pulseSfx || pulseSfx.stopped) pulseSfx = playSfx('pulse', { loop: true });
-  pulseSfx?.setVolume(0.2 + boss.progress * 0.8);
-  pulseSfx?.setRate(0.95 + boss.progress * 0.7);
+  if (!pulseSfx || pulseSfx.stopped) pulseSfx = playSfx('pulse', { loop: true, volume: PULSE_MIN_VOLUME });
+  const threat = boss.progress ** PULSE_CURVE;
+  pulseSfx?.setVolume(PULSE_MIN_VOLUME + (1 - PULSE_MIN_VOLUME) * threat);
+  pulseSfx?.setRate(0.9 + boss.progress * 0.75);
 }
 
 function resetPulse() {
@@ -974,25 +980,34 @@ function resetPulse() {
 function updateStatusBar() {
   if (!statusBar) return;
   statusBar.hidden = false;
-  renderLives(livesEl, lives, LIVES);
+  // Erros na pergunta atual esvaziam o coração da vez; acertou (answering), ele enche de volta
+  const drain = state === 'checkpoint' && !answering ? errors : 0;
+  renderLives(livesEl, lives, LIVES, drain);
   renderScore(scoreEl, score);
 }
 
 // ===================== FIM DE PARTIDA =====================
+// Painel (gameover-panel.webp), botões (gameover-buttons.webp) e números (digits-sheet.webp)
+// vêm de fimdepartidaHUd.png, botoesHudFimDepartida.png e numeros.png.
+
 function gameOver(reason) {
   if (!active || state === 'over') return;
   setState('over');
   resetPulse();
   panel.hidden = false;
   panel.classList.add('is-game-over');
+  // Textos fixos já estão desenhados nas imagens: ficam só para leitores de tela (go-sr)
   panel.innerHTML = `
     <section class="game-over-card" aria-labelledby="gameOverTitle">
-      <p class="game-over-kicker">FUGA INFERNAL · FIM DE PARTIDA</p>
+      <p class="go-sr">FUGA INFERNAL · FIM DE PARTIDA</p>
       <h2 id="gameOverTitle" class="game-over-title"></h2>
-      <div class="game-over-result"><span>QUESTÕES CERTAS</span><strong>${score}</strong></div>
+      <div class="game-over-result">
+        <span class="go-sr">QUESTÕES CERTAS: ${score}</span>
+        <span class="go-number" aria-hidden="true">${spriteNumber(score)}</span>
+      </div>
       <div class="game-over-actions">
-        <button type="button" class="btn btn--blood-primary" data-action="retry">TENTAR NOVAMENTE</button>
-        <button type="button" class="btn" data-action="home">VOLTAR AO MENU</button>
+        <button type="button" class="go-btn go-btn--retry" data-action="retry"><span class="go-sr">TENTAR NOVAMENTE</span></button>
+        <button type="button" class="go-btn go-btn--home" data-action="home"><span class="go-sr">VOLTAR AO MENU</span></button>
       </div>
     </section>`;
   panel.querySelector('.game-over-title').textContent = reason;
@@ -1026,7 +1041,7 @@ export function stopRunnerMode() {
 export function startRunnerMode() {
   stopRunnerMode();
   setAudioEnabled(true);
-  [OWL.src, GROUND.src, BOSS.src, DOOR.src, GRAB.src].forEach(loadImage);
+  [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src].forEach(loadImage);
 
   root = document.createElement('div');
   root.className = 'runner';
@@ -1059,7 +1074,7 @@ export function startRunnerMode() {
   // Chão inicial sem buracos cobrindo a tela toda
   segments = [];
   const first = addSegment(-owlScreenX - TILE_W, Math.ceil((viewW + TILE_W * 2) / TILE_STEP));
-  Object.assign(owl, { x: 0, y: groundY, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0, enter: 0, fadeInAt: -1, hiddenUntilX: 0 });
+  Object.assign(owl, { x: 0, y: groundY, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0 });
   doors = [];
   dust = [];
   runPhase = 0;
