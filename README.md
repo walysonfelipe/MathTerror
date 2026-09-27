@@ -120,6 +120,14 @@ MathTerror/
 
 Projeto desenvolvido por alunos do curso de **Análise e Desenvolvimento de Sistemas (ADS)** da **FATEC** como atividade avaliativa da disciplina de **Cálculo 1** — 2º semestre.
 
+| | Membro | GitHub |
+|---|--------|--------|
+| 🩸 | Walyson Felipe | [@walysonfelipe](https://github.com/walysonfelipe) |
+| 🩸 | Gabriel Martins | [@orickzs](https://github.com/orickzs) |
+| 🩸 | Filipe Rattighieri | [@FilipeRattighieri](https://github.com/FilipeRattighieri) |
+| 🩸 | Eduardo Xavier | [@eduduf](https://github.com/eduduf) |
+| 🩸 | Gabriel Cardinale | [@Grayved](https://github.com/Grayved) |
+
 ---
 
 <p align="center">
