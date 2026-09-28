@@ -6,6 +6,15 @@ import { hideHome } from './js/game-state.js';
 import { startRunnerMode } from './js/runner-mode.js';
 import { initOrientation, maybeShowInstallHint } from './js/orientation.js';
 
+// O service worker guarda o app e os assets locais para as próximas sessões offline.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(err => {
+      console.warn('O cache offline não pôde ser iniciado:', err);
+    });
+  });
+}
+
 // Mantém só a logo na tela até o vídeo poder começar a tocar.
 function waitUntilPlayable(media) {
   if (!media || media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA || media.error) {

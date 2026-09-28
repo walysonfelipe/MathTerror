@@ -16,9 +16,6 @@ const SFX = {
 };
 const MUSIC_VOLUME = 0.7;
 // Celular/tablet: mesma trilha a 96 kbps (~9,6 MB) em vez da original de 320 kbps (~32 MB).
-const MOBILE_MUSIC_SRC = 'https://res.cloudinary.com/movierental/video/upload/br_96k/v1790514088/fundo_kqv5is.mp3';
-if (bgMusic && window.matchMedia('(pointer: coarse)').matches) bgMusic.src = MOBILE_MUSIC_SRC;
-
 let ctx = null;
 let master = null;
 let enabled = false;

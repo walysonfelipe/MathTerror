@@ -37,9 +37,6 @@
     <meta name="twitter:image" content="https://mathterror.walysonassis.online/assets/images/mathog.jpg" />
 
     <!-- Tipografia "horror" -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Montserrat:wght@400;700&display=swap"
-        rel="stylesheet">
 
     <link rel="stylesheet" href="style.css" />
     <!-- Deixa os recursos da tela de fim de jogo prontos antes da primeira partida. -->
@@ -55,11 +52,8 @@
 
     <!-- Vídeo de background -->
     <video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="auto" disablepictureinpicture disableremoteplayback>
-        <!-- Celular/tablet: versão leve (~5 MB) em mp4, que o Safari do iPhone toca -->
-        <source media="(pointer: coarse)" src="https://res.cloudinary.com/movierental/video/upload/q_auto:eco,w_960/v1790514018/inicio_lwek82.mp4" type="video/mp4" />
-        <source src="https://res.cloudinary.com/movierental/video/upload/v1790514018/inicio_lwek82.webm" type="video/webm" />
-        <!-- Safari no desktop: nem sempre toca webm -->
-        <source src="https://res.cloudinary.com/movierental/video/upload/v1790514018/inicio_lwek82.mp4" type="video/mp4" />
+        <!-- Versão leve, usada em todas as plataformas para funcionar offline. -->
+        <source src="assets/videos/menu-mobile.mp4" type="video/mp4" />
         Seu navegador não suporta vídeo HTML5.
     </video>
 
@@ -113,8 +107,8 @@
         </div>
     </div>
 
-    <!-- Trilha de fundo (32 MB; no celular js/audio.js troca pela versão de 96 kbps) — toca em streaming -->
-    <audio id="bgMusic" src="https://res.cloudinary.com/movierental/video/upload/v1790514088/fundo_kqv5is.mp3" preload="metadata" loop></audio>
+    <!-- Trilha compactada a 96 kbps, armazenada localmente para uso offline. -->
+    <audio id="bgMusic" src="assets/audio/music-mobile.mp3" preload="metadata" loop></audio>
 
     <div id="statusBar" class="status-bar" aria-label="Status da partida" hidden>
         <div class="vitality-widget"><span class="hud-label">VIDAS</span><span id="lives" class="life-pips" role="img" aria-label="3 vidas"></span></div>
