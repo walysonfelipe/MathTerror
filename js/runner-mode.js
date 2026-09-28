@@ -233,6 +233,7 @@ let fightIntro = false;
 let fightAction = 'idle';
 let fightActionAt = 0;
 let fightCounterHit = false;
+let fightStrikeSoundPlayed = false;
 let fightCombo = 0;
 let fightBossAttack = 0;
 let hideCheckpointDoor = false;
@@ -1129,6 +1130,7 @@ function beginFight() {
   fightIntro = true;
   panel.hidden = true;
   panel.innerHTML = '';
+  playSfx('fight');
 }
 
 function fightOwlPosition() {
@@ -1161,6 +1163,10 @@ function updateFightAction() {
     return;
   }
   const elapsed = clock - fightActionAt;
+  if (fightAction === 'strike' && !fightStrikeSoundPlayed && elapsed >= FIGHT_BOSS_HIT_DURATION * 4 / FIGHT_BOSS_HIT.frames.length) {
+    fightStrikeSoundPlayed = true;
+    playSfx('punch');
+  }
   if (fightAction === 'approach' && elapsed >= 0.56) {
     fightAction = 'strike';
     fightActionAt = clock;
@@ -1172,6 +1178,7 @@ function updateFightAction() {
   } else if (fightAction === 'counter') {
     if (!fightCounterHit && elapsed >= BOSS_POWER_IMPACT_AT) {
       fightCounterHit = true;
+      playSfx('impact');
       fightEffect = 'owl-hit';
       fightEffectAt = clock;
       lives--;
@@ -1247,6 +1254,8 @@ function answerFight(correct) {
     feedback.textContent = 'Acertou! A coruja corre para atacar!';
     fightAction = 'approach';
     fightActionAt = clock;
+    fightStrikeSoundPlayed = false;
+    playSfx('whoosh');
   } else {
     fightResults.push(false);
     fightBossAttack = fightRound % FIGHT_BOSS_ATTACKS.length;
@@ -1254,6 +1263,7 @@ function answerFight(correct) {
     fightAction = 'counter';
     fightActionAt = clock;
     fightCounterHit = false;
+    playSfx('spell');
   }
   updateStatusBar();
 }

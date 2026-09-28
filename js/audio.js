@@ -13,6 +13,11 @@ const SFX = {
   fall: 'assets/audio/voicebosch-falling-whistle-cartoon-180579.mp3',
   scare: 'assets/audio/susto.mp3',
   pulse: 'assets/audio/pulse.mp3',
+  fight: 'assets/audio/fight.mp3',
+  punch: 'assets/audio/punch.mp3',
+  spell: 'assets/audio/spell.mp3',
+  whoosh: 'assets/audio/whossh.mp3',
+  impact: 'assets/audio/impact.mp3',
 };
 const MUSIC_VOLUME = 0.7;
 // Celular/tablet: mesma trilha a 96 kbps (~9,6 MB) em vez da original de 320 kbps (~32 MB).
