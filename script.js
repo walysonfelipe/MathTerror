@@ -6,13 +6,17 @@ import { hideHome } from './js/game-state.js';
 import { startRunnerMode } from './js/runner-mode.js';
 import { initOrientation, maybeShowInstallHint } from './js/orientation.js';
 
-// O service worker guarda o app e os assets locais para as próximas sessões offline.
+// Remove o service worker/cache offline de versões antigas. O jogo agora usa os
+// arquivos servidos normalmente e não mantém cópias offline.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(err => {
-      console.warn('O cache offline não pôde ser iniciado:', err);
-    });
-  });
+  navigator.serviceWorker.getRegistrations()
+    .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+    .catch(() => {});
+}
+if ('caches' in window) {
+  caches.keys()
+    .then(keys => Promise.all(keys.filter(key => key.startsWith('mathterror-')).map(key => caches.delete(key))))
+    .catch(() => {});
 }
 
 // Mantém só a logo na tela até o vídeo poder começar a tocar.

@@ -1,8 +1,8 @@
 // ===================== FUGA INFERNAL =====================
 // Estilo "dinossauro do Google": a coruja corre sozinha pelas plataformas de lava
 // e o jogador pula os buracos. A cada 20 segundos ela chega num checkpoint, para
-// e precisa responder uma questão enquanto o boss vem chegando pela esquerda.
-// Acertou: o boss recua e a corrida continua. Demorou demais: o boss pega a coruja.
+// responde questões enquanto o boss vem chegando pela esquerda. Depois de quatro
+// erros no checkpoint, a coruja encara o boss em quatro rodadas de contas rápidas.
 
 import { QUIZ } from './quiz-data.js';
 import { livesEl, scoreEl, statusBar } from './dom-elements.js';
@@ -19,7 +19,7 @@ const QUESTION_SECONDS = 30;     // tempo da barra encher (boss pega a coruja), 
 const BOSS_APPEAR_AT = 0.7;      // o boss só entra na tela quando a barra passa de 70%
 const ERROR_SPEEDUP = 0.75;      // cada erro deixa o boss 75% mais rápido nesta questão
 const WRONG_PENALTY = 0.1;       // saltinho para frente a cada erro (0–1)
-const MAX_ERRORS = 3;            // 3 erros na mesma pergunta: o boss pega a coruja (fim de partida)
+const MAX_ERRORS = 3;            // o modo de luta abre quando passa de 3 erros
 const SPEED_START = 330;         // unidades/segundo
 const SPEED_GAIN = 1.08;         // aumento de velocidade a cada checkpoint
 const GRAVITY = 2600;
@@ -32,6 +32,74 @@ const JUMP_VELOCITY = -1080;
 // Linhas 2–3: corrida, 3 quadros por passo (passada → apoio → impulso), trocando de pé
 // Linha 4: pulo — 12 agacha · 13 decola · 14 no ar (asas abertas) · 15 aterrissa
 const OWL = { src: 'assets/images/owl-sheet.webp', w: 312, h: 270, cols: 4 };
+// Limites alfa individuais das 16 poses, na ordem de leitura das pranchas.
+// Cada pose mantém o seu tamanho e proporção próprios; não é recortada por quadrantes.
+const FIGHT_OWL = {
+  src: 'assets/images/owl-fight-sheet.png',
+  frames: [
+    [74, 34, 218, 241], [389, 32, 240, 244], [718, 39, 231, 236], [1070, 42, 259, 234],
+    [46, 315, 271, 238], [344, 320, 335, 232], [748, 315, 231, 238], [1104, 306, 228, 252],
+    [12, 584, 357, 250], [414, 626, 236, 205], [708, 636, 275, 198], [1002, 581, 342, 244],
+    [40, 894, 296, 200], [383, 895, 271, 198], [591, 890, 462, 201], [1092, 881, 229, 219],
+  ],
+};
+const FIGHT_BOSS = {
+  src: 'assets/images/boss-fight-sheet.png',
+  frames: [
+    [16, 10, 308, 262], [357, 13, 351, 257], [716, 26, 392, 245], [1122, 19, 290, 252],
+    [23, 285, 302, 252], [374, 280, 301, 257], [708, 290, 397, 248], [1093, 297, 349, 240],
+    [13, 573, 323, 236], [374, 525, 288, 288], [677, 584, 411, 228], [1116, 546, 314, 266],
+    [18, 812, 293, 256], [356, 812, 312, 258], [679, 821, 401, 249], [1072, 832, 376, 235],
+  ],
+};
+// Reação do boss ao golpe: 16 recortes alfa individuais, em ordem de leitura.
+// Os sprites vão da preparação (0–3), passam pelos impactos (4–11) e terminam
+// com a reação forte e a recuperação (12–15).
+const FIGHT_BOSS_HIT = {
+  src: 'assets/images/boss-strike-sheet.png',
+  frames: [
+    [18, 3, 320, 269], [378, 6, 317, 266], [740, 3, 323, 269], [1115, 6, 318, 266],
+    [37, 272, 308, 271], [381, 272, 315, 271], [741, 272, 319, 271], [1112, 272, 313, 271],
+    [19, 547, 322, 268], [380, 543, 315, 268], [742, 546, 318, 266], [1113, 543, 323, 272],
+    [20, 815, 316, 257], [385, 815, 324, 257], [725, 815, 336, 256], [1113, 815, 320, 257],
+  ],
+};
+const FIGHT_BOSS_HIT_DURATION = 0.88;
+const FIGHT_BOSS_HIT_FRAME_TIME = FIGHT_BOSS_HIT_DURATION / FIGHT_BOSS_HIT.frames.length;
+// Sequência do poder do boss: disparo (0–3), impacto (4–11), queda/recuperação (12–15).
+// Os limites e o ponto de ancoragem da coruja foram medidos por pose, sem quadrantes uniformes.
+const BOSS_POWER = {
+  src: 'assets/images/boss-power-attack-sheet.png',
+  frames: [
+    [65, 61, 285, 169, 219], [392, 69, 319, 161, 254], [750, 68, 313, 160, 252], [1101, 62, 318, 169, 255],
+    [11, 315, 378, 199, 289], [381, 315, 373, 199, 292], [754, 315, 354, 200, 257], [1107, 314, 332, 202, 216],
+    [37, 561, 352, 220, 259], [403, 554, 360, 219, 268], [799, 565, 327, 190, 221], [1144, 565, 294, 190, 198],
+    [81, 818, 277, 196, 176], [419, 839, 324, 192, 167], [802, 846, 242, 188, 134], [1172, 830, 203, 207, 101],
+  ],
+  projectileCoreX: [219, 254, 252, 255],
+  projectileScale: 0.76,
+};
+// Tempos por pose: aproximação curta, impacto legível e recuo/recuperação mais longos.
+const BOSS_POWER_FRAME_TIMES = [
+  0.12, 0.12, 0.12, 0.12,
+  0.10, 0.10, 0.10, 0.10,
+  0.12, 0.12, 0.12, 0.12,
+  0.14, 0.14, 0.14, 0.14,
+];
+const BOSS_POWER_IMPACT_AT = BOSS_POWER_FRAME_TIMES.slice(0, 8).reduce((sum, time) => sum + time, 0);
+const BOSS_POWER_DURATION = BOSS_POWER_FRAME_TIMES.reduce((sum, time) => sum + time, 0);
+const FIGHT_TURN_TIME = 0.8;
+const FIGHT_OWL_COMBOS = [
+  [4, 5, 6],       // soco e recuperação
+  [7, 8, 6],       // chute e recuperação
+  [9, 10, 11],     // esquiva baixa e golpe de asa
+  [4, 5, 8, 11],   // sequência final
+];
+const FIGHT_BOSS_ATTACKS = [
+  [4, 5, 6, 7],     // esfera de fogo
+  [8, 9, 10, 11],  // golpe no chão
+  [12, 13, 14, 15], // rajada de energia
+];
 const OWL_ANIMS = {
   idle: { frames: [0, 0, 0, 0, 0, 1, 2, 1, 0, 0], fps: 6 },  // parada, piscando
 };
@@ -139,6 +207,20 @@ let deckIndex = 0;
 let answering = false;
 let errors = 0;           // erros na questão atual
 let runPhase = 0;         // posição no ciclo de corrida, em quadros
+let fightRound = 0;
+let fightProblems = [];
+let fightResults = [];
+let fightEffect = '';
+let fightEffectAt = 0;
+let fightStartedAt = 0;
+let fightAction = 'idle';
+let fightActionAt = 0;
+let fightCounterHit = false;
+let fightCombo = 0;
+let fightBossAttack = 0;
+let hideCheckpointDoor = false;
+let cameraZoom = 1;
+let cameraLift = 0;         // no celular, sobe a cena da luta para o chão ficar acima do painel
 
 // ===================== MUNDO =====================
 function addSegment(x, tileCount) {
@@ -227,7 +309,7 @@ function onKeyDown(event) {
     jump();
     return;
   }
-  if (state === 'checkpoint') {
+  if (state === 'checkpoint' || state === 'fight') {
     const index = ['1', '2', '3', '4'].indexOf(event.key);
     const button = panel.querySelectorAll('.quiz-options > button')[index];
     if (button && !button.disabled) {
@@ -274,6 +356,14 @@ function frame(now) {
   raf = requestAnimationFrame(frame);
 }
 
+// Quanto subir a cena para os pés da luta ficarem visíveis acima do painel de respostas.
+function fightLift() {
+  if (state !== 'fight' || !isPhone() || panel.hidden) return 0;
+  const panelTop = panel.getBoundingClientRect().top / k;
+  const groundOnScreen = viewH / 2 + (groundY + 6 - viewH / 2) * cameraZoom;
+  return Math.max(0, groundOnScreen - (panelTop - 8));
+}
+
 function setState(next) {
   state = next;
   stateTime = 0;
@@ -281,6 +371,9 @@ function setState(next) {
 
 function update(dt) {
   shake = Math.max(0, shake - dt * 2.5);
+  const targetZoom = state === 'fight' ? 1.2 : 1;
+  cameraZoom += (targetZoom - cameraZoom) * (1 - Math.exp(-dt * 4.5));
+  cameraLift += (fightLift() - cameraLift) * (1 - Math.exp(-dt * 6));
 
   if (state === 'run') {
     const before = owl.x;
@@ -323,6 +416,12 @@ function update(dt) {
 
   updateBoss(dt);
 
+  if (state === 'fight') {
+    updatePulse();
+    if (fightEffect && clock - fightEffectAt > 0.55) fightEffect = '';
+    updateFightAction();
+  }
+
   if (state === 'checkpoint' && !answering) {
     // A barra enche desde o início (mais rápido a cada erro); o boss só entra aos 70%
     boss.progress = Math.min(1, boss.progress + dt * bossPace() / QUESTION_SECONDS);
@@ -333,7 +432,11 @@ function update(dt) {
     updatePulse();                                   // batimento cresce desde o começo da pergunta
     const meter = panel.querySelector('progress');
     if (meter) meter.value = boss.progress;
-    if (boss.progress >= 1) caught();
+    // Em telas de toque, a pergunta some quando já não há tempo útil para responder.
+    panel.classList.toggle('is-near-catch', isPhone() && boss.progress >= 0.98);
+    // Quando o cronômetro acaba, a luta é sempre a última chance, mesmo com menos
+    // de quatro erros no checkpoint. A captura só acontece se perder a luta.
+    if (boss.progress >= 1) beginFight();
   } else if (state === 'resume') {
     // Acertou: comemora e depois o sprite da porta mostra a coruja passando por ela
     const door = currentDoor();
@@ -395,6 +498,12 @@ function draw() {
   ctx.save();
   ctx.clearRect(0, 0, viewW, viewH);
   if (shake > 0) ctx.translate((Math.random() - 0.5) * 18 * shake, (Math.random() - 0.5) * 12 * shake);
+  if (cameraLift > 0.5) ctx.translate(0, -cameraLift);
+  if (Math.abs(cameraZoom - 1) > 0.001) {
+    ctx.translate(viewW / 2, viewH / 2);
+    ctx.scale(cameraZoom, cameraZoom);
+    ctx.translate(-viewW / 2, -viewH / 2);
+  }
 
   // Céu escuro por cima do vídeo de fundo + brilho de lava
   const sky = ctx.createLinearGradient(0, 0, 0, viewH);
@@ -402,7 +511,7 @@ function draw() {
   sky.addColorStop(0.7, '#1a050588');
   sky.addColorStop(1, '#4a0a06dd');
   ctx.fillStyle = sky;
-  ctx.fillRect(-20, -20, viewW + 40, viewH + 40);
+  ctx.fillRect(-20, -20, viewW + 40, viewH + 40 + cameraLift * 2);
 
   embers.forEach(e => {
     ctx.fillStyle = `rgba(255, ${90 + e.life * 80 | 0}, 40, ${e.life})`;
@@ -424,6 +533,7 @@ function draw() {
   drawDoors(camera);
   drawOwl();
   drawBoss();
+  drawBossPowerSequence();
   drawLegProgress();
   ctx.restore();
 }
@@ -441,6 +551,7 @@ function isPassing() {
 }
 
 function drawDoors(camera) {
+  if (hideCheckpointDoor) return;
   const img = loadImage(PASS.src);
   for (const door of doors) {
     const left = door.x - camera - PASS.doorX * PASS_SCALE;
@@ -524,6 +635,25 @@ function owlPose() {
 
 function drawOwl() {
   if (boss.mode === 'grab') return;                  // a coruja está dentro do sprite de captura
+  if (state === 'fight') {
+    const elapsed = clock - fightStartedAt;
+    if (fightAction === 'counter' && clock - fightActionAt >= BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0)) return;
+    let frame = 3;
+    let x = fightOwlPosition();
+    let flip = false;
+    if (elapsed < FIGHT_TURN_TIME) frame = Math.min(3, Math.floor(elapsed * 4));
+    else if (fightAction === 'approach') frame = runFrame();
+    else if (fightAction === 'strike') {
+      const combo = FIGHT_OWL_COMBOS[fightCombo % FIGHT_OWL_COMBOS.length];
+      frame = combo[Math.min(combo.length - 1, Math.floor((clock - fightActionAt) * 8))];
+    }
+    else if (fightAction === 'retreat') {
+      frame = runFrame();
+      flip = true;
+    } else if (fightAction === 'counter' && fightCounterHit) frame = 14;
+    drawFighter(FIGHT_OWL, frame, x, OWL_H / 240, flip);
+    return;
+  }
   const img = loadImage(OWL.src);
 
   dust.forEach(d => {
@@ -609,6 +739,8 @@ function updateBoss(dt) {
       boss.walking = step > 0.01;
       break;
     }
+    case 'fight':
+      break;
     case 'leap-crouch':
       if (boss.modeTime >= 0.16) {
         boss.vy = BOSS_GRAVITY * BOSS_LEAP_TIME / 2;
@@ -738,11 +870,27 @@ function drawGrab() {
   const flash = Math.max(0, 1 - boss.modeTime / 0.3);
   if (flash > 0) {
     ctx.fillStyle = `rgba(255, 40, 20, ${flash * 0.55})`;
-    ctx.fillRect(-20, -20, viewW + 40, viewH + 40);
+    ctx.fillRect(-20, -20, viewW + 40, viewH + 40 + cameraLift * 2);
   }
 }
 
 function drawBoss() {
+  if (state === 'fight') {
+    if (fightAction === 'strike') {
+      const elapsed = clock - fightActionAt;
+      const frame = Math.min(FIGHT_BOSS_HIT.frames.length - 1, Math.floor(elapsed / FIGHT_BOSS_HIT_FRAME_TIME));
+      drawFighter(FIGHT_BOSS_HIT, frame, viewW * 0.25, BOSS_H / 260);
+      return;
+    }
+    let frame = 0;
+    if (fightAction === 'counter') {
+      const attack = FIGHT_BOSS_ATTACKS[fightBossAttack];
+      frame = attack[Math.min(attack.length - 1, Math.floor((clock - fightActionAt) * 5))];
+    }
+    else if (fightAction === 'approach' || fightAction === 'retreat') frame = 3;
+    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, BOSS_H / 260);
+    return;
+  }
   if (boss.mode === 'grab') {
     drawGrab();
     return;
@@ -774,6 +922,83 @@ function drawBoss() {
   }
 }
 
+function drawFighter(sheet, frame, x, sourceScale, flip = false) {
+  const img = loadImage(sheet.src);
+  if (!img.complete || !img.naturalWidth) return;
+  const [x0, y0, w0, h0] = sheet.frames[frame];
+  const pad = 4;
+  const sx = Math.max(0, x0 - pad);
+  const sy = Math.max(0, y0 - pad);
+  const right = Math.min(img.naturalWidth, x0 + w0 + pad);
+  const bottom = Math.min(img.naturalHeight, y0 + h0 + pad);
+  const sw = right - sx;
+  const sh = bottom - sy;
+  const scale = Math.min(sourceScale, viewW * 0.38 / sw);
+  const w = sw * scale;
+  const h = sh * scale;
+  ctx.save();
+  ctx.translate(x, groundY + 4);
+  if (flip) ctx.scale(-1, 1);
+  ctx.shadowColor = fightEffect ? '#ff3b13' : '#ff1a0a';
+  ctx.shadowBlur = fightEffect ? 34 : 16;
+  ctx.drawImage(img, sx, sy, sw, sh, -w / 2, -h, w, h);
+  ctx.restore();
+}
+
+function drawBossPowerSequence() {
+  if (state !== 'fight' || fightAction !== 'counter') return;
+  const elapsed = clock - fightActionAt;
+  let frame = 0;
+  let frameStart = 0;
+  for (; frame < BOSS_POWER_FRAME_TIMES.length - 1; frame++) {
+    const nextStart = frameStart + BOSS_POWER_FRAME_TIMES[frame];
+    if (elapsed < nextStart) break;
+    frameStart = nextStart;
+  }
+  const [x0, y0, w0, h0, anchorX] = BOSS_POWER.frames[frame];
+  const img = loadImage(BOSS_POWER.src);
+  if (!img.complete || !img.naturalWidth) return;
+  const pad = 4;
+  const sx = Math.max(0, x0 - pad);
+  const sy = Math.max(0, y0 - pad);
+  const right = Math.min(img.naturalWidth, x0 + w0 + pad);
+  const bottom = Math.min(img.naturalHeight, y0 + h0 + pad);
+  const sw = right - sx;
+  const sh = bottom - sy;
+  const scale = Math.min(BOSS_POWER.projectileScale, viewW * 0.38 / sw);
+  const w = sw * scale;
+  const h = sh * scale;
+  let left;
+  let top;
+
+  if (frame < 4) {
+    // A primeira linha mostra os quatro quadros do projétil atravessando a arena.
+    const travel = Math.min(1, elapsed / BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0));
+    const startX = viewW * 0.34;
+    const coreX = startX + (fightOwlPosition() - startX) * (1 - (1 - travel) ** 2);
+    const coreY = groundY - OWL_H * 0.82 - Math.sin(travel * Math.PI) * 22;
+    left = coreX - (BOSS_POWER.projectileCoreX[frame] + x0 - sx) * scale;
+    top = coreY - h * 0.5;
+  } else {
+    // Nos quadros compostos, ancoramos a coruja no mesmo ponto para evitar saltos
+    // causados pelos limites diferentes de cada recorte. A última linha a empurra
+    // para trás e para cima, como reação ao impacto, e então mostra a recuperação.
+    const recoil = Math.max(0, Math.min(1, (elapsed - BOSS_POWER_IMPACT_AT) / (BOSS_POWER_DURATION - BOSS_POWER_IMPACT_AT)));
+    const recoilEase = recoil * recoil * (3 - 2 * recoil);
+    const owlX = fightOwlPosition() + recoilEase * 58;
+    const knockbackLift = recoilEase * Math.sin(recoil * Math.PI) * 20;
+    left = owlX - (anchorX + x0 - sx) * scale;
+    top = groundY + 4 - h - knockbackLift;
+  }
+
+  ctx.save();
+  // O brilho acompanha o projétil e o clarão; mantém os sprites da coruja nítidos.
+  ctx.shadowColor = '#ff5a08';
+  ctx.shadowBlur = frame < 4 || (frame >= 7 && frame <= 9) ? 14 : 4;
+  ctx.drawImage(img, sx, sy, sw, sh, left, top, w, h);
+  ctx.restore();
+}
+
 function drawLegProgress() {
   if (state !== 'run') return;
   const p = Math.max(0, Math.min(1, (owl.x - legStartX) / (markerX - legStartX)));
@@ -800,6 +1025,7 @@ function buildDeck() {
 
 function enterCheckpoint() {
   setState('checkpoint');
+  hideCheckpointDoor = false;
   setBossMode('hidden');
   boss.progress = 0;
   errors = 0;
@@ -808,8 +1034,194 @@ function enterCheckpoint() {
   renderQuestion(deck[deckIndex++]);
 }
 
+function makeFightProblem(operation) {
+  let a, b, answer;
+  if (operation === '+') {
+    a = 2 + Math.floor(Math.random() * 19);
+    b = 1 + Math.floor(Math.random() * 19);
+    answer = a + b;
+  } else if (operation === '−') {
+    a = 10 + Math.floor(Math.random() * 31);
+    b = 1 + Math.floor(Math.random() * a);
+    answer = a - b;
+  } else if (operation === '×') {
+    a = 2 + Math.floor(Math.random() * 10);
+    b = 2 + Math.floor(Math.random() * 10);
+    answer = a * b;
+  } else {
+    b = 2 + Math.floor(Math.random() * 9);
+    answer = 2 + Math.floor(Math.random() * 10);
+    a = b * answer;
+  }
+  const choices = new Set([answer]);
+  while (choices.size < 4) {
+    const offset = 1 + Math.floor(Math.random() * 5);
+    choices.add(Math.max(0, answer + (Math.random() < 0.5 ? -offset : offset)));
+  }
+  const options = shuffleInPlace([...choices]);
+  return { text: `${a} ${operation} ${b} = ?`, options, answer: options.indexOf(answer) };
+}
+
+function beginFight() {
+  setState('fight');
+  fightStartedAt = clock;
+  fightAction = 'idle';
+  fightActionAt = clock;
+  fightCounterHit = false;
+  hideCheckpointDoor = true;
+  answering = false;
+  fightRound = 0;
+  fightProblems = [];
+  fightResults = [];
+  const operations = shuffleInPlace(['+', '−', '×', '÷']);
+  for (const operation of operations) fightProblems.push(makeFightProblem(operation));
+  boss.progress = 1;
+  boss.facing = 1;
+  setBossMode('fight');
+  fightEffect = '';
+  updatePulse();
+  renderFightQuestion();
+}
+
+function fightOwlPosition() {
+  const start = viewW * 0.75;
+  const target = viewW * 0.25 + BOSS_H * 0.9;
+  const elapsed = clock - fightActionAt;
+  if (fightAction === 'approach') {
+    const p = Math.min(1, elapsed / 0.56);
+    return start + (target - start) * (1 - (1 - p) ** 3);
+  }
+  if (fightAction === 'strike') return target;
+  if (fightAction === 'retreat') {
+    const p = Math.min(1, elapsed / 0.58);
+    const eased = p * p * (3 - 2 * p);
+    return target + (start - target) * eased;
+  }
+  return start;
+}
+
+function runFrame() {
+  return [13, 12][Math.floor((clock - fightActionAt) * 12) % 2];
+}
+
+function updateFightAction() {
+  const elapsed = clock - fightActionAt;
+  if (fightAction === 'approach' && elapsed >= 0.56) {
+    fightAction = 'strike';
+    fightActionAt = clock;
+  } else if (fightAction === 'strike' && elapsed >= FIGHT_BOSS_HIT_DURATION) {
+    fightAction = 'retreat';
+    fightActionAt = clock;
+  } else if (fightAction === 'retreat' && elapsed >= 0.58) {
+    completeFightRound();
+  } else if (fightAction === 'counter') {
+    if (!fightCounterHit && elapsed >= BOSS_POWER_IMPACT_AT) {
+      fightCounterHit = true;
+      fightEffect = 'owl-hit';
+      fightEffectAt = clock;
+      lives--;
+      shake = 0.8;
+      updateStatusBar();
+      const feedback = panel.querySelector('.answer-feedback');
+      if (feedback) feedback.textContent = 'O poder do boss atingiu a coruja!';
+    }
+    if (elapsed >= BOSS_POWER_DURATION) completeFightRound();
+  }
+}
+
+function completeFightRound() {
+  fightRound++;
+  if (fightRound >= 4) {
+    finishFight();
+    return;
+  }
+  fightAction = 'idle';
+  fightActionAt = clock;
+  fightCounterHit = false;
+  answering = false;
+  fightEffect = '';
+  renderFightQuestion();
+}
+
+function renderFightQuestion(feedbackText = '') {
+  const problem = fightProblems[fightRound];
+  panel.hidden = false;
+  panel.classList.add('is-fight-question');
+  panel.classList.remove('is-near-catch');
+  panel.innerHTML = `
+    <div class="runner-question-head"><span class="hud-label runner-threat">LUTA CONTRA O BOSS · ${fightRound + 1}/4</span></div>
+    <h2 class="quiz-title"></h2>
+    <div class="quiz-options"></div>
+    <p class="answer-feedback" role="status" aria-live="polite"></p>`;
+  panel.querySelector('.quiz-title').textContent = problem.text;
+  panel.querySelector('.answer-feedback').textContent = feedbackText;
+  const options = panel.querySelector('.quiz-options');
+  const turning = fightRound === 0 && clock - fightStartedAt < FIGHT_TURN_TIME;
+  problem.options.forEach((value, index) => {
+    const button = document.createElement('button');
+    button.className = 'btn btn--blood quiz-option';
+    button.type = 'button';
+    button.disabled = turning;
+    button.textContent = `${index + 1}) ${value}`;
+    button.addEventListener('click', () => answerFight(index === problem.answer));
+    options.appendChild(button);
+  });
+  if (turning) {
+    const remaining = Math.max(0, (FIGHT_TURN_TIME - (clock - fightStartedAt)) * 1000);
+    setTimeout(() => {
+      if (state !== 'fight' || fightRound !== 0) return;
+      options.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      if (!isPhone()) options.querySelector('button')?.focus({ preventScroll: true });
+    }, remaining);
+  } else if (!isPhone()) {
+    requestAnimationFrame(() => options.querySelector('button')?.focus({ preventScroll: true }));
+  }
+}
+
+function answerFight(correct) {
+  if (state !== 'fight' || answering) return;
+  answering = true;
+  panel.querySelectorAll('button').forEach(button => { button.disabled = true; });
+  fightEffect = correct ? 'boss-hit' : 'owl-hit';
+  fightEffectAt = clock;
+  const feedback = panel.querySelector('.answer-feedback');
+  if (correct) {
+    fightCombo = fightResults.filter(Boolean).length;
+    score++;
+    fightResults.push(true);
+    feedback.textContent = 'Acertou! A coruja corre para atacar!';
+    fightAction = 'approach';
+    fightActionAt = clock;
+  } else {
+    fightResults.push(false);
+    fightBossAttack = fightRound % FIGHT_BOSS_ATTACKS.length;
+    feedback.textContent = 'O boss prepara seu poder!';
+    fightAction = 'counter';
+    fightActionAt = clock;
+    fightCounterHit = false;
+  }
+  updateStatusBar();
+}
+
+function finishFight() {
+  const hits = fightResults.filter(Boolean).length;
+  if (hits < 2 || lives <= 0) {
+    gameOver('O boss venceu a luta.');
+    return;
+  }
+  panel.hidden = true;
+  resetPulse();
+  hideCheckpointDoor = false;
+  setBossMode('retreat');
+  boss.facing = -1;
+  boss.walking = true;
+  fightResults = [];
+  setState('resume');
+}
+
 function renderQuestion(node) {
   panel.hidden = false;
+  panel.classList.remove('is-fight-question', 'is-near-catch');
   panel.innerHTML = `
     <div class="runner-question-head">
       <span class="hud-label runner-threat">CHECKPOINT · SILÊNCIO...</span>
@@ -895,7 +1307,8 @@ function answer(correct, button) {
     updateStatusBar();                                // coração da vez esvazia mais um pouco
     currentDoor().rattleAt = clock;
     boss.progress = Math.min(1, boss.progress + WRONG_PENALTY);
-    if (errors >= MAX_ERRORS || boss.progress >= 1) caught();
+    if (errors > MAX_ERRORS) beginFight();
+    else if (boss.progress >= 1) caught();
     else if (boss.mode === 'stalk') bossLeap(bossTargetX());   // salta para frente e ruge
   }
 }
@@ -996,6 +1409,7 @@ function gameOver(reason) {
   setState('over');
   resetPulse();
   panel.hidden = false;
+  panel.classList.remove('is-fight-question', 'is-near-catch');
   panel.classList.add('is-game-over');
   // Textos fixos já estão desenhados nas imagens: ficam só para leitores de tela (go-sr)
   panel.innerHTML = `
@@ -1042,7 +1456,7 @@ export function stopRunnerMode() {
 export function startRunnerMode() {
   stopRunnerMode();
   setAudioEnabled(true);
-  [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src].forEach(loadImage);
+  [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src, FIGHT_OWL.src, FIGHT_BOSS.src, FIGHT_BOSS_HIT.src, BOSS_POWER.src].forEach(loadImage);
 
   root = document.createElement('div');
   root.className = 'runner';
@@ -1067,6 +1481,11 @@ export function startRunnerMode() {
   speed = SPEED_START;
   clock = 0;
   shake = 0;
+  cameraZoom = 1;
+  cameraLift = 0;
+  hideCheckpointDoor = false;
+  fightAction = 'idle';
+  fightCounterHit = false;
   embers = [];
   boss.progress = 0;
   setBossMode('hidden');
