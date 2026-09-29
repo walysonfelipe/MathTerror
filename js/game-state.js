@@ -2,9 +2,8 @@ import { bgVideo, gameVideo } from './dom-elements.js';
 import { stopAllEffects } from './audio.js';
 import { stopRunnerMode } from './runner-mode.js';
 
-// Fundo da partida (game-bg.mp4: cortado a partir do 2º segundo e interpolado para 60 fps,
-// para a câmera lenta continuar suave). 0,4× = cada volta do loop leva ~20 s.
-const GAME_VIDEO_RATE = 0.4;
+// Fundo da partida interpolado para 60 fps. Em 0,08×, cada volta leva cerca de 99 s.
+const GAME_VIDEO_RATE = 0.08;
 if (gameVideo) gameVideo.defaultPlaybackRate = GAME_VIDEO_RATE;
 
 // Menu e partida têm vídeos de fundo diferentes: toca só o que está aparecendo.
