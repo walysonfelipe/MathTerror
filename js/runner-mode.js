@@ -43,14 +43,19 @@ const FIGHT_OWL = {
     [40, 894, 296, 200], [383, 895, 271, 198], [591, 890, 462, 201], [1092, 881, 229, 219],
   ],
 };
+// boss-fight-frames.webp (reempacotada de boss-fight-sheet.webp): cada pose isolada na sua
+// célula, com o brilho próprio e sem pedaços das poses vizinhas (punho do 9, esferas do 6/7/14/15).
+// [x, y, w, h, anchorX, anchorY]: anchorX é o meio do tronco (a esfera/fogo não empurra o corpo)
+// e anchorY a linha em que as garras tocam o chão (o brilho abaixo dos pés não levanta o boss).
 const FIGHT_BOSS = {
-  src: 'assets/images/boss-fight-sheet.webp',
+  src: 'assets/images/boss-fight-frames.webp',
   frames: [
-    [16, 10, 308, 262], [357, 13, 351, 257], [716, 26, 392, 245], [1122, 19, 290, 252],
-    [23, 285, 302, 252], [374, 280, 301, 257], [708, 290, 397, 248], [1093, 297, 349, 240],
-    [13, 573, 323, 236], [374, 525, 288, 288], [677, 584, 411, 228], [1116, 546, 314, 266],
-    [18, 812, 293, 256], [356, 812, 312, 258], [679, 821, 401, 249], [1072, 832, 376, 235],
+    [8, 8, 317, 278, 148, 267], [445, 8, 364, 278, 180, 266], [882, 8, 407, 255, 180, 245], [1319, 8, 305, 262, 146, 251],
+    [8, 322, 312, 260, 142, 251], [445, 322, 310, 264, 135, 254], [882, 322, 408, 254, 141, 246], [1319, 322, 357, 249, 120, 238],
+    [8, 636, 328, 249, 162, 236], [445, 636, 297, 298, 151, 290], [882, 636, 421, 238, 176, 228], [1319, 636, 329, 278, 150, 270],
+    [8, 950, 308, 266, 134, 258], [445, 950, 325, 265, 140, 257], [882, 950, 414, 261, 153, 252], [1319, 950, 381, 241, 130, 233],
   ],
+  maxW: 421,   // pose mais larga: limita a escala em telas estreitas sem o boss mudar de tamanho
 };
 // Reação do boss ao golpe: 16 recortes alfa individuais, em ordem de leitura.
 // Os sprites vão da preparação (0–3), passam pelos impactos (4–11) e terminam
@@ -66,6 +71,60 @@ const FIGHT_BOSS_HIT = {
 };
 const FIGHT_BOSS_HIT_DURATION = 0.88;
 const FIGHT_BOSS_HIT_FRAME_TIME = FIGHT_BOSS_HIT_DURATION / FIGHT_BOSS_HIT.frames.length;
+// Poder do boss: carrega a esfera na mão (2 quadros), solta (1 quadro) e segue de punhos
+// fechados (3) enquanto a esfera voa sozinha. Os quadros 7 e 15 ficam de fora: neles a bola
+// ainda está na mão e ela apareceria duas vezes.
+const BOSS_CASTS = [
+  [4, 5, 6],        // esfera de fogo
+  [12, 13, 14],     // rajada de energia
+];
+const BOSS_CAST_FRAME = 0.14;
+const BOSS_CAST_TIME = BOSS_CASTS[0].length * BOSS_CAST_FRAME;
+const BOSS_AFTER_CAST = 3;                 // punhos fechados depois de soltar
+const BOSS_RELEASE = { x: 200, y: 135 };   // centro da esfera ao soltar (6 e 14), px da prancha a partir das âncoras
+// Golpe no chão (8–11): comemoração do boss quando a coruja cai derrotada.
+const BOSS_SLAM = [8, 9, 10, 11];
+const BOSS_SLAM_TIMES = [0.16, 0.24, 0.32, 0.3];
+const BOSS_SLAM_HIT = BOSS_SLAM_TIMES[0] + BOSS_SLAM_TIMES[1];   // o punho bate no chão (quadro 10)
+// Derrota na luta (owl-death-sheet.webp, gerada de image.png sem os respingos soltos).
+// 0–2 a esfera π chega e explode · 3–5 arremessada no ar · 6–11 cai, derrapa na poeira
+// e chuta · 12–15 ergue a cabeça e desmaia deitada.
+// [x, y, w, h, anchorX, anchorY]: recorte pelo alfa de cada pose; anchorX é o centro do
+// corpo (sem o fogo) e anchorY a linha em que o corpo/pés tocam o chão.
+const FIGHT_DEATH = {
+  src: 'assets/images/owl-death-sheet.webp',
+  frames: [
+    [2, 66, 415, 207, 333, 204], [418, 67, 346, 208, 263, 206], [775, 69, 309, 213, 217, 207], [1179, 94, 256, 190, 151, 183],
+    [86, 338, 270, 226, 153, 223], [418, 377, 292, 196, 169, 192], [790, 414, 297, 167, 160, 164], [1128, 428, 293, 150, 158, 147],
+    [28, 652, 350, 164, 196, 160], [389, 683, 361, 133, 194, 130], [774, 661, 315, 154, 163, 152], [1119, 688, 310, 129, 171, 126],
+    [55, 879, 324, 165, 178, 161], [417, 914, 322, 128, 174, 125], [770, 918, 319, 121, 172, 119], [1118, 918, 308, 121, 167, 118],
+  ],
+  times: [
+    0.12, 0.12, 0.14, 0.12,   // impacto
+    0.11, 0.11, 0.12, 0.12,   // voo e queda
+    0.12, 0.12, 0.14, 0.14,   // derrapa na poeira
+    0.20, 0.18, 0.18, 0.18,   // desmaia
+  ],
+  scale: 0.74,        // a coruja em pé fica do mesmo tamanho das outras pranchas da luta
+  maxW: 415,          // pose mais larga: limita a escala em telas estreitas sem mudar entre quadros
+  knockback: 70,      // quanto ela é empurrada para trás (para longe do boss)
+  lift: 40,           // altura do arremesso nos quadros 3–5
+  finalHold: 0.8,
+  // Esfera no quadro 0 (chegando na coruja), a partir das âncoras, e tamanho em relação ao voo.
+  impactBall: { dx: -134, dy: 110, size: 0.94 },
+};
+// Antes da coruja cair, o boss prepara e lança a esfera (BOSS_CASTS), que atravessa a arena.
+const FIGHT_DEATH_TRAVEL = 0.36;
+const FIGHT_DEATH_HIT_AT = BOSS_CAST_TIME + FIGHT_DEATH_TRAVEL;
+const FIGHT_DEATH_STARTS = FIGHT_DEATH.times.reduce((starts, time) => [...starts, starts[starts.length - 1] + time], [0]);
+const FIGHT_DEATH_IMPACT_AT = FIGHT_DEATH_HIT_AT + FIGHT_DEATH_STARTS[2];     // explosão: perde a vida
+const FIGHT_DEATH_LANDED_AT = FIGHT_DEATH_HIT_AT + FIGHT_DEATH_STARTS[6];     // corpo toca o chão
+// Com a coruja já no chão, o boss comemora batendo o punho no chão.
+const FIGHT_DEATH_SLAM_AT = FIGHT_DEATH_LANDED_AT + 0.25;
+const FIGHT_DEATH_DURATION = Math.max(
+  FIGHT_DEATH_HIT_AT + FIGHT_DEATH_STARTS[16] + FIGHT_DEATH.finalHold,
+  FIGHT_DEATH_SLAM_AT + BOSS_SLAM_TIMES.reduce((sum, time) => sum + time, 0) + 0.4,
+);
 // Sequência do poder do boss: disparo (0–3), impacto (4–11), queda/recuperação (12–15).
 // Os limites seguem o alfa real de cada pose (incluindo brasas e faíscas), sem quadrantes uniformes.
 // [x, y, w, h, anchorX, anchorY]: âncoras relativas ao canto do recorte; anchorY é a linha do chão.
@@ -79,8 +138,13 @@ const BOSS_POWER = {
   ],
   // Na segunda linha as poses se encostam: margem lateral extra puxaria a coruja vizinha.
   touchingFrames: [4, 5, 6, 7],
-  projectileCoreX: [248, 255, 256, 257],
+  // Centro da esfera π nos quadros 0–3 do voo (medido por correlação), relativo a x/y do recorte.
+  projectileCore: [[248, 85], [250, 82], [246, 78], [247, 82]],
   projectileScale: 0.76,
+  maxW: 390,          // pose mais larga: limita a escala em telas estreitas sem mudar entre quadros
+  // Esfera no quadro 4 (encostando na coruja): posição a partir das âncoras e tamanho em
+  // relação à esfera do voo. O voo termina exatamente aqui para não voltar para trás.
+  impactBall: { dx: -152, dy: 111, size: 0.78 },
 };
 // Tempos por pose: aproximação curta, impacto legível e recuo/recuperação mais longos.
 const BOSS_POWER_FRAME_TIMES = [
@@ -110,11 +174,6 @@ const FIGHT_OWL_COMBOS = [
   [7, 8, 6],       // chute e recuperação
   [9, 10, 11],     // esquiva baixa e golpe de asa
   [4, 5, 8, 11],   // sequência final
-];
-const FIGHT_BOSS_ATTACKS = [
-  [4, 5, 6, 7],     // esfera de fogo
-  [8, 9, 10, 11],  // golpe no chão
-  [12, 13, 14, 15], // rajada de energia
 ];
 const OWL_ANIMS = {
   idle: { frames: [0, 0, 0, 0, 0, 1, 2, 1, 0, 0], fps: 6 },  // parada, piscando
@@ -236,6 +295,11 @@ let fightCounterHit = false;
 let fightStrikeSoundPlayed = false;
 let fightCombo = 0;
 let fightBossAttack = 0;
+let fightDeathAt = 0;
+let fightDeathReason = '';
+let fightDeathConsumesLife = false;
+let fightDeathImpactApplied = false;
+let fightDeathOver = false;  // fim de partida veio da luta: a cena da derrota continua na tela
 let hideCheckpointDoor = false;
 let cameraZoom = 1;
 let cameraLift = 0;         // sobe a cena da luta para o chão ficar acima do painel de respostas
@@ -389,7 +453,7 @@ function setState(next) {
 
 function update(dt) {
   shake = Math.max(0, shake - dt * 2.5);
-  const targetZoom = state === 'fight' ? 1.2 : 1;
+  const targetZoom = state === 'fight' || showingFightDeath() ? 1.2 : 1;
   cameraZoom += (targetZoom - cameraZoom) * (1 - Math.exp(-dt * 4.5));
   cameraLift += (fightLift() - cameraLift) * (1 - Math.exp(-dt * 6));
 
@@ -438,6 +502,22 @@ function update(dt) {
     updatePulse();
     if (fightEffect && clock - fightEffectAt > 0.55) fightEffect = '';
     updateFightAction();
+  } else if (state === 'death' && clock - fightDeathAt >= FIGHT_DEATH_DURATION) {
+    gameOver(fightDeathReason);
+  } else if (state === 'death' && !fightDeathImpactApplied && clock - fightDeathAt >= FIGHT_DEATH_IMPACT_AT) {
+    // A esfera explode na coruja: o golpe final sempre treme e soa; só tira vida se ainda houver
+    fightDeathImpactApplied = true;
+    if (fightDeathConsumesLife) {
+      lives--;
+      updateStatusBar();
+    }
+    shake = 0.8;
+    playSfx('impact');
+  } else if (state === 'death' && clock - fightDeathAt >= FIGHT_DEATH_LANDED_AT && clock - fightDeathAt - dt < FIGHT_DEATH_LANDED_AT) {
+    shake = Math.max(shake, 0.35);                 // o corpo bate no chão
+  } else if (state === 'death' && clock - fightDeathAt >= FIGHT_DEATH_SLAM_AT + BOSS_SLAM_HIT && clock - fightDeathAt - dt < FIGHT_DEATH_SLAM_AT + BOSS_SLAM_HIT) {
+    shake = Math.max(shake, 0.9);                  // o boss soca o chão comemorando
+    playSfx('punch');
   }
 
   if (state === 'checkpoint' && !answering) {
@@ -680,9 +760,13 @@ function owlPose() {
 
 function drawOwl() {
   if (boss.mode === 'grab') return;                  // a coruja está dentro do sprite de captura
+  if (showingFightDeath()) {
+    drawFightDeath();
+    return;
+  }
   if (state === 'fight') {
     const elapsed = clock - fightStartedAt;
-    if (fightAction === 'counter' && clock - fightActionAt >= BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0)) return;
+    if (fightAction === 'counter' && clock - fightActionAt >= BOSS_CAST_TIME + BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0)) return;
     let frame = 3;
     let x = fightOwlPosition();
     let flip = false;
@@ -739,6 +823,100 @@ function drawOwl() {
     if (pose.blend > 0) drawFrame(pose.next, pose.blend);
   }
   ctx.restore();
+}
+
+// Quadro da derrota e deslocamento do corpo a partir do momento em que a esfera chega.
+function fightDeathPose(t) {
+  let frame = 0;
+  while (frame < 15 && t >= FIGHT_DEATH_STARTS[frame + 1]) frame++;
+  // Empurrão para trás desde a explosão até parar de derrapar (quadro 10)
+  const slide = Math.max(0, Math.min(1, (t - FIGHT_DEATH_STARTS[2]) / (FIGHT_DEATH_STARTS[10] - FIGHT_DEATH_STARTS[2])));
+  const dx = FIGHT_DEATH.knockback * (1 - (1 - slide) ** 3);
+  // Arremesso: sai do chão no quadro 3 e toca de volta no quadro 6
+  const air = (t - FIGHT_DEATH_STARTS[3]) / (FIGHT_DEATH_STARTS[6] - FIGHT_DEATH_STARTS[3]);
+  const lift = air > 0 && air < 1 ? FIGHT_DEATH.lift * Math.sin(Math.PI * air) : 0;
+  return { frame, dx, lift };
+}
+
+// Derrota na luta ainda em andamento ou já parada atrás do painel de fim de partida.
+function showingFightDeath() {
+  return state === 'death' || (state === 'over' && fightDeathOver);
+}
+
+function drawFightDeath() {
+  const elapsed = Math.max(0, clock - fightDeathAt);
+  // Enquanto o boss prepara e a esfera voa, a coruja continua em guarda
+  if (elapsed < FIGHT_DEATH_HIT_AT) {
+    drawFighter(FIGHT_OWL, 3, fightOwlPosition(), OWL_H / 240);
+    return;
+  }
+  const img = loadImage(FIGHT_DEATH.src);
+  if (!img.complete || !img.naturalWidth) return;
+  const { frame, dx, lift } = fightDeathPose(elapsed - FIGHT_DEATH_HIT_AT);
+  const [sx, sy, sw, sh, anchorX, anchorY] = FIGHT_DEATH.frames[frame];
+  const scale = Math.min(FIGHT_DEATH.scale, viewW * 0.38 / FIGHT_DEATH.maxW);
+  const x = fightOwlPosition() + dx;
+
+  // Sombra no chão: encolhe no ar e se alonga com a coruja deitada
+  ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0.15, 0.45 - lift / 200)})`;
+  ctx.beginPath();
+  ctx.ellipse(x, groundY + 3, (frame >= 6 ? 0.42 : 0.3) * OWL_W * Math.max(0.6, 1 - lift / 120), 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.shadowColor = '#ff3b13';
+  ctx.shadowBlur = frame <= 3 ? 22 : 10;
+  ctx.drawImage(img, sx, sy, sw, sh, x - anchorX * scale, groundY + 2 - lift - anchorY * scale, sw * scale, sh * scale);
+  ctx.restore();
+}
+
+// Esfera π voando da mão do boss até o ponto em que ela aparece no primeiro quadro do impacto
+// (end: posição e escala da esfera lá). Quadros 0–3 da power-attack, centrados pelo núcleo.
+// Desacelera mas não para, emendando com a esfera ainda avançando nos quadros do impacto.
+function drawPowerProjectile(travel, end, startScale) {
+  const img = loadImage(BOSS_POWER.src);
+  if (!img.complete || !img.naturalWidth) return;
+  const frame = Math.min(3, Math.floor(travel * 4));
+  const [x0, y0, w0, h0] = BOSS_POWER.frames[frame];
+  const [coreX0, coreY0] = BOSS_POWER.projectileCore[frame];
+  const start = bossReleasePoint();
+  const eased = travel * (1.5 - 0.5 * travel);
+  const x = start.x + (end.x - start.x) * eased;
+  const y = start.y + (end.y - start.y) * eased - Math.sin(travel * Math.PI) * 20;
+  const scale = startScale + (end.scale - startScale) * eased;
+  ctx.save();
+  ctx.shadowColor = '#ff5a08';
+  ctx.shadowBlur = 14;
+  ctx.drawImage(img, x0, y0, w0, h0, x - coreX0 * scale, y - coreY0 * scale, w0 * scale, h0 * scale);
+  ctx.restore();
+}
+
+function powerScale() {
+  return Math.min(BOSS_POWER.projectileScale, viewW * 0.38 / BOSS_POWER.maxW);
+}
+
+function drawFightDeathProjectile() {
+  const elapsed = clock - fightDeathAt - BOSS_CAST_TIME;
+  if (elapsed < 0 || elapsed >= FIGHT_DEATH_TRAVEL) return;
+  const scale = Math.min(FIGHT_DEATH.scale, viewW * 0.38 / FIGHT_DEATH.maxW);
+  const ball = FIGHT_DEATH.impactBall;
+  drawPowerProjectile(elapsed / FIGHT_DEATH_TRAVEL, {
+    x: fightOwlPosition() + ball.dx * scale,
+    y: groundY + 2 - ball.dy * scale,
+    scale: scale * ball.size,
+  }, scale);
+}
+
+function beginFightDeath(reason, consumesLife = false) {
+  fightDeathReason = reason;
+  fightDeathAt = clock;
+  fightDeathConsumesLife = consumesLife;
+  fightDeathImpactApplied = false;
+  fightEffect = '';
+  fightIntro = false;
+  fightAction = 'idle';
+  panel.hidden = true;
+  setState('death');
 }
 
 // ===================== BOSS =====================
@@ -919,7 +1097,40 @@ function drawGrab() {
   }
 }
 
+// Escala do boss na luta: igual para todas as poses (a mais larga limita em telas estreitas).
+function fightBossScale() {
+  return Math.min(BOSS_H / 260, viewW * 0.38 / FIGHT_BOSS.maxW);
+}
+
+// Pose do boss lançando a esfera: carrega, solta e fica de punhos fechados enquanto ela voa.
+function bossCastFrame(cast, elapsed) {
+  const index = Math.floor(Math.max(0, elapsed) / BOSS_CAST_FRAME);
+  return index < cast.length ? cast[index] : BOSS_AFTER_CAST;
+}
+
+// Onde a esfera está na mão do boss no quadro em que ele a solta (coordenadas do mundo).
+function bossReleasePoint() {
+  const scale = fightBossScale();
+  return { x: viewW * 0.25 + BOSS_RELEASE.x * scale, y: groundY + 2 - BOSS_RELEASE.y * scale };
+}
+
 function drawBoss() {
+  if (showingFightDeath()) {
+    // Lança a esfera, espera a coruja cair e comemora socando o chão; depois fica em guarda.
+    const elapsed = clock - fightDeathAt;
+    let frame = bossCastFrame(BOSS_CASTS[0], elapsed);
+    const slam = elapsed - FIGHT_DEATH_SLAM_AT;
+    if (slam >= 0) {
+      let i = 0;
+      for (let start = 0; i < BOSS_SLAM.length; i++) {
+        start += BOSS_SLAM_TIMES[i];
+        if (slam < start) break;
+      }
+      frame = i < BOSS_SLAM.length ? BOSS_SLAM[i] : 0;
+    }
+    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, fightBossScale());
+    return;
+  }
   if (state === 'fight') {
     if (fightAction === 'strike') {
       const elapsed = clock - fightActionAt;
@@ -928,12 +1139,9 @@ function drawBoss() {
       return;
     }
     let frame = 0;
-    if (fightAction === 'counter') {
-      const attack = FIGHT_BOSS_ATTACKS[fightBossAttack];
-      frame = attack[Math.min(attack.length - 1, Math.floor((clock - fightActionAt) * 5))];
-    }
+    if (fightAction === 'counter') frame = bossCastFrame(BOSS_CASTS[fightBossAttack], clock - fightActionAt);
     else if (fightAction === 'approach' || fightAction === 'retreat') frame = 3;
-    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, BOSS_H / 260);
+    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, fightBossScale());
     return;
   }
   if (boss.mode === 'grab') {
@@ -970,7 +1178,21 @@ function drawBoss() {
 function drawFighter(sheet, frame, x, sourceScale, flip = false) {
   const img = loadImage(sheet.src);
   if (!img.complete || !img.naturalWidth) return;
-  const [x0, y0, w0, h0] = sheet.frames[frame];
+  const [x0, y0, w0, h0, anchorX, anchorY] = sheet.frames[frame];
+  // Só a coruja atingida ganha o clarão; no boss o halo maior parecia fazê-lo crescer
+  const hit = sheet === FIGHT_OWL && fightEffect === 'owl-hit';
+  if (anchorY !== undefined) {
+    // Pose com âncoras próprias: tronco em x, garras no chão
+    const scale = Math.min(sourceScale, viewW * 0.38 / (sheet.maxW || w0));
+    ctx.save();
+    ctx.translate(x, groundY + 2);
+    if (flip) ctx.scale(-1, 1);
+    ctx.shadowColor = hit ? '#ff3b13' : '#ff1a0a';
+    ctx.shadowBlur = hit ? 34 : 16;
+    ctx.drawImage(img, x0, y0, w0, h0, -anchorX * scale, -anchorY * scale, w0 * scale, h0 * scale);
+    ctx.restore();
+    return;
+  }
   const pad = 4;
   const sx = Math.max(0, x0 - pad);
   const sy = Math.max(0, y0 - pad);
@@ -984,21 +1206,37 @@ function drawFighter(sheet, frame, x, sourceScale, flip = false) {
   ctx.save();
   ctx.translate(x, groundY + 4);
   if (flip) ctx.scale(-1, 1);
-  ctx.shadowColor = fightEffect ? '#ff3b13' : '#ff1a0a';
-  ctx.shadowBlur = fightEffect ? 34 : 16;
+  ctx.shadowColor = hit ? '#ff3b13' : '#ff1a0a';
+  ctx.shadowBlur = hit ? 34 : 16;
   ctx.drawImage(img, sx, sy, sw, sh, -w / 2, -h, w, h);
   ctx.restore();
 }
 
 function drawBossPowerSequence() {
+  if (state === 'death') {
+    drawFightDeathProjectile();
+    return;
+  }
   if (state !== 'fight' || fightAction !== 'counter') return;
-  const elapsed = clock - fightActionAt;
+  const elapsed = clock - fightActionAt - BOSS_CAST_TIME;   // a esfera só sai quando o boss a solta
+  if (elapsed < 0) return;
   let frame = 0;
   let frameStart = 0;
   for (; frame < BOSS_POWER_FRAME_TIMES.length - 1; frame++) {
     const nextStart = frameStart + BOSS_POWER_FRAME_TIMES[frame];
     if (elapsed < nextStart) break;
     frameStart = nextStart;
+  }
+  if (frame < 4) {
+    // Voo: termina onde a esfera está no quadro 4, já encostando na coruja
+    const scale = powerScale();
+    const ball = BOSS_POWER.impactBall;
+    drawPowerProjectile(Math.min(1, elapsed / BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0)), {
+      x: fightOwlPosition() + ball.dx * scale,
+      y: groundY + 4 - ball.dy * scale,
+      scale: scale * ball.size,
+    }, scale);
+    return;
   }
   const [x0, y0, w0, h0, anchorX, anchorY] = BOSS_POWER.frames[frame];
   const img = loadImage(BOSS_POWER.src);
@@ -1011,36 +1249,23 @@ function drawBossPowerSequence() {
   const bottom = Math.min(img.naturalHeight, y0 + h0 + pad);
   const sw = right - sx;
   const sh = bottom - sy;
-  const scale = Math.min(BOSS_POWER.projectileScale, viewW * 0.38 / sw);
+  const scale = powerScale();
   const w = sw * scale;
   const h = sh * scale;
-  let left;
-  let top;
-
-  if (frame < 4) {
-    // A primeira linha mostra os quatro quadros do projétil atravessando a arena.
-    const travel = Math.min(1, elapsed / BOSS_POWER_FRAME_TIMES.slice(0, 4).reduce((sum, time) => sum + time, 0));
-    const startX = viewW * 0.34;
-    const coreX = startX + (fightOwlPosition() - startX) * (1 - (1 - travel) ** 2);
-    const coreY = groundY - OWL_H * 0.82 - Math.sin(travel * Math.PI) * 22;
-    left = coreX - (BOSS_POWER.projectileCoreX[frame] + x0 - sx) * scale;
-    top = coreY - h * 0.5;
-  } else {
-    // Nos quadros compostos, ancoramos a coruja no mesmo ponto para evitar saltos
-    // causados pelos limites diferentes de cada recorte. A última linha a empurra
-    // para trás e para cima, como reação ao impacto, e então mostra a recuperação.
-    const recoil = Math.max(0, Math.min(1, (elapsed - BOSS_POWER_IMPACT_AT) / (BOSS_POWER_DURATION - BOSS_POWER_IMPACT_AT)));
-    const recoilEase = recoil * recoil * (3 - 2 * recoil);
-    const owlX = fightOwlPosition() + recoilEase * 58;
-    const knockbackLift = recoilEase * Math.sin(recoil * Math.PI) * 20;
-    left = owlX - (anchorX + x0 - sx) * scale;
-    top = groundY + 4 - (anchorY + y0 - sy) * scale - knockbackLift;
-  }
+  // Nos quadros compostos, ancoramos a coruja no mesmo ponto para evitar saltos
+  // causados pelos limites diferentes de cada recorte. A última linha a empurra
+  // para trás e para cima, como reação ao impacto, e então mostra a recuperação.
+  const recoil = Math.max(0, Math.min(1, (elapsed - BOSS_POWER_IMPACT_AT) / (BOSS_POWER_DURATION - BOSS_POWER_IMPACT_AT)));
+  const recoilEase = recoil * recoil * (3 - 2 * recoil);
+  const owlX = fightOwlPosition() + recoilEase * 58;
+  const knockbackLift = recoilEase * Math.sin(recoil * Math.PI) * 20;
+  const left = owlX - (anchorX + x0 - sx) * scale;
+  const top = groundY + 4 - (anchorY + y0 - sy) * scale - knockbackLift;
 
   ctx.save();
   // O brilho acompanha o projétil e o clarão; mantém os sprites da coruja nítidos.
   ctx.shadowColor = '#ff5a08';
-  ctx.shadowBlur = frame < 4 || (frame >= 7 && frame <= 9) ? 14 : 4;
+  ctx.shadowBlur = frame >= 7 && frame <= 9 ? 14 : 4;
   ctx.drawImage(img, sx, sy, sw, sh, left, top, w, h);
   ctx.restore();
 }
@@ -1176,7 +1401,7 @@ function updateFightAction() {
   } else if (fightAction === 'retreat' && elapsed >= 0.58) {
     completeFightRound();
   } else if (fightAction === 'counter') {
-    if (!fightCounterHit && elapsed >= BOSS_POWER_IMPACT_AT) {
+    if (!fightCounterHit && elapsed >= BOSS_CAST_TIME + BOSS_POWER_IMPACT_AT) {
       fightCounterHit = true;
       playSfx('impact');
       fightEffect = 'owl-hit';
@@ -1187,7 +1412,7 @@ function updateFightAction() {
       const feedback = panel.querySelector('.answer-feedback');
       if (feedback) feedback.textContent = 'O poder do boss atingiu a coruja!';
     }
-    if (elapsed >= BOSS_POWER_DURATION) completeFightRound();
+    if (elapsed >= BOSS_CAST_TIME + BOSS_POWER_DURATION) completeFightRound();
   }
 }
 
@@ -1258,7 +1483,7 @@ function answerFight(correct) {
     playSfx('whoosh');
   } else {
     fightResults.push(false);
-    fightBossAttack = fightRound % FIGHT_BOSS_ATTACKS.length;
+    fightBossAttack = fightRound % BOSS_CASTS.length;
     feedback.textContent = 'O boss prepara seu poder!';
     fightAction = 'counter';
     fightActionAt = clock;
@@ -1266,12 +1491,14 @@ function answerFight(correct) {
     playSfx('spell');
   }
   updateStatusBar();
+  if (!correct && lives === 1) beginFightDeath('O boss venceu a luta.', true);
 }
 
 function finishFight() {
   const hits = fightResults.filter(Boolean).length;
   if (hits < 2 || lives <= 0) {
-    gameOver('O boss venceu a luta.');
+    playSfx('spell');
+    beginFightDeath('O boss venceu a luta.');
     return;
   }
   panel.hidden = true;
@@ -1471,6 +1698,7 @@ function updateStatusBar() {
 
 function gameOver(reason) {
   if (!active || state === 'over') return;
+  fightDeathOver = state === 'death';
   setState('over');
   resetPulse();
   panel.hidden = false;
@@ -1521,7 +1749,7 @@ export function stopRunnerMode() {
 export function startRunnerMode() {
   stopRunnerMode();
   setAudioEnabled(true);
-  [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src, FIGHT_OWL.src, FIGHT_BOSS.src, FIGHT_BOSS_HIT.src, BOSS_POWER.src, FIGHT_INTRO.src].forEach(loadImage);
+  [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src, FIGHT_OWL.src, FIGHT_BOSS.src, FIGHT_BOSS_HIT.src, BOSS_POWER.src, FIGHT_DEATH.src, FIGHT_INTRO.src].forEach(loadImage);
 
   root = document.createElement('div');
   root.className = 'runner';
@@ -1552,6 +1780,7 @@ export function startRunnerMode() {
   fightAction = 'idle';
   fightIntro = false;
   fightCounterHit = false;
+  fightDeathOver = false;
   embers = [];
   boss.progress = 0;
   setBossMode('hidden');
