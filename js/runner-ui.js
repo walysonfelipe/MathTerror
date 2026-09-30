@@ -3,6 +3,16 @@ import { renderLives, renderScore, spriteNumber } from './hud.js';
 import { letterForIndex, isABCDLabel } from './utils.js';
 import { FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
 
+const GAMEPAD_ANSWER_LABELS = ['X', 'Y', 'B', 'A'];
+
+export function updateGamepadAnswerLabels(panel, gamepadActive) {
+  panel?.classList.toggle('is-gamepad-active', gamepadActive);
+  panel?.querySelectorAll('.quiz-option-key').forEach(key => {
+    const label = gamepadActive ? key.dataset.gamepadLabel : key.dataset.defaultLabel;
+    if (label && key.textContent !== `${label})`) key.textContent = `${label})`;
+  });
+}
+
 export function drawFightIntro(ctx, loadImage, { state, fightIntro, clock, fightStartedAt, viewW, viewH }) {
   if (state !== 'fight' || !fightIntro) return;
   const img = loadImage(FIGHT_INTRO.src);
@@ -80,6 +90,14 @@ export function renderCheckpointQuestion(panel, node, onAnswer, phone) {
     btn.className = 'btn btn--blood quiz-option';
     btn.type = 'button';
     const letter = letterForIndex(i);
+    const key = document.createElement('span');
+    key.className = 'quiz-option-key';
+    key.dataset.defaultLabel = letter;
+    key.dataset.gamepadLabel = GAMEPAD_ANSWER_LABELS[i] || letter;
+    key.textContent = `${letter})`;
+    btn.appendChild(key);
+    const content = document.createElement('span');
+    content.className = 'quiz-option-content';
     if (opt && typeof opt === 'object') {
       const figure = document.createElement('figure');
       figure.className = 'option-figure';
@@ -93,12 +111,13 @@ export function renderCheckpointQuestion(panel, node, onAnswer, phone) {
       const figcap = document.createElement('figcaption');
       figcap.className = 'option-caption';
       const hasLabel = typeof opt.label === 'string' && opt.label.trim() !== '' && !isABCDLabel(opt.label);
-      figcap.textContent = hasLabel ? `${letter} — ${opt.label}` : letter;
+      figcap.textContent = hasLabel ? opt.label : '';
       figure.appendChild(figcap);
-      btn.appendChild(figure);
+      content.appendChild(figure);
     } else {
-      btn.textContent = `${letter}) ${String(opt)}`;
+      content.textContent = String(opt);
     }
+    btn.appendChild(content);
     btn.addEventListener('click', () => onAnswer(i === node.answer, btn));
     options.appendChild(btn);
   });
@@ -124,7 +143,15 @@ export function renderFightQuestion(panel, problem, round, elapsed, turnTime, on
     button.className = 'btn btn--blood quiz-option';
     button.type = 'button';
     button.disabled = turning;
-    button.textContent = `${index + 1}) ${value}`;
+    const key = document.createElement('span');
+    key.className = 'quiz-option-key';
+    key.dataset.defaultLabel = String(index + 1);
+    key.dataset.gamepadLabel = GAMEPAD_ANSWER_LABELS[index] || String(index + 1);
+    key.textContent = `${index + 1})`;
+    const content = document.createElement('span');
+    content.className = 'quiz-option-content';
+    content.textContent = String(value);
+    button.append(key, content);
     button.addEventListener('click', () => onAnswer(index === problem.answer));
     options.appendChild(button);
   });
@@ -165,6 +192,7 @@ export function renderRunnerGameOver(panel, reason, score, onRetry, onHome, phon
         <button type="button" class="go-btn go-btn--retry" data-action="retry"><span class="go-sr">TENTAR NOVAMENTE</span></button>
         <button type="button" class="go-btn go-btn--home" data-action="home"><span class="go-sr">VOLTAR AO MENU</span></button>
       </div>
+      <p class="game-over-control-hint" hidden>D-PAD / ANALÓGICO: ESCOLHER · A: CONFIRMAR</p>
     </section>`;
   panel.querySelector('.game-over-title').textContent = reason;
   const retry = panel.querySelector('[data-action="retry"]');

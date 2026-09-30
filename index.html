@@ -73,7 +73,11 @@
     </button>
 
     <div class="game-header" aria-label="Configurações do jogo">
+        <div id="gamepadSideStatus" class="gamepad-side-status" aria-hidden="true" hidden></div>
         <button id="soundBtn" class="btn utility" aria-pressed="false">Som desligado</button>
+    </div>
+    <div id="gamepadStatus" class="gamepad-status is-disconnected" role="status" aria-live="polite" aria-label="Controle desconectado" hidden>
+        <span class="gamepad-status-sr">Controle desconectado</span>
     </div>
     <main class="overlay">
         <div class="menu-reticle" aria-hidden="true"></div>

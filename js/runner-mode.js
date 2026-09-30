@@ -87,11 +87,13 @@ let cameraZoom = 1;
 let cameraLift = 0;         // sobe a cena da luta para o chão ficar acima do painel de respostas
 let fallSounded = false;     // o assobio já tocou nesta queda
 
-const { onKeyDown, onPointerDown } = createRunnerInput({
+const { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput } = createRunnerInput({
   isActive: () => active,
   getState: () => state,
   getCanvas: () => canvas,
   getPanel: () => panel,
+  getHint: () => hint,
+  getFallbackJumpHint: () => isPhone() ? 'TOQUE NA TELA PARA PULAR' : 'ESPAÇO, ↑ ou toque para pular · ESC para sair',
   jump,
   resetGame,
 });
@@ -199,6 +201,7 @@ function frame(now) {
     raf = requestAnimationFrame(frame);
     return;
   }
+  pollGamepadInput(now);
   clock += dt;
   stateTime += dt;
   update(dt);
@@ -716,6 +719,7 @@ export function startRunnerMode() {
   ctx = canvas.getContext('2d');
   panel = root.querySelector('.runner-question');
   hint = root.querySelector('.runner-hint');
+  panel.addEventListener('click', onPanelClick, true);
   canvas.addEventListener('pointerdown', onPointerDown);
   // Toques rápidos no canvas não podem virar seleção/zoom do navegador (Safari)
   canvas.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
