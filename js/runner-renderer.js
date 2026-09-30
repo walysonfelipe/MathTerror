@@ -17,8 +17,8 @@ export function createRunnerRenderer(helpers) {
     getOwlPose, getFightDeathPose, getGrabPose, getBossPose,
     fightOwlPosition, runFrame,
   } = helpers;
-  let ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase;
-  function setScene(scene) { ({ ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase } = scene); }
+  let ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld;
+  function setScene(scene) { ({ ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld } = scene); }
 
   function drawEmbers(camera) {
     for (const ember of embers) {
@@ -117,7 +117,7 @@ function drawOwl() {
   }
   if (clock < owl.invulnerableUntil && Math.floor(clock * 12) % 2 === 0) return;
 
-  const pose = getOwlPose(owl, { state, clock, stateTime, runPhase });
+  const pose = getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped, landingPoseHeld });
   const pivotY = pose.center ? OWL_H / 2 : 0;          // no ar gira pelo meio do corpo
   ctx.save();
   ctx.translate(owlScreenX, owl.y + 2 - pivotY);

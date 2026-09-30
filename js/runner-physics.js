@@ -4,7 +4,7 @@ import { CROUCH_TIME, JUMP_BUFFER, OWL_H } from './runner-assets.js';
 
 export function updateOwlPhysics(dt, {
   owl, state, clock, groundY, viewH, isSupported, launch, kickDust,
-  getRunPhase, setRunPhase, getFallSounded, setFallSounded,
+  getRunPhase, setRunPhase, getFallSounded, setFallSounded, onLand,
   playFallSfx, lives, fellInPit,
 }) {
   const supported = isSupported(owl.x);
@@ -25,6 +25,7 @@ export function updateOwlPhysics(dt, {
       owl.landedAt = clock;
       owl.jumping = false;
       setRunPhase(0);
+      onLand?.();
       kickDust(8, 1);
       if (state === 'run' && clock - owl.bufferedAt < JUMP_BUFFER) owl.crouchAt = clock;
       owl.bufferedAt = -1;

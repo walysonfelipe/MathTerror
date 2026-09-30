@@ -6,7 +6,7 @@ import {
   CELEBRATE_TIME, HOP_TIME, GRAB_FRAMES, GRAB_FRAME_TIME,
 } from './runner-assets.js';
 
-export function getOwlPose(owl, { state, clock, stateTime, runPhase }) {
+export function getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped = false, landingPoseHeld = false }) {
   const deg = Math.PI / 180;
   const loop = (name, time) => {
     const animation = OWL_ANIMS[name];
@@ -35,18 +35,14 @@ export function getOwlPose(owl, { state, clock, stateTime, runPhase }) {
 
   const sinceLand = clock - owl.landedAt;
   if (sinceLand < LAND_TIME) {
-    const k = sinceLand / LAND_TIME;
-    const running = state === 'run';
     return {
-      frame: 15,
-      next: running ? RUN_FRAMES[0] : undefined,
-      blend: running ? Math.max(0, (k - 0.55) / 0.45) : 0,
-      sx: 1 + 0.1 * (1 - k),
-      sy: 1 - 0.14 * (1 - k),
+      frame: 14,
     };
   }
+  if (state === 'run' && landingPoseHeld) return { frame: 15 };
   if (state === 'resume' && stateTime < CELEBRATE_TIME) return hop(stateTime);
   if (state === 'checkpoint') return loop('idle', stateTime);
+  if (state === 'run' && runStopped) return loop('idle', clock);
 
   const n = RUN_FRAMES.length;
   const current = Math.floor(runPhase) % n;

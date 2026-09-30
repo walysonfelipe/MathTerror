@@ -6,7 +6,7 @@ import {
 import { BOSS_APPEAR_AT, ERROR_SPEEDUP } from './runner-config.js';
 
 export function createBossController({
-  boss, getState, getErrors, setLives, getOwlScreenX,
+  boss, getState, getRunChasePace = () => 1, getErrors, setLives, getOwlScreenX,
   setShake, raiseShake, updateStatusBar, playSfx, gameOver,
   grabFrameStart, startGrab,
 }) {
@@ -48,7 +48,8 @@ export function createBossController({
     boss.modeTime += dt;
     switch (boss.mode) {
       case 'stalk': {
-        const step = Math.min(BOSS_SPEED * dt, Math.max(0, bossTargetX() - boss.x));
+        const chasePace = getState() === 'run' ? getRunChasePace() : 1;
+        const step = Math.min(BOSS_SPEED * chasePace * dt, Math.max(0, bossTargetX() - boss.x));
         boss.x += step;
         boss.phase = (boss.phase + step / BOSS_STRIDE) % BOSS_WALK.length;
         boss.walking = step > 0.01;

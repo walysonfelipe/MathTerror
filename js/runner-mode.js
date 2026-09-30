@@ -40,6 +40,12 @@ let raf = 0;
 let lastTime = 0;
 let active = false;
 let k = 1, viewW = 0, viewH = 0, groundY = 0, owlScreenX = 0;
+let activeRunSpeed = SPEED_START;
+let runSlowTime = 0;
+let controllerRunActive = false;
+let controllerRunStopped = false;
+let landingPoseHeld = false;
+let fightStartedFromRun = false;
 
 let state = 'run';        // run | checkpoint | resume | caught | over
 let lives = LIVES;
@@ -116,6 +122,7 @@ const {
 } = createBossController({
   boss,
   getState: () => state,
+  getRunChasePace: () => controllerRunActive ? 1 + boss.progress * 1.5 : 1,
   getErrors: () => errors,
   setLives: value => { lives = value; },
   getOwlScreenX: () => owlScreenX,
@@ -144,6 +151,7 @@ function buildLeg(fromX, startX) {
 function jump() {
   if (state !== 'run') return;
   hint?.classList.add('is-hidden');
+  landingPoseHeld = false;
   if (!owl.grounded) {
     owl.bufferedAt = clock;
     return;
@@ -201,10 +209,10 @@ function frame(now) {
     raf = requestAnimationFrame(frame);
     return;
   }
-  pollGamepadInput(now);
+  const controls = pollGamepadInput(now);
   clock += dt;
   stateTime += dt;
-  update(dt);
+  update(dt, controls);
   draw();
   raf = requestAnimationFrame(frame);
 }
@@ -222,7 +230,10 @@ function setState(next) {
   stateTime = 0;
 }
 
-function update(dt) {
+function update(dt, controls = {}) {
+  controllerRunActive = state === 'run' && Boolean(controls.controllerActive);
+  controllerRunStopped = controllerRunActive && controls.forwardStrength === 0 && owl.grounded;
+  if (controls.forwardStrength > 0) landingPoseHeld = false;
   shake = Math.max(0, shake - dt * 2.5);
   const targetZoom = state === 'fight' || showingFightDeath() ? 1.2 : 1;
   cameraZoom += (targetZoom - cameraZoom) * (1 - Math.exp(-dt * 4.5));
@@ -230,9 +241,30 @@ function update(dt) {
 
   if (state === 'run') {
     const before = owl.x;
-    owl.x = Math.min(owl.x + speed * dt, markerX);
+    const forwardStrength = controls.controllerActive ? controls.forwardStrength : 1;
+    activeRunSpeed = speed * forwardStrength;
+    owl.x = Math.min(owl.x + activeRunSpeed * dt, markerX);
     if (owl.grounded) runPhase = (runPhase + (owl.x - before) / STRIDE) % RUN_FRAMES.length;
     if (owl.x >= markerX && owl.grounded) enterCheckpoint();
+
+    if (controls.controllerActive && state === 'run') {
+      runSlowTime = Math.min(LEG_SECONDS, runSlowTime + dt * (1 - forwardStrength * 0.5));
+      boss.progress = (runSlowTime / LEG_SECONDS) ** 2;
+      if (boss.mode === 'hidden' && boss.progress >= BOSS_APPEAR_AT) bossEnter();
+      updatePulse(boss.progress);
+      if (boss.progress >= 1) beginFight();
+    } else if (!controls.controllerActive) {
+      if (runSlowTime > 0) {
+        runSlowTime = 0;
+        boss.progress = 0;
+        resetPulse();
+        if (boss.mode === 'stalk') {
+          boss.facing = -1;
+          boss.walking = true;
+          setBossMode('retreat');
+        }
+      }
+    }
   }
 
   // A física vertical pode rodar em qualquer estado do modo.
@@ -242,6 +274,7 @@ function update(dt) {
     launch, kickDust,
     getRunPhase: () => runPhase,
     setRunPhase: value => { runPhase = value; },
+    onLand: () => { landingPoseHeld = controllerRunActive; },
     getFallSounded: () => fallSounded,
     setFallSounded: value => { fallSounded = value; },
     playFallSfx, lives, fellInPit,
@@ -287,20 +320,31 @@ function update(dt) {
     // de três erros no checkpoint. A captura só acontece se perder a luta.
     if (boss.progress >= 1) beginFight();
   } else if (state === 'resume') {
-    // Acertou: comemora e depois o sprite da porta mostra a coruja passando por ela
-    const door = getCurrentDoor(doors);
-    if (stateTime >= CELEBRATE_TIME && door.passAt < 0) door.passAt = clock;
-    if (door.passAt >= 0) {
-      const t = clock - door.passAt;
-      if (t >= PASS_DOOR_FRAME * PASS_FRAME_TIME && t - dt < PASS_DOOR_FRAME * PASS_FRAME_TIME) playDoorSfx();
-      owl.x = passOwlX(door, t);                     // a câmera acompanha a coruja do sprite
-      if (t >= PASS_TIME) {
-        // Sai correndo exatamente de onde a coruja do último quadro ficou
-        runPhase = 0;
+    if (fightStartedFromRun) {
+      if (boss.mode === 'hidden') {
+        fightStartedFromRun = false;
+        runSlowTime = 0;
+        boss.progress = 0;
+        resetPulse();
         setState('run');
-        speed *= SPEED_GAIN;
-        const lastSeg = segments[segments.length - 1];
-        buildLeg(lastSeg.x + lastSeg.w, owl.x);
+      }
+    } else {
+      // Acertou: comemora e depois o sprite da porta mostra a coruja passando por ela
+      const door = getCurrentDoor(doors);
+      if (stateTime >= CELEBRATE_TIME && door.passAt < 0) door.passAt = clock;
+      if (door.passAt >= 0) {
+        const t = clock - door.passAt;
+        if (t >= PASS_DOOR_FRAME * PASS_FRAME_TIME && t - dt < PASS_DOOR_FRAME * PASS_FRAME_TIME) playDoorSfx();
+        owl.x = passOwlX(door, t);                     // a câmera acompanha a coruja do sprite
+        if (t >= PASS_TIME) {
+          // Sai correndo exatamente de onde a coruja do último quadro ficou
+          runPhase = 0;
+          runSlowTime = 0;
+          setState('run');
+          speed *= SPEED_GAIN;
+          const lastSeg = segments[segments.length - 1];
+          buildLeg(lastSeg.x + lastSeg.w, owl.x);
+        }
       }
     }
   }
@@ -344,7 +388,7 @@ function update(dt) {
   });
   embers = embers.filter(e => e.life > 0);
 
-  dust.forEach(d => { d.x += (d.vx - (state === 'run' ? speed : 0)) * dt; d.y += d.vy * dt; d.vy += 60 * dt; d.life -= dt * 2.2; });
+  dust.forEach(d => { d.x += (d.vx - (state === 'run' ? activeRunSpeed : 0)) * dt; d.y += d.vy * dt; d.vy += 60 * dt; d.life -= dt * 2.2; });
   dust = dust.filter(d => d.life > 0);
 }
 
@@ -373,7 +417,8 @@ function fellInPit() {
 function getRendererState() {
   return { ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit,
     fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH,
-    fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase };
+    fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase,
+    runStopped: controllerRunStopped, landingPoseHeld };
 }
 
 function draw() {
@@ -446,6 +491,7 @@ function buildDeck() {
 
 function enterCheckpoint() {
   setState('checkpoint');
+  runSlowTime = 0;
   hideCheckpointDoor = false;
   setBossMode('hidden');
   boss.progress = 0;
@@ -457,6 +503,7 @@ function enterCheckpoint() {
 
 
 function beginFight() {
+  fightStartedFromRun = state === 'run';
   setState('fight');
   fightStartedAt = clock;
   fightAction = 'idle';
@@ -730,6 +777,12 @@ export function startRunnerMode() {
   lives = LIVES;
   score = 0;
   speed = SPEED_START;
+  activeRunSpeed = speed;
+  runSlowTime = 0;
+  controllerRunActive = false;
+  controllerRunStopped = false;
+  landingPoseHeld = false;
+  fightStartedFromRun = false;
   clock = 0;
   shake = 0;
   cameraZoom = 1;

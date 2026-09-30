@@ -4,6 +4,7 @@ import { updateGamepadAnswerLabels } from './runner-ui.js';
 
 const ANSWER_BUTTONS = new Map([[2, 0], [3, 1], [1, 2], [0, 3]]); // X, Y, B, A -> opções 1, 2, 3, 4
 const AXIS_DEADZONE = 0.45;
+const FORWARD_DEADZONE = 0.15;
 const NAV_REPEAT_DELAY = 320;
 const NAV_REPEAT_INTERVAL = 150;
 
@@ -89,21 +90,33 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     return 0;
   }
 
+  function readForwardStrength(pad) {
+    const buttons = pad.buttons || [];
+    const pressed = index => Boolean(buttons[index]?.pressed || buttons[index]?.value >= 0.5);
+    if (pressed(15)) return 1; // D-pad para a direita
+    if ([12, 13, 14].some(pressed)) return 0;
+
+    const x = pad.axes?.[0] || 0;
+    return x > FORWARD_DEADZONE ? Math.min(1, (x - FORWARD_DEADZONE) / (1 - FORWARD_DEADZONE)) : 0;
+  }
+
   function pollGamepadInput(now) {
-    if (!isActive()) return;
+    if (!isActive()) return { controllerActive: false, forwardStrength: 1 };
 
     const pads = getConnectedGamepads();
+    let forwardStrength = 0;
     updateGamepadAnswerLabels(getPanel(), pads.length > 0);
     const gameOverHint = getPanel()?.querySelector('.game-over-control-hint');
     if (gameOverHint) gameOverHint.hidden = pads.length === 0;
     const hint = getHint?.();
-    const hintText = pads.length ? 'CONTROLE: BOTÃO DE BAIXO PARA PULAR' : getFallbackJumpHint?.();
+    const hintText = pads.length ? 'D-PAD → / ANALÓGICO → CORRER · A PULAR' : getFallbackJumpHint?.();
     if (hint && hintText && hint.textContent !== hintText) hint.textContent = hintText;
 
     const activeIndexes = new Set();
     let navigationDirection = 0;
     for (const pad of pads) {
       activeIndexes.add(pad.index);
+      forwardStrength = Math.max(forwardStrength, readForwardStrength(pad));
       const wasPressed = previousButtons.get(pad.index) || new Set();
       const pressedButtons = new Set();
 
@@ -138,7 +151,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
       clearOptionSelection();
       previousDirection = 0;
       nextDirectionAt = 0;
-      return;
+      return { controllerActive: pads.length > 0, forwardStrength: pads.length ? forwardStrength : 1 };
     }
 
     const buttons = getSelectionButtons();
@@ -160,6 +173,8 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
       moveOptionSelection(navigationDirection);
       nextDirectionAt = now + NAV_REPEAT_INTERVAL;
     }
+
+    return { controllerActive: true, forwardStrength };
   }
 
   function onKeyDown(event) {
