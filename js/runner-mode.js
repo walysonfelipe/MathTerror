@@ -577,6 +577,25 @@ function enterCheckpointBossWhenDue() {
   updateThreatLabel(panel, boss.mode, errors, checkpointPace);
 }
 
+// Acerto no checkpoint: a reação depende de onde o boss está de verdade.
+// Ainda escondido: continua escondido (antes ele surgia na última posição guardada,
+// perto da coruja, e recuava de lá). Longe: só vira e volta correndo. Colado na
+// coruja: leva o golpe e depois recua.
+const BOSS_HURT_RANGE = BOSS_W * 0.5;
+
+function bossRetreatAfterCorrect() {
+  if (boss.mode === 'hidden') return;
+  Object.assign(boss, { y: 0, vy: 0, onLand: null, runOnLand: false });
+  if (bossCatchX() - boss.x <= BOSS_HURT_RANGE) {
+    boss.walking = false;
+    setBossMode('hurt');
+  } else {
+    boss.facing = -1;
+    boss.walking = true;
+    setBossMode('retreat');
+  }
+}
+
 // O boss terminou de andar (no chão, sem salto em curso) e está colado na coruja.
 function bossReachedOwl() {
   return boss.mode === 'stalk' && boss.y === 0 && boss.x >= bossCatchX() - 20;
@@ -776,8 +795,7 @@ function answer(correct, button) {
     resetPulse();
     panel.querySelectorAll('button').forEach(b => b.disabled = true);
     feedback.textContent = 'Acertou! O boss recuou.';
-    setBossMode('hurt');
-    Object.assign(boss, { walking: false, y: 0, vy: 0, onLand: null });
+    bossRetreatAfterCorrect();
     boss.progress = 0;
     setTimeout(() => {
       if (!active) return;
