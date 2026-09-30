@@ -17,9 +17,9 @@
 1. No menu, selecione **Iniciar Fuga Infernal**. O jogo começa com três vidas.
 2. Durante a corrida, pule os buracos para não cair na lava. A cada trecho, a coruja chega a um checkpoint.
 3. No checkpoint, escolha uma alternativa para responder à questão. O boss se aproxima enquanto o cronômetro avança.
-4. Uma resposta certa faz o boss recuar e permite continuar a corrida. Uma resposta errada acelera a aproximação do boss e reduz a margem para responder novamente; você pode tentar de novo enquanto ainda houver tempo. O terceiro erro no checkpoint inicia a luta.
-5. Ao cometer três erros no mesmo checkpoint, ou quando o tempo se esgota, começa a luta contra o boss: responda quatro contas, uma de cada operação (+, −, × e ÷). Acerte pelo menos duas para sobreviver e continuar.
-6. Durante a luta, cada resposta errada custa uma vida. Cair na lava também custa uma vida; a coruja reaparece adiante na pista se ainda houver vidas. Se o boss vencer ou as três vidas acabarem, a partida termina. No fim, você pode tentar novamente ou voltar ao menu.
+4. Uma resposta certa faz o boss recuar e permite continuar a corrida. Uma resposta errada acelera a aproximação do boss, mas ainda permite novas tentativas enquanto houver tempo.
+5. O terceiro erro no mesmo checkpoint ou o fim do tempo inicia a luta contra o boss. Responda quatro contas, uma de cada operação (+, −, × e ÷); acerte pelo menos duas para sobreviver e continuar. Cada resposta errada nessa luta custa uma vida.
+6. Cair na lava também custa uma vida; a coruja reaparece adiante na pista se ainda houver vidas. Se o boss vencer ou as três vidas acabarem, a partida termina. No fim, você pode tentar novamente ou voltar ao menu.
 
 O jogo mostra no placar o total de questões respondidas corretamente. A velocidade da corrida aumenta a cada checkpoint superado.
 
