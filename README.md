@@ -31,6 +31,26 @@ O jogo mostra no placar o total de questões respondidas corretamente. A velocid
 | Escolher uma alternativa | Teclas `1` a `4` | Toque no botão da alternativa |
 | Sair da partida | `Esc` | — |
 
+### Controle (gamepad)
+
+O jogo também funciona com controle no navegador (Xbox, PlayStation ou outro compatível com a Gamepad API). Ao conectar, um aviso aparece no topo da tela e um ícone fica ao lado do botão de som. Se o controle não for detectado, aperte qualquer botão dele com a aba do jogo aberta.
+
+| Momento | Navegar | Confirmar / agir |
+|---|---|---|
+| Menu inicial | D-pad ou analógico esquerdo entre **Som**, **Tela cheia** e **Iniciar Fuga Infernal** | `A` |
+| Corrida | D-pad `→` ou analógico para a direita para correr | `A` para pular |
+| Checkpoint e luta | D-pad ou analógico para destacar uma alternativa | Botão indicado na alternativa: `X`, `Y`, `B` ou `A` |
+| Fim de partida | D-pad ou analógico entre **Tentar novamente** e **Voltar ao menu** | `A` |
+
+Como funciona com o controle:
+
+- **Menu:** o botão **Iniciar** já começa selecionado. O botão escolhido fica destacado, e segurar a direção continua movendo a seleção.
+- **Corrida:** com controle, a corrida deixa de ser automática. Quanto mais o analógico vai para a direita, mais rápido a coruja corre. Se você diminuir o ritmo ou parar, o boss começa a se aproximar e, se chegar até a coruja, abre a luta.
+- **Checkpoint e luta:** as letras das alternativas passam a mostrar os botões do controle (`X`, `Y`, `B` e `A`). Para responder, destaque a alternativa com o D-pad ou analógico e aperte o botão que aparece nela. Isso evita responder sem querer.
+- **Durante a partida:** com o controle conectado, as respostas passam a ser dadas pelo controle, e não por toque, clique ou teclas `1` a `4`.
+
+> **Limitação do navegador:** os navegadores não contam um botão do controle como interação do usuário. Por isso, ativar a **tela cheia** pelo controle pode ser bloqueado. Se acontecer, clique uma vez no botão de tela cheia com o mouse ou toque na tela.
+
 Em celulares, jogue com o aparelho na horizontal. Os botões de som e tela cheia ficam disponíveis na interface. No iPhone, para jogar sem as barras do Safari, adicione o site à Tela de Início e abra-o pelo ícone.
 
 ## Conteúdo de matemática
@@ -62,14 +82,31 @@ MathTerror/
 ├── style.css               # Layout, responsividade e efeitos visuais
 ├── script.js               # Inicialização do jogo
 ├── js/
-│   ├── quiz-data.js        # Banco de questões dos checkpoints
-│   ├── runner-mode.js      # Estados e fluxo principal da partida
-│   ├── runner-*.js         # Corrida, física, renderização, boss, áudio e interface
-│   ├── hud.js              # Vidas e pontuação
-│   ├── audio.js            # Controle de áudio
-│   ├── fullscreen.js       # Tela cheia
-│   ├── orientation.js      # Orientação em dispositivos móveis
-│   └── config.js           # Configurações gerais
+│   ├── dom-elements.js       # Referências aos elementos da página
+│   ├── game-state.js         # Troca entre menu e partida (vídeos de fundo)
+│   ├── config.js             # Configurações gerais (embaralhar alternativas)
+│   ├── utils.js              # Embaralhamento de listas e alternativas
+│   ├── audio.js              # Liga, desliga e toca música e efeitos
+│   ├── fullscreen.js         # Tela cheia
+│   ├── orientation.js        # Aviso de girar o celular e dica do iPhone
+│   ├── hud.js                # Moldura de vidas e pontos
+│   ├── gamepad-status.js     # Detecção e aviso de controle conectado
+│   ├── menu-gamepad.js       # Navegação do menu inicial pelo controle
+│   ├── quiz-data.js          # Banco de questões dos checkpoints
+│   ├── runner-mode.js        # Estados e fluxo principal da partida
+│   ├── runner-config.js      # Ritmo, tempos, vidas, erros e física
+│   ├── runner-assets.js      # Sprites, animações e medidas da coruja e do boss
+│   ├── runner-fight-assets.js # Sprites e tempos das cenas de luta
+│   ├── runner-animations.js  # Cálculo das poses da coruja
+│   ├── runner-physics.js     # Pulo, aterrissagem e queda nos buracos
+│   ├── runner-world.js       # Geração das plataformas e portas
+│   ├── runner-boss.js        # Movimento e ações do boss (perseguição, salto, captura)
+│   ├── runner-fight-path.js  # Palco e trajetos da coruja na luta
+│   ├── runner-input.js       # Teclado, toque e controle durante a partida
+│   ├── runner-quiz.js        # Preparação e embaralhamento das perguntas
+│   ├── runner-renderer.js    # Desenho da cena no canvas
+│   ├── runner-ui.js          # Painéis de pergunta, progresso e fim de partida
+│   └── runner-audio.js       # Efeitos sonoros da partida
 ├── assets/
 │   ├── audio/              # Música e efeitos sonoros
 │   ├── fonts/              # Tipografias
