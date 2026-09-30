@@ -1,125 +1,95 @@
 <p align="center">
-  <img src="assets/images/logo.webp" alt="MathTerror Logo" width="420" />
+  <img src="assets/images/logo.webp" alt="MathTerror" width="420" />
 </p>
 
 <h3 align="center">🎮 Aprenda matemática… se tiver coragem.</h3>
 
-<p align="center">
-  Projeto acadêmico de <strong>Cálculo 1</strong> — ADS / FATEC (2º semestre)
-</p>
+<p align="center">Jogo educativo de terror sobre conjuntos, funções e gráficos.</p>
 
 ---
 
-## 📖 Sobre
+## Sobre o jogo
 
-**MathTerror** é um jogo educativo web com temática de terror que transforma o estudo de Cálculo 1 em uma experiência imersiva e envolvente. O jogador enfrenta desafios matemáticos sobre **conjuntos**, **funções** e **gráficos** enquanto navega por um corredor sombrio cheio de suspense, jumpscares e efeitos sonoros.
+**MathTerror** é um jogo de navegador em que uma coruja corre por plataformas suspensas sobre lava enquanto um boss a persegue. A corrida é automática: você pula os buracos, chega aos checkpoints e resolve questões para abrir caminho. Se errar demais ou deixar o tempo acabar, terá de enfrentar o boss em uma luta de contas rápidas.
 
-> *"Nas sombras do desconhecido, um guardião desperta. Portas surgirão diante de você. Atrás de algumas, há esperança. Atrás de outras… apenas o vazio e o terror."*
+## Como jogar
 
----
+1. No menu, selecione **Iniciar Fuga Infernal**. O jogo começa com três vidas.
+2. Durante a corrida, pule os buracos para não cair na lava. A cada trecho, a coruja chega a um checkpoint.
+3. No checkpoint, escolha uma alternativa para responder à questão. O boss se aproxima enquanto o cronômetro avança.
+4. Uma resposta certa faz o boss recuar e permite continuar a corrida. Uma resposta errada acelera a aproximação do boss e reduz a margem para responder novamente; você pode tentar de novo enquanto ainda houver tempo. O terceiro erro no checkpoint inicia a luta.
+5. Ao cometer três erros no mesmo checkpoint, ou quando o tempo se esgota, começa a luta contra o boss: responda quatro contas, uma de cada operação (+, −, × e ÷). Acerte pelo menos duas para sobreviver e continuar.
+6. Durante a luta, cada resposta errada custa uma vida. Cair na lava também custa uma vida; a coruja reaparece adiante na pista se ainda houver vidas. Se o boss vencer ou as três vidas acabarem, a partida termina. No fim, você pode tentar novamente ou voltar ao menu.
 
-## 🕹️ Fuga Infernal
+O jogo mostra no placar o total de questões respondidas corretamente. A velocidade da corrida aumenta a cada checkpoint superado.
 
-Um corredor infinito sobre plataformas de lava: pule os buracos e, a cada checkpoint, responda a questão antes que o boss alcance você. Acertou, a porta abre e a corrida continua; errou ou caiu, perde uma das 3 vidas.
+### Controles
 
----
+| Ação | Teclado | Celular ou tablet |
+|---|---|---|
+| Pular durante a corrida | `Espaço`, `↑` ou `W` | Toque na área do jogo |
+| Escolher uma alternativa | Teclas `1` a `4` | Toque no botão da alternativa |
+| Sair da partida | `Esc` | — |
 
-## ✨ Funcionalidades
+Em celulares, jogue com o aparelho na horizontal. Os botões de som e tela cheia ficam disponíveis na interface. No iPhone, para jogar sem as barras do Safari, adicione o site à Tela de Início e abra-o pelo ícone.
 
-- 🔊 **Áudio imersivo** — música de fundo, pulo, queda, porta abrindo e pulso que acelera conforme o boss se aproxima
-- ⛶ **Modo tela cheia** — experiência otimizada em fullscreen
-- 🔀 **Aleatorização** — perguntas e alternativas embaralhadas a cada partida
-- 📱 **Responsivo** — funciona em desktop e dispositivos móveis
+## Conteúdo de matemática
 
----
+As questões dos checkpoints cobrem operações e notação de conjuntos, domínio e imagem, funções afins e quadráticas, leitura de gráficos e composição de funções. A luta contra o boss usa adição, subtração, multiplicação e divisão.
 
-## 📂 Estrutura do Projeto
+## Executar localmente
 
+O projeto é estático, sem etapa de instalação ou dependências de build. Como usa módulos JavaScript, abra-o por um servidor HTTP local em vez de abrir `index.html` diretamente:
+
+```bash
+python3 -m http.server 8080
 ```
+
+Depois, acesse <http://localhost:8080> no navegador. Também é possível usar outro servidor estático, como `npx serve .`.
+
+## Tecnologias
+
+- **HTML5** para a estrutura da página.
+- **CSS3** para o layout responsivo, efeitos visuais e interface.
+- **JavaScript com ES Modules**, sem framework, para a lógica do jogo.
+- **Canvas** para renderizar a corrida e as animações dos personagens.
+
+## Estrutura do projeto
+
+```text
 MathTerror/
-├── index.html              # Página principal
-├── style.css               # Estilos e efeitos visuais
-├── script.js               # Módulo de entrada (bootstrap)
+├── index.html              # Página e elementos da interface
+├── style.css               # Layout, responsividade e efeitos visuais
+├── script.js               # Inicialização do jogo
 ├── js/
-│   ├── config.js           # Configurações gerais (aleatorização)
-│   ├── dom-elements.js     # Referências aos elementos do DOM
-│   ├── quiz-data.js        # Banco de questões de Cálculo 1
-│   ├── runner-mode.js      # Fuga Infernal (corrida, boss, portas, questões)
-│   ├── hud.js              # Vidas e pontos
-│   ├── audio.js            # Música de fundo
-│   ├── fullscreen.js       # Toggle de tela cheia
-│   ├── game-state.js       # Estado global do jogo
-│   └── utils.js            # Funções utilitárias
+│   ├── quiz-data.js        # Banco de questões dos checkpoints
+│   ├── runner-mode.js      # Estados e fluxo principal da partida
+│   ├── runner-*.js         # Corrida, física, renderização, boss, áudio e interface
+│   ├── hud.js              # Vidas e pontuação
+│   ├── audio.js            # Controle de áudio
+│   ├── fullscreen.js       # Tela cheia
+│   ├── orientation.js      # Orientação em dispositivos móveis
+│   └── config.js           # Configurações gerais
 ├── assets/
-│   ├── audio/              # Músicas e efeitos sonoros
-│   ├── fonts/              # Tipografias temáticas
-│   ├── images/             # Logo, sprites do jogo, HUD e imagens do quiz
-│   └── videos/             # Vídeo de fundo do menu
+│   ├── audio/              # Música e efeitos sonoros
+│   ├── fonts/              # Tipografias
+│   ├── images/             # Logo, personagens, interface e imagens das questões
+│   └── videos/             # Vídeos de fundo do menu e da partida
 └── README.md
 ```
 
----
+## Equipe
 
-## 🛠️ Tecnologias
+Projeto acadêmico desenvolvido por alunos de **Análise e Desenvolvimento de Sistemas (ADS)** da **FATEC**, para a disciplina de **Cálculo 1**.
 
-<p>
-  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
-  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" />
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-</p>
-
-- **HTML5** — estrutura semântica e acessível
-- **CSS3** — animações, vinheta, ruído visual e layout responsivo
-- **JavaScript (ES Modules)** — lógica modularizada sem frameworks
+| Membro | GitHub |
+|---|---|
+| Walyson Felipe | [@walysonfelipe](https://github.com/walysonfelipe) |
+| Gabriel Martins | [@orickzs](https://github.com/orickzs) |
+| Filipe Rattighieri | [@FilipeRattighieri](https://github.com/FilipeRattighieri) |
+| Eduardo Xavier | [@eduduf](https://github.com/eduduf) |
+| Gabriel Cardinale | [@Grayved](https://github.com/Grayved) |
 
 ---
 
-## 🚀 Como Executar
-
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/walysonfelipe/MathTerror.git
-   ```
-2. Abra o arquivo `index.html` em um navegador moderno, ou utilize um servidor local:
-   ```bash
-   # Com Python
-   python3 -m http.server 8080
-
-   # Com Node.js
-   npx serve .
-   ```
-3. Acesse `http://localhost:8080` e **entre no corredor do medo** 🚪
-
-> [!TIP]
-> Para a melhor experiência, use **fones de ouvido** e ative o **modo tela cheia**.
-
----
-
-## 📚 Conteúdos de Cálculo 1 Abordados
-
-- Operações com conjuntos (união, interseção, diferença)
-- Notação de conjuntos e pertinência
-- Funções de 1º grau (afim) e análise de gráficos
-- Funções de 2º grau (quadrática) — parábolas, concavidade
-- Domínio e imagem de funções
-- Composição de funções
-
----
-
-## 👥 Equipe
-
-Projeto desenvolvido por alunos do curso de **Análise e Desenvolvimento de Sistemas (ADS)** da **FATEC** como atividade avaliativa da disciplina de **Cálculo 1** — 2º semestre.
-
-| | Membro | GitHub |
-|---|--------|--------|
-| 🩸 | Walyson Felipe | [@walysonfelipe](https://github.com/walysonfelipe) |
-| 🩸 | Gabriel Martins | [@orickzs](https://github.com/orickzs) |
-| 🩸 | Filipe Rattighieri | [@FilipeRattighieri](https://github.com/FilipeRattighieri) |
-| 🩸 | Eduardo Xavier | [@eduduf](https://github.com/eduduf) |
-| 🩸 | Gabriel Cardinale | [@Grayved](https://github.com/Grayved) |
-
----
-
-<p align="center">
-  <sub>Feito com 🩸 e matemática.</sub>
-</p>
+<p align="center"><sub>Feito com 🩸 e matemática.</sub></p>
