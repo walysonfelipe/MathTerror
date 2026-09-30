@@ -267,3 +267,15 @@ body.in-game .game-video{opacity:1}
 .runner-question.is-fight-question .answer-feedback{grid-area:fb}
 .runner-question.is-fight-question .answer-feedback:empty{display:none}
 }
+
+/* Botão de início desenhado: start-button.webp tem os dois estados empilhados
+   (em cima normal, embaixo aceso). Um sprite só, então o hover troca sem piscar. */
+.start-button{display:block;width:100%;aspect-ratio:1200/190;padding:0;border:0;background:url('assets/images/start-button.webp') 0 0/100% 200% no-repeat;filter:drop-shadow(0 6px 18px #000a);transition:filter .15s,transform .1s}
+.start-button:hover,.start-button:focus-visible{background-position:0 100%;filter:drop-shadow(0 0 16px #ff3b1f66) drop-shadow(0 6px 18px #000a)}
+.start-button:focus-visible{outline:none}
+.start-button:active{transform:scale(.985)}
+.start-button-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Seleção pelo controle no menu inicial */
+#soundBtn.is-gamepad-selected,#fullscreenBtn.is-gamepad-selected{--sx:50%;filter:drop-shadow(0 0 12px #ff3b1f88);outline:2px solid #ff6a4d;outline-offset:2px}
+.start-button.is-gamepad-selected{background-position:0 100%;filter:drop-shadow(0 0 16px #ff3b1f66) drop-shadow(0 6px 18px #000a)}
+.rotate-screen .btn.is-gamepad-selected,.modal .btn.is-gamepad-selected{outline:2px solid #ff6a4d;outline-offset:2px}

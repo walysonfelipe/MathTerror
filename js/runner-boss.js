@@ -1,12 +1,14 @@
 // Simulação e modos do boss durante corrida, captura e recuo.
 import {
   BOSS_SPEED, BOSS_RETREAT_SPEED, BOSS_STRIDE, BOSS_GRAVITY, BOSS_LEAP_TIME,
-  BOSS_W, BOSS_WALK, BOSS_ANIMS, GRAB_W, GRAB_OWL_X, GRAB_BOSS_X, GRAB_GAME_OVER,
+  BOSS_W, BOSS_WALK, BOSS_ANIMS, BOSS_CROUCH_TIME, BOSS_LAND_TIME,
+  GRAB_W, GRAB_OWL_X, GRAB_BOSS_X, GRAB_GAME_OVER,
 } from './runner-assets.js';
-import { BOSS_APPEAR_AT, ERROR_SPEEDUP } from './runner-config.js';
+import { BOSS_APPEAR_AT } from './runner-config.js';
 
 export function createBossController({
-  boss, getState, getRunChasePace = () => 1, getErrors, setLives, getOwlScreenX,
+  boss, getState, getRunChasePace = () => 1, getChaseSpeed = () => 0, findGapJumpTarget = () => null,
+  getCameraX = () => 0, getErrors, setLives, getOwlScreenX,
   setShake, raiseShake, updateStatusBar, playSfx, gameOver,
   grabFrameStart, startGrab,
 }) {
@@ -28,43 +30,72 @@ export function createBossController({
     boss.modeTime = 0;
   }
 
-  function bossPace() {
-    return 1 + getErrors() * ERROR_SPEEDUP;
-  }
-
   function bossEnter() {
-    Object.assign(boss, { x: bossEntryX(), y: 0, vx: 0, vy: 0, facing: 1, walking: true, phase: 0, onLand: null });
+    Object.assign(boss, { x: bossEntryX(), y: 0, vx: 0, vy: 0, facing: 1, walking: true, phase: 0, onLand: null, cameraX: getCameraX() });
     setBossMode('stalk');
   }
 
-  function bossLeap(targetX, onLand) {
+  // runOnLand: pousa já no ciclo de corrida (saltos sobre vãos), sem parar para amortecer
+  function bossLeap(targetX, onLand, runOnLand = false) {
     boss.walking = false;
     boss.leapTarget = targetX;
     boss.onLand = onLand;
+    boss.runOnLand = runOnLand;
     setBossMode('leap-crouch');
+  }
+
+  // Enquanto pula, o boss fica preso ao mundo: na tela ele recua junto com o chão.
+  function followCameraDuringLeap(cameraDelta) {
+    boss.x -= cameraDelta;
+    boss.leapTarget -= cameraDelta;
   }
 
   function updateBoss(dt) {
     boss.modeTime += dt;
+    const cameraX = getCameraX();
+    // Quanto o chão andou neste quadro (limitado para ignorar saltos de câmera ao reposicionar)
+    const cameraDelta = Math.max(-40, Math.min(40, cameraX - (boss.cameraX ?? cameraX)));
+    boss.cameraX = cameraX;
     switch (boss.mode) {
       case 'stalk': {
+        const gapJump = findGapJumpTarget();
+        if (gapJump?.landX !== undefined) {
+          boss.facing = 1;
+          bossLeap(gapJump.landX, null, true);
+          break;
+        }
+        if (gapJump?.hold) {
+          // Espera firme na borda do vão (preso ao chão, não à tela) até o alvo passar para o outro lado
+          boss.x -= cameraDelta;
+          boss.walking = false;
+          break;
+        }
+        // No checkpoint ele corre direto até a coruja (getChaseSpeed); na corrida segue a barra.
+        const chaseSpeed = getChaseSpeed();
         const chasePace = getState() === 'run' ? getRunChasePace() : 1;
-        const step = Math.min(BOSS_SPEED * chasePace * dt, Math.max(0, bossTargetX() - boss.x));
+        const step = chaseSpeed
+          ? Math.min(chaseSpeed * dt, Math.max(0, bossCatchX() - boss.x))
+          : Math.min(BOSS_SPEED * chasePace * dt, Math.max(0, bossTargetX() - boss.x));
         boss.x += step;
-        boss.phase = (boss.phase + step / BOSS_STRIDE) % BOSS_WALK.length;
-        boss.walking = step > 0.01;
+        // As passadas seguem o deslocamento no chão (tela + câmera); só pela tela ele
+        // deslizava parado sempre que alcançava o alvo, como logo depois de um salto.
+        const groundStep = step + cameraDelta;
+        boss.walking = groundStep > 0.01;
+        if (boss.walking) boss.phase = (boss.phase + groundStep / BOSS_STRIDE) % BOSS_WALK.length;
         break;
       }
       case 'fight':
         break;
       case 'leap-crouch':
-        if (boss.modeTime >= 0.16) {
+        followCameraDuringLeap(cameraDelta);
+        if (boss.modeTime >= BOSS_CROUCH_TIME) {
           boss.vy = BOSS_GRAVITY * BOSS_LEAP_TIME / 2;
           boss.vx = (boss.leapTarget - boss.x) / BOSS_LEAP_TIME;
           setBossMode('leap-air');
         }
         break;
       case 'leap-air':
+        followCameraDuringLeap(cameraDelta);
         boss.x += boss.vx * dt;
         boss.vy -= BOSS_GRAVITY * dt;
         boss.y += boss.vy * dt;
@@ -72,13 +103,23 @@ export function createBossController({
           boss.y = 0;
           boss.x = boss.leapTarget;
           raiseShake(0.9);
-          setBossMode('leap-land');
+          if (boss.runOnLand) {
+            boss.runOnLand = false;
+            boss.phase = 0;                          // toca o chão no 1º quadro da corrida e segue
+            boss.walking = true;
+            setBossMode('stalk');
+          } else {
+            setBossMode('leap-land');
+          }
         }
         break;
       case 'leap-land':
-        if (boss.modeTime >= 0.2) {
+        followCameraDuringLeap(cameraDelta);
+        if (boss.modeTime >= BOSS_LAND_TIME) {
           const onLand = boss.onLand;
           boss.onLand = null;
+          boss.phase = 1;                            // pousou no 1º quadro da corrida: segue do 2º
+          boss.walking = true;
           if (onLand) onLand();
           else setBossMode('roar');
         }
@@ -115,7 +156,7 @@ export function createBossController({
     }
   }
 
-  return { bossCatchX, bossTargetX, setBossMode, bossPace, bossEnter, bossLeap, updateBoss };
+  return { bossCatchX, bossEntryX, bossTargetX, setBossMode, bossEnter, bossLeap, updateBoss };
 }
 
 export function getBossPose(boss, clock) {
@@ -126,13 +167,8 @@ export function getBossPose(boss, clock) {
   const walkPose = () => {
     const n = BOSS_WALK.length;
     const current = Math.floor(boss.phase) % n;
-    const step = Math.sin(Math.PI * boss.phase / 2);
     return {
       frame: BOSS_WALK[current],
-      next: BOSS_WALK[(current + 1) % n],
-      blend: Math.max(0, (boss.phase % 1 - 0.65) / 0.35),
-      bob: 6 * step * step,
-      sy: 1 - (1 - step * step) * 0.03,
     };
   };
   switch (boss.mode) {
@@ -140,14 +176,17 @@ export function getBossPose(boss, clock) {
       if (boss.walking) return walkPose();
       return boss.progress > 0.55 ? loop('guard', boss.modeTime) : loop('idle', clock);
     case 'leap-crouch': {
-      const k = Math.min(1, boss.modeTime / 0.16);
-      return { frame: 8, sx: 1 + 0.06 * k, sy: 1 - 0.1 * k };
+      const k = Math.min(1, boss.modeTime / BOSS_CROUCH_TIME);
+      return { frame: 9, sx: 1 + 0.04 * k, sy: 1 - 0.06 * k };
     }
     case 'leap-air':
-      return { frame: boss.vy > 0 ? 9 : 10, sy: 1.04, sx: 0.98 };
+      // Decola esticado e encolhe as pernas depois do ponto mais alto
+      return boss.vy > 0 ? { frame: 10, sx: 0.98, sy: 1.03 } : { frame: 11 };
     case 'leap-land': {
-      const k = boss.modeTime / 0.2;
-      return { frame: 11, sx: 1 + 0.08 * (1 - k), sy: 1 - 0.12 * (1 - k) };
+      // Toca o chão já no passo da corrida (pernas abertas) e só amortece de leve;
+      // uma pose agachada aqui parecia que ele se abaixava de novo antes de correr
+      const k = Math.min(1, boss.modeTime / BOSS_LAND_TIME);
+      return { frame: BOSS_WALK[0], sx: 1 + 0.04 * (1 - k), sy: 1 - 0.05 * (1 - k) };
     }
     case 'roar': {
       const pulse = Math.sin(boss.modeTime * 30) * 0.02;

@@ -6,6 +6,7 @@ import { hideHome } from './js/game-state.js';
 import { startRunnerMode } from './js/runner-mode.js';
 import { initOrientation, maybeShowInstallHint } from './js/orientation.js';
 import './js/gamepad-status.js';
+import './js/menu-gamepad.js';
 
 // Remove o service worker/cache offline de versões antigas. O jogo agora usa os
 // arquivos servidos normalmente e não mantém cópias offline.

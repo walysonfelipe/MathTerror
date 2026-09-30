@@ -17,16 +17,23 @@ export const RUN_FRAMES = [3, 4, 5, 6, 7, 8, 9, 10, 11];
 export const RUN_STEP = 3;                  // quadros por passo
 // ground-sheet.webp: grade 3x4 de 244x108, alinhados pelo topo da plataforma.
 export const GROUND = { src: 'assets/images/ground-sheet.webp', w: 244, h: 108, cols: 3, count: 12 };
-// boss-sheet.webp: grade 4x4 de 258x235, pés no chão e bico alinhado. Olha para a direita.
-// Linha 1: parado/piscando · Linha 2: andando · Linha 3: salto (8 prepara, 9 decola,
-// 10 no ar, 11 aterrissa) · Linha 4: 12 e 15 guarda, 13 rugido, 14 levou o golpe.
-export const BOSS = { src: 'assets/images/boss-sheet.webp', w: 258, h: 235, cols: 4 };
+// runboss.png: grade 4x4, olhando para a direita. 0–7: corrida (dois passos) · 8: em pé ·
+// 9: agachado (prepara o salto) · 10: decola · 11: encolhido no ar (desce e pousa no 0) ·
+// 12, 13 e 15: guarda · 14: golpe. Os desenhos não respeitam a grade, por isso cada recorte
+// termina exatamente na base das garras: o renderer apoia a borda de baixo no chão.
+export const BOSS = { src: 'assets/images/runboss.png', w: 362, h: 271.5, cols: 4 };
+export const BOSS_FRAME_RECTS = [
+  [19, 1, 368, 262], [410, 7, 321, 261], [753, 2, 336, 265], [1117, 2, 331, 257],
+  [8, 272, 361, 258], [399, 273, 332, 257], [756, 271, 346, 258], [1121, 271, 327, 254],
+  [37, 535, 314, 261], [377, 578, 310, 218], [750, 535, 319, 261], [1137, 535, 303, 244],
+  [44, 797, 315, 237], [412, 797, 294, 268], [761, 835, 322, 237], [1130, 798, 307, 274],
+];
 export const BOSS_ANIMS = {
-  idle: { frames: [0, 0, 1, 0, 3, 0, 0, 2, 0, 1], fps: 5 },
+  idle: { frames: [8], fps: 1 },
   guard: { frames: [12, 12, 15, 12, 12, 15], fps: 3 },   // já perto: posição de luta
 };
-export const BOSS_WALK = [4, 5, 6, 7];
-// door-pass-sheet.webp (gerado de image.png): grade 4x5 de 472x252, coruja e porta juntas.
+export const BOSS_WALK = [0, 1, 2, 3, 4, 5, 6, 7];
+// door-pass-sheet.webp (gerado): grade 4x5 de 472x252, coruja e porta juntas.
 // Toda célula alinhada pelo arco da porta (centro em x=244), então a porta fica parada no mundo.
 // 0–15: passagem (chega · empurra a porta · entra · sai do outro lado) · 16: fechada · 17: aberta.
 export const PASS = { src: 'assets/images/door-pass-sheet.webp', w: 472, h: 252, cols: 4, doorX: 244, ground: 242, frames: 16, closed: 16, open: 17 };
@@ -66,13 +73,14 @@ export const GRAB_W = GRAB_H * GRAB.w / GRAB.h;
 export const BOSS_W = BOSS_H * BOSS.w / BOSS.h;
 export const BOSS_SPEED = 240;              // velocidade máxima para acompanhar a barra
 export const BOSS_RETREAT_SPEED = 320;      // fugindo depois de levar um acerto
-export const BOSS_STRIDE = 14;              // unidades por quadro de caminhada
+export const BOSS_STRIDE = 26;              // unidades no chão por quadro do ciclo de corrida
 export const BOSS_GRAVITY = 3200;
 export const BOSS_LEAP_TIME = 0.6;          // tempo no ar de cada salto
+export const BOSS_CROUCH_TIME = 0.14;        // agacha antes de sair do chão (quadro 9)
+export const BOSS_LAND_TIME = 0.12;          // amortece a queda no 1º quadro da corrida e segue correndo
 export const STRIDE = 18;                   // unidades percorridas por quadro de corrida (evita pé deslizando)
 export const RUN_BOB = 7;                   // quanto o corpo sobe na passagem entre os passos
 export const CROUCH_TIME = 0.08;            // agachada antes de sair do chão (quadro 12)
 export const LAND_TIME = 0.16;              // aterrissagem antes de voltar a correr (quadro 15)
 export const JUMP_BUFFER = 0.15;            // aperto logo antes de tocar o chão já vale como pulo
 export const HOP_TIME = CELEBRATE_TIME;      // um pulinho de comemoração parado no lugar
-

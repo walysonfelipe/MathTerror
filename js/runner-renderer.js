@@ -6,7 +6,7 @@ import {
   BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_OWL_COMBOS,
 } from './runner-fight-assets.js';
 import {
-  OWL, BOSS, PASS, GRAB, GRAB_OWL_X, PASS_FRAME_TIME, PASS_DRAW_W, PASS_DRAW_H,
+  OWL, BOSS, BOSS_FRAME_RECTS, PASS, GRAB, GRAB_OWL_X, PASS_FRAME_TIME, PASS_DRAW_W, PASS_DRAW_H,
   PASS_SCALE, OWL_W, OWL_H, BOSS_H, BOSS_W, GRAB_W, GRAB_H,
 } from './runner-assets.js';
 
@@ -15,10 +15,10 @@ export function createRunnerRenderer(helpers) {
   const {
     loadImage, isShowingFightDeath, isSupported, getCurrentDoor,
     getOwlPose, getFightDeathPose, getGrabPose, getBossPose,
-    fightOwlPosition, runFrame,
+    fightOwlPosition, fightOwlMovePose, fightBossX,
   } = helpers;
-  let ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld;
-  function setScene(scene) { ({ ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld } = scene); }
+  let ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld, waitingAfterFight;
+  function setScene(scene) { ({ ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit, fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH, fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase, runStopped, landingPoseHeld, waitingAfterFight } = scene); }
 
   function drawEmbers(camera) {
     for (const ember of embers) {
@@ -83,17 +83,15 @@ function drawOwl() {
     let frame = 3;
     let x = fightOwlPosition();
     let flip = false;
+    let lift = 0;
+    const move = fightOwlMovePose();                 // correndo/pulando até o boss ou de volta
     if (elapsed < FIGHT_TURN_TIME) frame = Math.min(3, Math.floor(elapsed * 4));
-    else if (fightAction === 'approach') frame = runFrame();
+    else if (move) ({ frame, flip, lift } = move);
     else if (fightAction === 'strike') {
       const combo = FIGHT_OWL_COMBOS[fightCombo % FIGHT_OWL_COMBOS.length];
       frame = combo[Math.min(combo.length - 1, Math.floor((clock - fightActionAt) * 8))];
-    }
-    else if (fightAction === 'retreat') {
-      frame = runFrame();
-      flip = true;
     } else if (fightAction === 'counter' && fightCounterHit) frame = 14;
-    drawFighter(FIGHT_OWL, frame, x, OWL_H / 240, flip);
+    drawFighter(FIGHT_OWL, frame, x, OWL_H / 240, flip, lift);
     return;
   }
   const img = loadImage(OWL.src);
@@ -117,7 +115,7 @@ function drawOwl() {
   }
   if (clock < owl.invulnerableUntil && Math.floor(clock * 12) % 2 === 0) return;
 
-  const pose = getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped, landingPoseHeld });
+  const pose = getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped, landingPoseHeld, waitingAfterFight });
   const pivotY = pose.center ? OWL_H / 2 : 0;          // no ar gira pelo meio do corpo
   ctx.save();
   ctx.translate(owlScreenX, owl.y + 2 - pivotY);
@@ -249,7 +247,7 @@ function bossCastFrame(cast, elapsed) {
 // Onde a esfera está na mão do boss no quadro em que ele a solta (coordenadas do mundo).
 function bossReleasePoint() {
   const scale = fightBossScale();
-  return { x: viewW * 0.25 + BOSS_RELEASE.x * scale, y: groundY + 2 - BOSS_RELEASE.y * scale };
+  return { x: fightBossX() + BOSS_RELEASE.x * scale, y: groundY + 2 - BOSS_RELEASE.y * scale };
 }
 
 function drawBoss() {
@@ -266,20 +264,20 @@ function drawBoss() {
       }
       frame = i < BOSS_SLAM.length ? BOSS_SLAM[i] : 0;
     }
-    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, fightBossScale());
+    drawFighter(FIGHT_BOSS, frame, fightBossX(), fightBossScale());
     return;
   }
   if (state === 'fight') {
     if (fightAction === 'strike') {
       const elapsed = clock - fightActionAt;
       const frame = Math.min(FIGHT_BOSS_HIT.frames.length - 1, Math.floor(elapsed / FIGHT_BOSS_HIT_FRAME_TIME));
-      drawFighter(FIGHT_BOSS_HIT, frame, viewW * 0.25, BOSS_H / 260);
+      drawFighter(FIGHT_BOSS_HIT, frame, fightBossX(), BOSS_H / 260);
       return;
     }
     let frame = 0;
     if (fightAction === 'counter') frame = bossCastFrame(BOSS_CASTS[fightBossAttack], clock - fightActionAt);
     else if (fightAction === 'approach' || fightAction === 'retreat') frame = 3;
-    drawFighter(FIGHT_BOSS, frame, viewW * 0.25, fightBossScale());
+    drawFighter(FIGHT_BOSS, frame, fightBossX(), fightBossScale());
     return;
   }
   if (boss.mode === 'grab') {
@@ -303,9 +301,13 @@ function drawBoss() {
     if (pose.flash) ctx.filter = 'brightness(2.4) saturate(0.4)';
     const drawFrame = (frame, alpha) => {
       ctx.globalAlpha = alpha;
-      const sx = (frame % BOSS.cols) * BOSS.w;
-      const sy = Math.floor(frame / BOSS.cols) * BOSS.h;
-      ctx.drawImage(img, sx, sy, BOSS.w, BOSS.h, -BOSS_W / 2, -BOSS_H - (pose.bob || 0), BOSS_W, BOSS_H);
+      const [sx, sy, sw, sh] = BOSS_FRAME_RECTS[frame];
+      const cellX = (frame % BOSS.cols) * BOSS.w;
+      const scaleX = BOSS_W / BOSS.w;
+      const scaleY = BOSS_H / BOSS.h;
+      const dx = -BOSS_W / 2 + (sx - cellX) * scaleX;
+      const dy = -sh * scaleY - (pose.bob || 0);          // o recorte termina nas garras
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, sw * scaleX, sh * scaleY);
     };
     drawFrame(pose.frame, 1);
     if (pose.blend > 0) drawFrame(pose.next, pose.blend);
@@ -313,7 +315,7 @@ function drawBoss() {
   }
 }
 
-function drawFighter(sheet, frame, x, sourceScale, flip = false) {
+function drawFighter(sheet, frame, x, sourceScale, flip = false, lift = 0) {
   const img = loadImage(sheet.src);
   if (!img.complete || !img.naturalWidth) return;
   const [x0, y0, w0, h0, anchorX, anchorY] = sheet.frames[frame];
@@ -323,7 +325,7 @@ function drawFighter(sheet, frame, x, sourceScale, flip = false) {
     // Pose com âncoras próprias: tronco em x, garras no chão
     const scale = Math.min(sourceScale, viewW * 0.38 / (sheet.maxW || w0));
     ctx.save();
-    ctx.translate(x, groundY + 2);
+    ctx.translate(x, groundY + 2 - lift);
     if (flip) ctx.scale(-1, 1);
     ctx.shadowColor = hit ? '#ff3b13' : '#ff1a0a';
     ctx.shadowBlur = hit ? 34 : 16;
@@ -342,7 +344,7 @@ function drawFighter(sheet, frame, x, sourceScale, flip = false) {
   const w = sw * scale;
   const h = sh * scale;
   ctx.save();
-  ctx.translate(x, groundY + 4);
+  ctx.translate(x, groundY + 4 - lift);
   if (flip) ctx.scale(-1, 1);
   ctx.shadowColor = hit ? '#ff3b13' : '#ff1a0a';
   ctx.shadowBlur = hit ? 34 : 16;

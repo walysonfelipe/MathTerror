@@ -100,6 +100,16 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     return x > FORWARD_DEADZONE ? Math.min(1, (x - FORWARD_DEADZONE) / (1 - FORWARD_DEADZONE)) : 0;
   }
 
+  // Botões que já estavam apertados ao começar (ex.: o A que iniciou a partida
+  // no menu) não contam como um novo toque.
+  function ignoreHeldButtons() {
+    previousButtons.clear();
+    for (const pad of getConnectedGamepads()) {
+      const held = (pad.buttons || []).flatMap((button, index) => (button?.pressed || button?.value >= 0.5 ? [index] : []));
+      previousButtons.set(pad.index, new Set(held));
+    }
+  }
+
   function pollGamepadInput(now) {
     if (!isActive()) return { controllerActive: false, forwardStrength: 1 };
 
@@ -209,5 +219,5 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     }
   }
 
-  return { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput };
+  return { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput, ignoreHeldButtons };
 }

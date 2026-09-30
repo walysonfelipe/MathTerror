@@ -52,7 +52,7 @@ export const BOSS_RELEASE = { x: 200, y: 135 };   // centro da esfera ao soltar 
 export const BOSS_SLAM = [8, 9, 10, 11];
 export const BOSS_SLAM_TIMES = [0.16, 0.24, 0.32, 0.3];
 export const BOSS_SLAM_HIT = BOSS_SLAM_TIMES[0] + BOSS_SLAM_TIMES[1];   // o punho bate no chão (quadro 10)
-// Derrota na luta (owl-death-sheet.webp, gerada de image.png sem os respingos soltos).
+// Derrota na luta (owl-death-sheet.webp, gerada sem os respingos soltos).
 // 0–2 a esfera π chega e explode · 3–5 arremessada no ar · 6–11 cai, derrapa na poeira
 // e chuta · 12–15 ergue a cabeça e desmaia deitada.
 // [x, y, w, h, anchorX, anchorY]: recorte pelo alfa de cada pose; anchorX é o centro do
@@ -126,7 +126,7 @@ export const FIGHT_TURN_TIME = 0.8;
 // [x, y, w, h, anchorX, anchorY]: recorte pelo alfa de cada quadrante e centro das letras,
 // para a palavra não pular entre quadros com contornos de fogo diferentes.
 export const FIGHT_INTRO = {
-  src: 'assets/images/figth.webp',
+  src: 'assets/images/fight.webp',
   frames: [
     [46, 104, 722, 372, 343, 207], [768, 70, 752, 440, 384, 221],
     [23, 576, 737, 379, 382, 179], [804, 579, 687, 352, 347, 189],

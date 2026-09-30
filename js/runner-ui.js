@@ -172,7 +172,8 @@ export function updateThreatLabel(panel, mode, errors, pace) {
   if (!label) return;
   if (mode === 'hidden' && errors === 0) label.textContent = 'CHECKPOINT · SILÊNCIO...';
   else if (errors === 0) label.textContent = 'O BOSS SE APROXIMA';
-  else label.textContent = `O BOSS SE APROXIMA · ${pace.toFixed(2).replace(/\.?0+$/, '').replace('.', ',')}× MAIS RÁPIDO`;
+  else if (errors === 1) label.textContent = `O BOSS ACELEROU · ${pace.toFixed(1).replace(/\.0$/, '').replace('.', ',')}× MAIS RÁPIDO`;
+  else label.textContent = 'O BOSS ESTÁ COLADO EM VOCÊ · ÚLTIMA CHANCE';
 }
 
 export function renderRunnerGameOver(panel, reason, score, onRetry, onHome, phone) {

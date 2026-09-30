@@ -6,7 +6,7 @@ import {
   CELEBRATE_TIME, HOP_TIME, GRAB_FRAMES, GRAB_FRAME_TIME,
 } from './runner-assets.js';
 
-export function getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped = false, landingPoseHeld = false }) {
+export function getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped = false, landingPoseHeld = false, waitingAfterFight = false }) {
   const deg = Math.PI / 180;
   const loop = (name, time) => {
     const animation = OWL_ANIMS[name];
@@ -40,7 +40,10 @@ export function getOwlPose(owl, { state, clock, stateTime, runPhase, runStopped 
     };
   }
   if (state === 'run' && landingPoseHeld) return { frame: 15 };
+  // Venceu a luta: fica parada piscando (linha 1 da prancha) até o boss sumir e a corrida voltar
+  if (state === 'resume' && waitingAfterFight) return loop('idle', stateTime);
   if (state === 'resume' && stateTime < CELEBRATE_TIME) return hop(stateTime);
+  if (state === 'resume') return loop('idle', stateTime);
   if (state === 'checkpoint') return loop('idle', stateTime);
   if (state === 'run' && runStopped) return loop('idle', clock);
 

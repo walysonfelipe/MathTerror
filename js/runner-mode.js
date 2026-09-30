@@ -20,10 +20,11 @@ import { getOwlPose, getFightDeathPose, getGrabPose, getGrabFrameStart as grabFr
 import { updateOwlPhysics } from './runner-physics.js';
 import { createRunnerInput } from './runner-input.js';
 import { createRunnerRenderer } from './runner-renderer.js';
+import { planFightStage, planFightPath, sampleFightPath } from './runner-fight-path.js';
 
-import { LIVES, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, WRONG_PENALTY, MAX_ERRORS, MIN_RETRY_SECONDS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
+import { LIVES, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
 import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
-import { OWL, RUN_FRAMES, GROUND, BOSS, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE } from './runner-assets.js';
+import { OWL, RUN_FRAMES, GROUND, BOSS, BOSS_W, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE, BOSS_CROUCH_TIME, BOSS_LEAP_TIME } from './runner-assets.js';
 
 const images = {};
 function loadImage(src) {
@@ -40,6 +41,7 @@ let raf = 0;
 let lastTime = 0;
 let active = false;
 let k = 1, viewW = 0, viewH = 0, groundY = 0, owlScreenX = 0;
+let owlScreenBase = 0;      // onde a coruja fica na tela correndo; owlScreenX volta para cá depois da luta
 let activeRunSpeed = SPEED_START;
 let runSlowTime = 0;
 let controllerRunActive = false;
@@ -69,6 +71,7 @@ let deck = [];
 let deckIndex = 0;
 let answering = false;
 let errors = 0;           // erros na questão atual
+let checkpointPace = 1;   // ritmo da barra do checkpoint (sobe a cada erro)
 let runPhase = 0;         // posição no ciclo de corrida, em quadros
 let fightRound = 0;
 let fightProblems = [];
@@ -79,6 +82,8 @@ let fightStartedAt = 0;
 let fightIntro = false;
 let fightAction = 'idle';
 let fightActionAt = 0;
+let fightStage = null;      // { cameraX, bossX, strikeX, restX } escolhidos sobre o chão real
+let fightPath = [];         // passos (corrida/salto) do movimento atual da coruja na luta
 let fightCounterHit = false;
 let fightStrikeSoundPlayed = false;
 let fightCombo = 0;
@@ -93,7 +98,7 @@ let cameraZoom = 1;
 let cameraLift = 0;         // sobe a cena da luta para o chão ficar acima do painel de respostas
 let fallSounded = false;     // o assobio já tocou nesta queda
 
-const { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput } = createRunnerInput({
+const { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput, ignoreHeldButtons } = createRunnerInput({
   isActive: () => active,
   getState: () => state,
   getCanvas: () => canvas,
@@ -114,15 +119,19 @@ const renderer = createRunnerRenderer({
   getGrabPose,
   getBossPose,
   fightOwlPosition: () => fightOwlPosition(),
-  runFrame: () => runFrame(),
+  fightOwlMovePose: () => fightOwlMovePose(),
+  fightBossX: () => fightBossX(),
 });
 
 const {
-  bossCatchX, bossTargetX, setBossMode, bossPace, bossEnter, bossLeap, updateBoss,
+  bossCatchX, bossEntryX, bossTargetX, setBossMode, bossEnter, bossLeap, updateBoss,
 } = createBossController({
   boss,
   getState: () => state,
   getRunChasePace: () => controllerRunActive ? 1 + boss.progress * 1.5 : 1,
+  getChaseSpeed: checkpointChaseSpeed,
+  findGapJumpTarget: getBossGapJumpTarget,
+  getCameraX: () => owl.x - owlScreenX,
   getErrors: () => errors,
   setLives: value => { lives = value; },
   getOwlScreenX: () => owlScreenX,
@@ -144,6 +153,38 @@ function buildLeg(fromX, startX) {
   segments.push(...leg.segments);
   markerX = leg.markerX;
   doors.push(leg.door);
+}
+
+// Salta antes de um vão e mira a plataforma seguinte, usando a posição do boss no mundo.
+function getBossGapJumpTarget() {
+  if ((state !== 'run' && state !== 'checkpoint') || boss.mode !== 'stalk') return null;
+  const cameraX = owl.x - owlScreenX;
+  const bossWorldX = boss.x + cameraX;
+  const current = segments.find(seg => bossWorldX >= seg.x - 18 && bossWorldX <= seg.x + seg.w - 18);
+  if (!current) return null;
+
+  const next = segments
+    .filter(seg => seg.x > current.x + current.w)
+    .sort((a, b) => a.x - b.x)[0];
+  if (!next) return null;
+
+  const gap = next.x - (current.x + current.w);
+  if (gap <= 0 || gap > 220) return null;
+
+  const takeoffAt = current.x + current.w - BOSS_W * 0.18;
+  if (bossWorldX < takeoffAt) return null;
+  const landingAt = next.x + BOSS_W * 0.2;
+  const distance = landingAt - bossWorldX;
+  if (distance <= 0 || distance > 360) return null;
+  // Com a coruja parada ou lenta a câmera quase não anda: se saltasse antes do alvo chegar ao
+  // outro lado, pousaria à frente dele e ficaria travado em guarda antes de voltar a correr.
+  // Conta o quanto a câmera ainda anda durante o salto; se não der, espera na borda.
+  const cameraSpeed = state === 'run' && owl.x < markerX ? activeRunSpeed : 0;
+  const chaseX = state === 'checkpoint' ? bossCatchX() : bossTargetX();   // no checkpoint ele corre direto à coruja
+  const targetAtLanding = chaseX + cameraX + cameraSpeed * (BOSS_CROUCH_TIME + BOSS_LEAP_TIME);
+  const needed = Math.min(landingAt, bossCatchX() + cameraX);   // o alvo nunca passa do ponto da captura
+  if (targetAtLanding < needed) return { hold: true };
+  return { landX: landingAt - cameraX };
 }
 
 // ===================== ENTRADA =====================
@@ -193,7 +234,8 @@ function resize() {
   viewW = w / k;
   viewH = h / k;
   groundY = viewH * 0.74;
-  owlScreenX = Math.max(OWL_W, viewW * 0.3);
+  owlScreenBase = Math.max(OWL_W, viewW * 0.3);
+  owlScreenX = owlScreenBase;
   ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
   if (owl.grounded) owl.y = groundY;
   ctx.imageSmoothingQuality = 'high';
@@ -240,6 +282,8 @@ function update(dt, controls = {}) {
   cameraLift += (fightLift() - cameraLift) * (1 - Math.exp(-dt * 6));
 
   if (state === 'run') {
+    // Depois de uma luta a coruja sai de onde estava; a câmera a traz de volta aos poucos
+    owlScreenX += (owlScreenBase - owlScreenX) * (1 - Math.exp(-dt * 1.4));
     const before = owl.x;
     const forwardStrength = controls.controllerActive ? controls.forwardStrength : 1;
     activeRunSpeed = speed * forwardStrength;
@@ -306,19 +350,23 @@ function update(dt, controls = {}) {
 
   if (state === 'checkpoint' && !answering) {
     // A barra enche desde o início (mais rápido a cada erro); o boss só entra aos 70%
-    boss.progress = Math.min(1, boss.progress + dt * bossPace() / QUESTION_SECONDS);
-    if (boss.mode === 'hidden' && boss.progress >= BOSS_APPEAR_AT) {
-      bossEnter();
-      updateThreatLabel(panel, boss.mode, errors, bossPace());
-    }
+    boss.progress = Math.min(1, boss.progress + dt * checkpointPace / QUESTION_SECONDS);
+    enterCheckpointBossWhenDue();
     updatePulse(boss.progress);                                   // batimento cresce desde o começo da pergunta
     const meter = panel.querySelector('progress');
     if (meter) meter.value = boss.progress;
     // Em telas de toque, a pergunta some quando já não há tempo útil para responder.
     panel.classList.toggle('is-near-catch', isPhone() && boss.progress >= 0.98);
-    // Quando o cronômetro acaba, a luta é sempre a última chance, mesmo com menos
-    // de três erros no checkpoint. A captura só acontece se perder a luta.
-    if (boss.progress >= 1) beginFight();
+    if (boss.progress >= 1) {
+      // Tempo esgotado: trava as respostas enquanto o boss caminha até a coruja
+      answering = true;
+      panel.querySelectorAll('button').forEach(b => b.disabled = true);
+    }
+  }
+  // Quando o cronômetro acaba (ou no 3º erro) o boss anda até a coruja; a luta só
+  // começa quando ele chega nela. A captura só acontece se perder a luta.
+  if (state === 'checkpoint' && boss.progress >= 1 && bossReachedOwl()) {
+    beginFight();
   } else if (state === 'resume') {
     if (fightStartedFromRun) {
       if (boss.mode === 'hidden') {
@@ -418,7 +466,7 @@ function getRendererState() {
   return { ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit,
     fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH,
     fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase,
-    runStopped: controllerRunStopped, landingPoseHeld };
+    runStopped: controllerRunStopped, landingPoseHeld, waitingAfterFight: state === 'resume' && fightStartedFromRun };
 }
 
 function draw() {
@@ -496,11 +544,43 @@ function enterCheckpoint() {
   setBossMode('hidden');
   boss.progress = 0;
   errors = 0;
+  checkpointPace = 1;
   answering = false;
   if (deckIndex >= deck.length) buildDeck();
   renderQuestion(deck[deckIndex++]);
 }
 
+
+// ===================== BOSS NO CHECKPOINT =====================
+// No checkpoint o chão está parado, então o boss só pode aparecer correndo de verdade:
+// ele corre no ritmo da coruja direto até ela e entra na tela só quando o tempo que
+// resta na barra é o que ele leva para chegar correndo. Assim nunca fica parado em
+// guarda nem anda em câmera lenta; só pula se houver buraco no caminho.
+const CHECKPOINT_MAX_BOOST = 1.6;   // se o tempo encurtar (erro), acelera até 1,6× a corrida
+
+function checkpointTimeLeft() {
+  return (1 - boss.progress) * QUESTION_SECONDS / checkpointPace;
+}
+
+function checkpointChaseSpeed() {
+  if (state !== 'checkpoint') return 0;
+  const distance = Math.max(0, bossCatchX() - boss.x);
+  const needed = distance / Math.max(checkpointTimeLeft(), 1e-3);
+  return Math.max(speed, Math.min(speed * CHECKPOINT_MAX_BOOST, needed));
+}
+
+function enterCheckpointBossWhenDue() {
+  if (boss.mode !== 'hidden') return;
+  const runTime = (bossCatchX() - bossEntryX()) / speed;
+  if (checkpointTimeLeft() > runTime) return;
+  bossEnter();
+  updateThreatLabel(panel, boss.mode, errors, checkpointPace);
+}
+
+// O boss terminou de andar (no chão, sem salto em curso) e está colado na coruja.
+function bossReachedOwl() {
+  return boss.mode === 'stalk' && boss.y === 0 && boss.x >= bossCatchX() - 20;
+}
 
 function beginFight() {
   fightStartedFromRun = state === 'run';
@@ -508,6 +588,10 @@ function beginFight() {
   fightStartedAt = clock;
   fightAction = 'idle';
   fightActionAt = clock;
+  fightStage = planFightStage(segments, owl.x - owlScreenX, {
+    viewW, bossReach: BOSS_H * 0.9, bossW: BOSS_W, owlW: OWL_W,
+  });
+  fightPath = [];
   fightCounterHit = false;
   hideCheckpointDoor = true;
   answering = false;
@@ -528,25 +612,45 @@ function beginFight() {
   playSfx('fight');
 }
 
-function fightOwlPosition() {
-  const start = viewW * 0.75;
-  const target = viewW * 0.25 + BOSS_H * 0.9;
-  const elapsed = clock - fightActionAt;
-  if (fightAction === 'approach') {
-    const p = Math.min(1, elapsed / 0.56);
-    return start + (target - start) * (1 - (1 - p) ** 3);
-  }
-  if (fightAction === 'strike') return target;
-  if (fightAction === 'retreat') {
-    const p = Math.min(1, elapsed / 0.58);
-    const eased = p * p * (3 - 2 * p);
-    return target + (start - target) * eased;
-  }
-  return start;
+function fightBossX() {
+  return fightStage ? fightStage.bossX : viewW * 0.25;
 }
 
-function runFrame() {
-  return [13, 12][Math.floor((clock - fightActionAt) * 12) % 2];
+function fightRestX() {
+  return fightStage ? fightStage.restX : viewW * 0.75;
+}
+
+// Investida da luta: no mesmo ritmo de antes (~0,56 s para atravessar o palco)
+function fightRunSpeed() {
+  return Math.max(speed * 2.1, 700);
+}
+
+function fightOwlPosition() {
+  if (fightAction === 'approach' || fightAction === 'retreat') return sampleFightPath(fightPath, clock - fightActionAt).x;
+  if (fightAction === 'strike') return fightStage ? fightStage.strikeX : fightRestX();
+  return fightRestX();
+}
+
+// Move a coruja pelo chão da luta: corre até as bordas e pula cada vão pelo tamanho dele.
+function startFightMove(action, toX) {
+  fightPath = planFightPath(segments, fightStage.cameraX, fightOwlPosition(), toX, {
+    runSpeed: fightRunSpeed(), attack: action === 'approach',
+  });
+  fightAction = action;
+  fightActionAt = clock;
+}
+
+// Quadro, altura e lado da coruja enquanto ela se move na luta (null parada).
+function fightOwlMovePose() {
+  if (fightAction !== 'approach' && fightAction !== 'retreat') return null;
+  const sample = sampleFightPath(fightPath, clock - fightActionAt);
+  const flip = fightAction === 'retreat';                 // o sprite olha para o boss (esquerda)
+  if (sample.step?.kind === 'jump' && !sample.done) {
+    // Salta inclinada; no salto de ataque abre a voadora na descida, já em cima do boss
+    const frame = sample.step.attack && sample.p >= 0.55 ? 11 : 10;
+    return { frame, flip, lift: sample.lift };
+  }
+  return { frame: [13, 12][Math.floor((clock - fightActionAt) * 12) % 2], flip, lift: 0 };
 }
 
 function updateFightAction() {
@@ -562,13 +666,12 @@ function updateFightAction() {
     fightStrikeSoundPlayed = true;
     playSfx('punch');
   }
-  if (fightAction === 'approach' && elapsed >= 0.56) {
+  if (fightAction === 'approach' && sampleFightPath(fightPath, elapsed).done) {
     fightAction = 'strike';
     fightActionAt = clock;
   } else if (fightAction === 'strike' && elapsed >= FIGHT_BOSS_HIT_DURATION) {
-    fightAction = 'retreat';
-    fightActionAt = clock;
-  } else if (fightAction === 'retreat' && elapsed >= 0.58) {
+    startFightMove('retreat', fightRestX());
+  } else if (fightAction === 'retreat' && sampleFightPath(fightPath, elapsed).done) {
     completeFightRound();
   } else if (fightAction === 'counter') {
     if (!fightCounterHit && elapsed >= BOSS_CAST_TIME + BOSS_POWER_IMPACT_AT) {
@@ -618,9 +721,8 @@ function answerFight(correct) {
     score++;
     fightResults.push(true);
     feedback.textContent = 'Acertou! A coruja corre para atacar!';
-    fightAction = 'approach';
-    fightActionAt = clock;
     fightStrikeSoundPlayed = false;
+    startFightMove('approach', fightStage.strikeX);
     playSfx('whoosh');
   } else {
     fightResults.push(false);
@@ -645,6 +747,14 @@ function finishFight() {
   panel.hidden = true;
   resetPulse();
   hideCheckpointDoor = false;
+  if (fightStartedFromRun && fightStage) {
+    // Continua de onde a coruja parou na luta: ela é levada para lá no mundo e a câmera
+    // fica onde está (owlScreenX volta ao normal aos poucos quando a corrida recomeça).
+    owl.x = Math.min(fightStage.cameraX + fightStage.restX, markerX - 1);   // sem passar da porta
+    owlScreenX = owl.x - fightStage.cameraX;
+    Object.assign(owl, { y: groundY, vy: 0, grounded: true, jumping: false, crouchAt: -1, bufferedAt: -1 });
+  }
+  if (fightStage) Object.assign(boss, { x: fightStage.bossX, y: 0 });  // foge de onde estava na luta
   setBossMode('retreat');
   boss.facing = -1;
   boss.walking = true;
@@ -678,18 +788,22 @@ function answer(correct, button) {
     button.disabled = true;
     feedback.textContent = 'Errou! O boss avançou.';
     errors++;
-    updateThreatLabel(panel, boss.mode, errors, bossPace());
     updateStatusBar();                                // coração da vez esvazia mais um pouco
     getCurrentDoor(doors).rattleAt = clock;
     if (errors >= MAX_ERRORS) {
-      beginFight();
+      // Sem mais tentativas: o boss vem andando e a luta abre quando ele alcança a coruja
+      answering = true;
+      panel.querySelectorAll('button').forEach(b => b.disabled = true);
+      boss.progress = 1;
+      if (boss.mode === 'hidden') bossEnter();
       return;
     }
-    // O boss avança, mas sempre sobra tempo para a próxima tentativa no ritmo atual
-    const maxProgress = 1 - MIN_RETRY_SECONDS * bossPace() / QUESTION_SECONDS;
-    boss.progress = Math.max(boss.progress, Math.min(maxProgress, boss.progress + WRONG_PENALTY));
-    if (boss.mode === 'hidden' && boss.progress >= BOSS_APPEAR_AT) bossEnter();
-    else if (boss.mode === 'stalk') bossLeap(bossTargetX());   // salta para frente e ruge
+    // O boss avança andando (só pula se houver vão); só desacelera se não sobrar o tempo mínimo de resposta
+    const step = ERROR_STEPS[Math.min(errors, ERROR_STEPS.length) - 1];
+    boss.progress = Math.max(boss.progress, step.closeTo);
+    checkpointPace = Math.min(step.pace, (1 - boss.progress) * QUESTION_SECONDS / step.retrySeconds);
+    updateThreatLabel(panel, boss.mode, errors, checkpointPace);
+    enterCheckpointBossWhenDue();
   }
 }
 
@@ -753,6 +867,7 @@ export function stopRunnerMode() {
 export function startRunnerMode() {
   stopRunnerMode();
   setAudioEnabled(true);
+  ignoreHeldButtons();
   [OWL.src, GROUND.src, BOSS.src, PASS.src, GRAB.src, FIGHT_OWL.src, FIGHT_BOSS.src, FIGHT_BOSS_HIT.src, BOSS_POWER.src, FIGHT_DEATH.src, FIGHT_INTRO.src].forEach(loadImage);
 
   root = document.createElement('div');
@@ -798,6 +913,8 @@ export function startRunnerMode() {
   buildDeck();
 
   // Chão inicial sem buracos cobrindo a tela toda
+  owlScreenX = owlScreenBase;
+  fightStage = null;
   segments = [];
   const first = createSegment(-owlScreenX - TILE_W, Math.ceil((viewW + TILE_W * 2) / TILE_STEP));
   segments.push(first);
