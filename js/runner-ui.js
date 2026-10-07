@@ -3,14 +3,8 @@ import { renderLives, renderScore, spriteNumber } from './hud.js';
 import { letterForIndex, isABCDLabel } from './utils.js';
 import { FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
 
-const GAMEPAD_ANSWER_LABELS = ['X', 'Y', 'B', 'A'];
-
-export function updateGamepadAnswerLabels(panel, gamepadActive) {
+export function setGamepadAnswerMode(panel, gamepadActive) {
   panel?.classList.toggle('is-gamepad-active', gamepadActive);
-  panel?.querySelectorAll('.quiz-option-key').forEach(key => {
-    const label = gamepadActive ? key.dataset.gamepadLabel : key.dataset.defaultLabel;
-    if (label && key.textContent !== `${label})`) key.textContent = `${label})`;
-  });
 }
 
 export function drawFightIntro(ctx, loadImage, { state, fightIntro, clock, fightStartedAt, viewW, viewH }) {
@@ -92,8 +86,6 @@ export function renderCheckpointQuestion(panel, node, onAnswer, phone) {
     const letter = letterForIndex(i);
     const key = document.createElement('span');
     key.className = 'quiz-option-key';
-    key.dataset.defaultLabel = letter;
-    key.dataset.gamepadLabel = GAMEPAD_ANSWER_LABELS[i] || letter;
     key.textContent = `${letter})`;
     btn.appendChild(key);
     const content = document.createElement('span');
@@ -145,8 +137,6 @@ export function renderFightQuestion(panel, problem, round, elapsed, turnTime, on
     button.disabled = turning;
     const key = document.createElement('span');
     key.className = 'quiz-option-key';
-    key.dataset.defaultLabel = String(index + 1);
-    key.dataset.gamepadLabel = GAMEPAD_ANSWER_LABELS[index] || String(index + 1);
     key.textContent = `${index + 1})`;
     const content = document.createElement('span');
     content.className = 'quiz-option-content';

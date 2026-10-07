@@ -1,12 +1,13 @@
 // Entrada de teclado e controle do modo runner.
 import { getConnectedGamepads } from './gamepad-status.js';
-import { updateGamepadAnswerLabels } from './runner-ui.js';
+import { setGamepadAnswerMode } from './runner-ui.js';
 
-const ANSWER_BUTTONS = new Map([[2, 0], [3, 1], [1, 2], [0, 3]]); // X, Y, B, A -> opções 1, 2, 3, 4
+const CONFIRM_BUTTON = 0; // A
 const AXIS_DEADZONE = 0.45;
 const FORWARD_DEADZONE = 0.15;
 const NAV_REPEAT_DELAY = 320;
 const NAV_REPEAT_INTERVAL = 150;
+const CONFIRM_GRACE = 350; // evita que o A usado para pular responda a pergunta que acabou de surgir
 
 export function createRunnerInput({ isActive, getState, getCanvas, getPanel, getHint, getFallbackJumpHint, jump, resetGame }) {
   const previousButtons = new Map();
@@ -14,6 +15,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
   let selectedOption = 0;
   let previousDirection = 0;
   let nextDirectionAt = 0;
+  let confirmReadyAt = 0;
 
   function hasConnectedGamepad() {
     return getConnectedGamepads().length > 0;
@@ -115,7 +117,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
 
     const pads = getConnectedGamepads();
     let forwardStrength = 0;
-    updateGamepadAnswerLabels(getPanel(), pads.length > 0);
+    setGamepadAnswerMode(getPanel(), pads.length > 0);
     const gameOverHint = getPanel()?.querySelector('.game-over-control-hint');
     if (gameOverHint) gameOverHint.hidden = pads.length === 0;
     const hint = getHint?.();
@@ -138,14 +140,12 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
         if (wasPressed.has(index)) continue;
 
         const state = getState();
-        if (state === 'run' && index === 0) jump();
-        else if (state === 'checkpoint' || state === 'fight') {
-          const answerIndex = ANSWER_BUTTONS.get(index);
-          const answerButton = getAnswerButtons()[answerIndex];
-          if (answerButton && answerIndex === selectedOption && !answerButton.disabled) answerButton.click();
-        } else if (state === 'over' && index === 0) {
-          const selectedButton = getGameOverButtons()[selectedOption];
-          if (selectedButton) selectedButton.click();
+        if (index !== CONFIRM_BUTTON) continue;
+        if (state === 'run') jump();
+        else if (state === 'checkpoint' || state === 'fight' || state === 'over') {
+          // A confirma a alternativa destacada pelo D-pad/analógico.
+          const selectedButton = getSelectionButtons(state)[selectedOption];
+          if (now >= confirmReadyAt && selectedButton && selectedButton === lastOptionButtons[selectedOption] && !selectedButton.disabled) selectedButton.click();
         }
       }
       previousButtons.set(pad.index, pressedButtons);
@@ -166,7 +166,10 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
 
     const buttons = getSelectionButtons();
     const optionsChanged = buttons.length !== lastOptionButtons.length || buttons.some((button, index) => button !== lastOptionButtons[index]);
-    if (optionsChanged) setOptionSelection(buttons, 0);
+    if (optionsChanged) {
+      setOptionSelection(buttons, 0);
+      confirmReadyAt = now + CONFIRM_GRACE;
+    }
     else if (buttons[selectedOption]?.disabled) {
       const firstAvailable = buttons.findIndex(button => !button.disabled);
       if (firstAvailable >= 0) setOptionSelection(buttons, firstAvailable);

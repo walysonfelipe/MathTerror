@@ -39,14 +39,14 @@ O jogo também funciona com controle no navegador (Xbox, PlayStation ou outro co
 |---|---|---|
 | Menu inicial | D-pad ou analógico esquerdo entre **Som**, **Tela cheia** e **Iniciar Fuga Infernal** | `A` |
 | Corrida | D-pad `→` ou analógico para a direita para correr | `A` para pular |
-| Checkpoint e luta | D-pad ou analógico para destacar uma alternativa | Botão indicado na alternativa: `X`, `Y`, `B` ou `A` |
+| Checkpoint e luta | D-pad ou analógico para destacar uma alternativa | `A` para confirmar a alternativa destacada |
 | Fim de partida | D-pad ou analógico entre **Tentar novamente** e **Voltar ao menu** | `A` |
 
 Como funciona com o controle:
 
 - **Menu:** o botão **Iniciar** já começa selecionado. O botão escolhido fica destacado, e segurar a direção continua movendo a seleção.
 - **Corrida:** com controle, a corrida deixa de ser automática. Quanto mais o analógico vai para a direita, mais rápido a coruja corre. Se você diminuir o ritmo ou parar, o boss começa a se aproximar e, se chegar até a coruja, abre a luta.
-- **Checkpoint e luta:** as letras das alternativas passam a mostrar os botões do controle (`X`, `Y`, `B` e `A`). Para responder, destaque a alternativa com o D-pad ou analógico e aperte o botão que aparece nela. Isso evita responder sem querer.
+- **Checkpoint e luta:** a primeira alternativa já começa destacada. Use o D-pad ou o analógico para mudar a alternativa destacada e aperte **A** para confirmar.
 - **Durante a partida:** com o controle conectado, as respostas passam a ser dadas pelo controle, e não por toque, clique ou teclas `1` a `4`.
 
 > **Limitação do navegador:** os navegadores não contam um botão do controle como interação do usuário. Por isso, ativar a **tela cheia** pelo controle pode ser bloqueado. Se acontecer, clique uma vez no botão de tela cheia com o mouse ou toque na tela.
