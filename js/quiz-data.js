@@ -1,4 +1,5 @@
 // ===== QUIZ DATA =====
+// Banco antigo de conjuntos e funções. Não é mais usado: o checkpoint gera contas em runner-quiz.js.
 export const QUIZ = [
   // Pergunta em TEXTO + opções em IMAGEM
   {

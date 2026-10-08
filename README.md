@@ -4,7 +4,7 @@
 
 <h3 align="center">🎮 Aprenda matemática… se tiver coragem.</h3>
 
-<p align="center">Jogo educativo de terror sobre conjuntos, funções e gráficos.</p>
+<p align="center">Jogo educativo de terror para treinar contas: adição, subtração, multiplicação, divisão e tabuada.</p>
 
 ---
 
@@ -55,7 +55,19 @@ Em celulares, jogue com o aparelho na horizontal. Os botões de som e tela cheia
 
 ## Conteúdo de matemática
 
-As questões dos checkpoints cobrem operações e notação de conjuntos, domínio e imagem, funções afins e quadráticas, leitura de gráficos e composição de funções. A luta contra o boss usa adição, subtração, multiplicação e divisão.
+Cada checkpoint gera uma conta nova, então as perguntas não se repetem em ciclo. Os tipos se revezam (todos aparecem antes de algum repetir):
+
+| Tipo | Exemplo no início | Exemplo mais adiante |
+|---|---|---|
+| Adição | `46 + 9` | `47 + 25` (com "vai um") |
+| Subtração | `27 − 6` | `83 − 29` (com empréstimo) |
+| Multiplicação | `17 × 5` | `29 × 7` |
+| Divisão (sempre exata) | `40 ÷ 5` | `132 ÷ 11` |
+| Tabuada | `3 × 4 = ?` | `8 × ? = 72` |
+
+As contas sobem de nível a cada 5 checkpoints, até o terceiro nível. As alternativas erradas imitam erros comuns, como esquecer o "vai um" ou usar a linha vizinha da tabuada. A luta contra o boss continua com contas rápidas de adição, subtração, multiplicação e divisão.
+
+As antigas questões de conjuntos e funções continuam em `js/quiz-data.js`, mas não são mais usadas no jogo.
 
 ## Executar localmente
 
@@ -92,7 +104,7 @@ MathTerror/
 │   ├── hud.js                # Moldura de vidas e pontos
 │   ├── gamepad-status.js     # Detecção e aviso de controle conectado
 │   ├── menu-gamepad.js       # Navegação do menu inicial pelo controle
-│   ├── quiz-data.js          # Banco de questões dos checkpoints
+│   ├── quiz-data.js          # Banco antigo de questões (não usado)
 │   ├── runner-mode.js        # Estados e fluxo principal da partida
 │   ├── runner-config.js      # Ritmo, tempos, vidas, erros e física
 │   ├── runner-assets.js      # Sprites, animações e medidas da coruja e do boss
@@ -103,7 +115,7 @@ MathTerror/
 │   ├── runner-boss.js        # Movimento e ações do boss (perseguição, salto, captura)
 │   ├── runner-fight-path.js  # Palco e trajetos da coruja na luta
 │   ├── runner-input.js       # Teclado, toque e controle durante a partida
-│   ├── runner-quiz.js        # Preparação e embaralhamento das perguntas
+│   ├── runner-quiz.js        # Geração das contas do checkpoint e da luta
 │   ├── runner-renderer.js    # Desenho da cena no canvas
 │   ├── runner-ui.js          # Painéis de pergunta, progresso e fim de partida
 │   └── runner-audio.js       # Efeitos sonoros da partida

@@ -4,14 +4,13 @@
 // responde questões enquanto o boss vem chegando pela esquerda. Depois de quatro
 // erros no checkpoint, a coruja encara o boss em quatro rodadas de contas rápidas.
 
-import { QUIZ } from './quiz-data.js';
 import { livesEl, scoreEl, statusBar } from './dom-elements.js';
 import { playSfx, setAudioEnabled } from './audio.js';
 import { needsRotation, isPhone } from './orientation.js';
 import { shuffleInPlace } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
 import { resetLives } from './hud.js';
-import { buildQuestionDeck, makeFightProblem } from './runner-quiz.js';
+import { createCheckpointQuestions, makeFightProblem } from './runner-quiz.js';
 import { createSegment, generateLeg, passOwlX, currentDoor as getCurrentDoor, supportUnder as isSupported } from './runner-world.js';
 import { drawLegProgress, drawFightIntro, updateRunnerHud, renderRunnerGameOver, renderCheckpointQuestion, renderFightQuestion as renderFightQuestionPanel, updateThreatLabel } from './runner-ui.js';
 import { playFallSfx, stopFallSfx, playJumpSfx, playDoorSfx, updatePulse, resetPulse } from './runner-audio.js';
@@ -22,7 +21,7 @@ import { createRunnerInput } from './runner-input.js';
 import { createRunnerRenderer } from './runner-renderer.js';
 import { planFightStage, planFightPath, sampleFightPath } from './runner-fight-path.js';
 
-import { LIVES, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
+import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
 import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
 import { OWL, RUN_FRAMES, GROUND, BOSS, BOSS_W, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE, BOSS_CROUCH_TIME, BOSS_LEAP_TIME } from './runner-assets.js';
 
@@ -67,8 +66,8 @@ let shake = 0;
 let embers = [];
 let dust = [];
 
-let deck = [];
-let deckIndex = 0;
+let nextQuestion = createCheckpointQuestions();
+let checkpointsReached = 0;   // define o nível das contas
 let answering = false;
 let errors = 0;           // erros na questão atual
 let checkpointPace = 1;   // ritmo da barra do checkpoint (sobe a cada erro)
@@ -532,11 +531,6 @@ function showingFightDeath() {
 // ===================== BOSS / DESENHO =====================
 
 // ===================== CHECKPOINT / PERGUNTA =====================
-function buildDeck() {
-  deck = buildQuestionDeck(QUIZ);
-  deckIndex = 0;
-}
-
 function enterCheckpoint() {
   setState('checkpoint');
   runSlowTime = 0;
@@ -546,8 +540,7 @@ function enterCheckpoint() {
   errors = 0;
   checkpointPace = 1;
   answering = false;
-  if (deckIndex >= deck.length) buildDeck();
-  renderQuestion(deck[deckIndex++]);
+  renderQuestion(nextQuestion(Math.floor(checkpointsReached++ / QUESTION_LEVEL_EVERY)));
 }
 
 
@@ -928,7 +921,8 @@ export function startRunnerMode() {
   embers = [];
   boss.progress = 0;
   setBossMode('hidden');
-  buildDeck();
+  nextQuestion = createCheckpointQuestions();
+  checkpointsReached = 0;
 
   // Chão inicial sem buracos cobrindo a tela toda
   owlScreenX = owlScreenBase;

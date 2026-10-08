@@ -2,6 +2,7 @@
 
 export const LIVES = 3;
 export const LEG_SECONDS = 20;          // tempo correndo até o próximo checkpoint
+export const QUESTION_LEVEL_EVERY = 5;  // a cada 5 checkpoints as contas sobem de nível (até o 3º)
 export const QUESTION_SECONDS = 30;     // tempo da barra encher (boss pega a coruja), sem erros
 export const BOSS_APPEAR_AT = 0.7;      // o boss só entra na tela quando a barra passa de 70%
 // O que cada erro no checkpoint faz com o boss (índice 0 = 1º erro):
