@@ -9,6 +9,7 @@
 //   GET  /api/ranking                   quem chegou mais longe (?de, ?ate, ?limite)
 //   GET  /api/estatisticas              resumos para o dashboard (?de, ?ate)
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createStore } from './storage.js';
@@ -125,5 +126,14 @@ function sendJson(res, status, body) {
 server.listen(PORT, HOST, () => {
   const shownHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
   console.log(`MathTerror rodando em http://${shownHost}:${PORT}`);
+  if (HOST === '0.0.0.0') {
+    for (const ip of lanAddresses()) console.log(`Na rede local: http://${ip}:${PORT}`);
+  }
   console.log(`Dados em ${store.file} (${store.all().length} partidas)`);
 });
+
+function lanAddresses() {
+  return Object.values(os.networkInterfaces()).flat()
+    .filter(net => net && net.family === 'IPv4' && !net.internal)
+    .map(net => net.address);
+}
