@@ -8,6 +8,21 @@ import { shuffleInPlace } from './utils.js';
 const CHECKPOINT_TYPES = ['+', '−', '×', '÷', 'tabuada'];
 const MAX_LEVEL = 2;
 
+// Nome de cada operação nos dados de desempenho (docs/dados-de-desempenho.md)
+export const TYPE_NAMES = { '+': 'adicao', '−': 'subtracao', '×': 'multiplicacao', '÷': 'divisao', tabuada: 'tabuada' };
+
+// Cada alternativa errada guarda o erro que ela imita (tipoErro nos dados de desempenho)
+const VAI_UM = 'esqueceu_vai_um';
+const DEZENA_A_MAIS = 'dezena_a_mais';
+const EMPRESTIMO = 'emprestimo_invertido';
+const DEZENA = 'erro_na_dezena';
+const LINHA = 'linha_vizinha';
+const TABUADA = 'tabuada_vizinha';
+const DIVISOR = 'respondeu_divisor';
+const POR_POUCO = 'erro_por_pouco';
+const ALEATORIO = 'proximo_aleatorio';
+const near = (value, offsets) => offsets.map(offset => [value + offset, POR_POUCO]);
+
 const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
 const pick = list => list[Math.floor(Math.random() * list.length)];
 
@@ -28,54 +43,65 @@ function makeCheckpointProblem(type, level) {
     do { a = randInt(...r.a); b = randInt(...r.b); } while (r.carry && (a % 10) + (b % 10) < 10);
     answer = a + b;
     text = `Quanto é ${a} + ${b}?`;
-    // Esquecer o "vai um" (−10), contar 10 a mais ou errar por pouco
-    wrong = [answer - 10, answer + 10, answer - 1, answer + 1, answer + 2, answer - 2];
+    // Esquecer o "vai um" (−10, só quando a conta tem vai-um), contar 10 a mais ou errar por pouco
+    const carry = (a % 10) + (b % 10) >= 10;
+    wrong = [[answer - 10, carry ? VAI_UM : DEZENA], [answer + 10, DEZENA_A_MAIS], ...near(answer, [-1, 1, 2, -2])];
   } else if (type === '−') {
     do { a = randInt(...r.a); b = randInt(...r.b); } while (b >= a || (r.borrow && a % 10 >= b % 10));
     answer = a - b;
     text = `Quanto é ${a} − ${b}?`;
     // Erro clássico de empréstimo: subtrair o menor dígito do maior em cada casa
     const noBorrow = (Math.floor(a / 10) - Math.floor(b / 10)) * 10 + Math.abs((a % 10) - (b % 10));
-    wrong = [noBorrow, answer + 10, answer - 10, answer + 1, answer - 1, answer + 2];
+    wrong = [[noBorrow, EMPRESTIMO], [answer + 10, DEZENA], [answer - 10, DEZENA], ...near(answer, [1, -1, 2])];
   } else if (type === '×') {
     a = randInt(...r.a); b = randInt(...r.b);
     answer = a * b;
     text = `Quanto é ${a} × ${b}?`;
     // Uma vez a mais/a menos, erro na dezena ou na unidade
-    wrong = [answer + a, answer - a, answer + b, answer - b, answer + 10, answer - 10];
+    wrong = [[answer + a, LINHA], [answer - a, LINHA], [answer + b, TABUADA], [answer - b, TABUADA], [answer + 10, DEZENA], [answer - 10, DEZENA]];
   } else if (type === '÷') {
     b = randInt(...r.b); answer = randInt(...r.q);
     a = b * answer;                                   // divisão sempre exata
     text = `Quanto é ${a} ÷ ${b}?`;
-    wrong = [answer + 1, answer - 1, answer + 2, answer - 2, b === answer ? answer + 3 : b];
+    wrong = [...near(answer, [1, -1, 2, -2]), b === answer ? [answer + 3, ALEATORIO] : [b, DIVISOR]];
   } else {
     a = randInt(...r.table);
     if (Math.random() < r.hidden) {
       b = randInt(2, 10);
       answer = b;
       text = Math.random() < 0.5 ? `Tabuada do ${a}: ${a} × ? = ${a * b}` : `Tabuada do ${a}: ? × ${a} = ${a * b}`;
-      wrong = [b + 1, b - 1, b + 2, b - 2];
+      wrong = near(b, [1, -1, 2, -2]);
     } else {
       b = randInt(1, 10);
       answer = a * b;
       text = `Tabuada do ${a}: ${a} × ${b} = ?`;
       // Resultado da linha vizinha da tabuada ou de uma tabuada vizinha
-      wrong = [answer + a, answer - a, answer + b, answer - b, answer + 1, answer - 1];
+      wrong = [[answer + a, LINHA], [answer - a, LINHA], [answer + b, TABUADA], [answer - b, TABUADA], ...near(answer, [1, -1])];
     }
   }
-  return { text, answer, wrong };
+  return {
+    text, answer, wrong, a, b,
+    hidden: type === 'tabuada' && !text.endsWith('= ?'),
+    carry: type === '+' ? (a % 10) + (b % 10) >= 10 : null,
+    borrow: type === '−' ? a % 10 < b % 10 : null,
+  };
 }
 
-// Três alternativas erradas, plausíveis, diferentes entre si e nunca negativas
+// Três alternativas erradas, plausíveis, diferentes entre si e nunca negativas.
+// candidates: [valor, tipoErro]. Valor repetido fica com o primeiro tipo da lista.
 function pickWrongOptions(answer, candidates) {
   const valid = c => Number.isInteger(c) && c >= 0 && c !== answer;
-  const chosen = new Set(shuffleInPlace(candidates.filter(valid)).slice(0, 3));
+  const errorOf = new Map();
+  for (const [value, error] of candidates) {
+    if (valid(value) && !errorOf.has(value)) errorOf.set(value, error);
+  }
+  const chosen = new Map(shuffleInPlace([...errorOf]).slice(0, 3));
   for (let offset = 1; chosen.size < 3; offset++) {
     for (const c of shuffleInPlace([answer + offset, answer - offset])) {
-      if (chosen.size < 3 && valid(c)) chosen.add(c);
+      if (chosen.size < 3 && valid(c) && !chosen.has(c)) chosen.set(c, ALEATORIO);
     }
   }
-  return [...chosen];
+  return chosen;
 }
 
 // Cria o gerador de uma partida: guarda a sacola de operações e a última conta para não repetir.
@@ -95,8 +121,29 @@ export function createCheckpointQuestions() {
     do { problem = makeCheckpointProblem(type, lvl); } while (problem.text === lastText);
     lastType = type;
     lastText = problem.text;
-    const options = shuffleInPlace([problem.answer, ...pickWrongOptions(problem.answer, problem.wrong)]);
-    return { questionText: problem.text, options: options.map(String), answer: options.indexOf(problem.answer) };
+    const wrong = pickWrongOptions(problem.answer, problem.wrong);
+    const options = shuffleInPlace([problem.answer, ...wrong.keys()]);
+    return {
+      questionText: problem.text,
+      options: options.map(String),
+      answer: options.indexOf(problem.answer),
+      // Pergunta no formato de docs/dados-de-desempenho.md (o jogo não usa estes campos)
+      stats: {
+        tipo: TYPE_NAMES[type],
+        formato: problem.hidden ? 'fator_oculto' : 'resultado',
+        texto: problem.text,
+        a: problem.a,
+        b: problem.b,
+        respostaCorreta: problem.answer,
+        exigeVaiUm: problem.carry,
+        exigeEmprestimo: problem.borrow,
+        alternativas: options.map(valor => ({
+          valor,
+          correta: valor === problem.answer,
+          tipoErro: valor === problem.answer ? null : wrong.get(valor),
+        })),
+      },
+    };
   };
 }
 
@@ -125,6 +172,6 @@ export function makeFightProblem(operation) {
     choices.add(Math.max(0, answer + (Math.random() < 0.5 ? -offset : offset)));
   }
   const options = shuffleInPlace([...choices]);
-  return { text: `${a} ${operation} ${b} = ?`, options, answer: options.indexOf(answer) };
+  return { text: `${a} ${operation} ${b} = ?`, options, answer: options.indexOf(answer), type: TYPE_NAMES[operation] };
 }
 

@@ -1,6 +1,7 @@
 // Entrada de teclado e controle do modo runner.
 import { getConnectedGamepads } from './gamepad-status.js';
 import { setGamepadAnswerMode } from './runner-ui.js';
+import { noteControl } from './telemetry.js';
 
 const CONFIRM_BUTTON = 0; // A
 const AXIS_DEADZONE = 0.45;
@@ -198,6 +199,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     }
     if (getState() === 'run' && !hasConnectedGamepad() && (event.code === 'Space' || event.key === 'ArrowUp' || event.key === 'w')) {
       event.preventDefault();
+      noteControl('teclado');
       jump();
       return;
     }
@@ -206,16 +208,24 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
       const button = getPanel()?.querySelectorAll('.quiz-options > button')[index];
       if (button && !button.disabled) {
         event.preventDefault();
+        noteControl('teclado');
         button.click();
       }
     }
   }
 
   function onPointerDown(event) {
-    if (!hasConnectedGamepad() && event.target === getCanvas()) jump();
+    if (!hasConnectedGamepad() && event.target === getCanvas()) {
+      noteControl(event.pointerType === 'touch' || event.pointerType === 'pen' ? 'toque' : 'teclado');
+      jump();
+    }
   }
 
   function onPanelClick(event) {
+    // Resposta com mouse ou toque (os cliques do controle são sintéticos e já contam como gamepad)
+    if (!hasConnectedGamepad() && event.isTrusted && event.target instanceof Element && event.target.closest('.quiz-options > button')) {
+      noteControl(event.pointerType === 'touch' || event.pointerType === 'pen' ? 'toque' : 'teclado');
+    }
     if (hasConnectedGamepad() && event.isTrusted && event.target instanceof Element && event.target.closest('.quiz-options > button, .game-over-actions > button')) {
       event.preventDefault();
       event.stopImmediatePropagation();

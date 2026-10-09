@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Painel da turma · MathTerror</title>
+    <link rel="icon" type="image/png" href="../assets/images/favicon.png" />
+    <link rel="stylesheet" href="painel.css" />
+  </head>
+  <body>
+    <div class="fx-ruido" aria-hidden="true"></div>
+
+    <header class="topo">
+      <div class="topo-marca">
+        <a href="../" class="topo-logo" aria-label="Abrir o MathTerror"><img src="../assets/images/logo.webp" alt="MathTerror" width="1916" height="821" /></a>
+        <div class="topo-texto">
+          <h1 class="sr">Painel da turma: como a turma está indo nas contas</h1>
+          <p class="subtitulo" id="frase-periodo">Carregando…</p>
+        </div>
+      </div>
+      <div class="topo-acoes">
+        <button type="button" class="botao" id="imprimir">Imprimir relatório</button>
+        <a class="botao botao--sangue" href="../">Abrir o jogo</a>
+      </div>
+    </header>
+
+    <nav class="filtros" aria-label="Período">
+      <div class="filtros-dentro">
+        <span class="filtros-rotulo">Período</span>
+        <div class="periodos" role="radiogroup" aria-label="Período">
+          <button type="button" role="radio" data-periodo="hoje">Hoje</button>
+          <button type="button" role="radio" data-periodo="7">7 dias</button>
+          <button type="button" role="radio" data-periodo="30">30 dias</button>
+          <button type="button" role="radio" data-periodo="tudo">Tudo</button>
+        </div>
+        <label class="dia">
+          <span>ou um dia de aula</span>
+          <input type="date" id="dia" />
+        </label>
+        <span class="status" id="status" aria-live="polite"></span>
+      </div>
+    </nav>
+
+    <main id="conteudo">
+      <section class="vazio" id="vazio" hidden>
+        <h2>Ainda não há partidas neste período</h2>
+        <p>Assim que alguém jogar até o fim, ou sair no meio, a partida aparece aqui. A página se atualiza sozinha a cada 30 segundos.</p>
+      </section>
+
+      <div id="relatorio">
+        <p class="aviso" id="aviso-poucos" hidden></p>
+
+        <!-- 1. Visão geral -->
+        <section class="bloco" aria-labelledby="t-geral">
+          <h2 id="t-geral" class="sr">Visão geral</h2>
+          <div class="numeros">
+            <div class="numero destaque">
+              <span class="numero-rotulo">Acertaram de primeira</span>
+              <span class="numero-valor" id="n-acerto"></span>
+              <span class="numero-nota" id="n-acerto-nota"></span>
+            </div>
+            <div class="numero">
+              <span class="numero-rotulo">Partidas jogadas</span>
+              <span class="numero-valor" id="n-partidas"></span>
+              <span class="numero-nota" id="n-partidas-nota"></span>
+            </div>
+            <div class="numero">
+              <span class="numero-rotulo">Contas respondidas</span>
+              <span class="numero-valor" id="n-contas"></span>
+              <span class="numero-nota">uma por porta do jogo</span>
+            </div>
+            <div class="numero">
+              <span class="numero-rotulo">Tempo para pensar</span>
+              <span class="numero-valor" id="n-tempo"></span>
+              <span class="numero-nota">média até a primeira resposta</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Destaques -->
+        <section class="bloco" aria-labelledby="t-destaques">
+          <h2 id="t-destaques">O que chama atenção</h2>
+          <ul class="destaques" id="destaques"></ul>
+        </section>
+
+        <!-- 3. Domínio por operação -->
+        <section class="bloco" aria-labelledby="t-operacoes">
+          <div class="bloco-cabeca">
+            <h2 id="t-operacoes">Domínio por operação</h2>
+            <p>Quanto a turma acerta de primeira em cada tipo de conta, e como isso muda quando a conta fica mais difícil.</p>
+          </div>
+          <div class="legenda-status" id="legenda-status"></div>
+          <div class="operacoes" id="operacoes"></div>
+        </section>
+
+        <!-- 4. Erros -->
+        <section class="bloco" aria-labelledby="t-erros">
+          <div class="bloco-cabeca">
+            <h2 id="t-erros">Os erros mais comuns e o que eles indicam</h2>
+            <p>Cada alternativa errada do jogo imita um erro típico. Quando um aluno escolhe uma delas, dá para saber qual raciocínio falhou.</p>
+          </div>
+          <div class="erros" id="erros"></div>
+        </section>
+
+        <!-- 5. Contas erradas -->
+        <section class="bloco" aria-labelledby="t-contas">
+          <div class="bloco-cabeca">
+            <h2 id="t-contas">Contas que a turma errou</h2>
+            <p>As mais recentes primeiro. Servem como exemplos prontos para levar para a aula.</p>
+          </div>
+          <div class="tabela-rolagem"><table class="tabela" id="contas-erradas"></table></div>
+          <button type="button" class="botao mais" id="mais-contas" hidden>Mostrar mais contas</button>
+        </section>
+
+        <div class="duas-colunas">
+          <!-- 6. Calma x pressa -->
+          <section class="bloco" aria-labelledby="t-pressa">
+            <div class="bloco-cabeca">
+              <h2 id="t-pressa">Respondeu rápido ou pensou mais?</h2>
+              <p>No jogo, um monstro se aproxima enquanto o aluno pensa. Compare as respostas dadas logo com as que levaram mais tempo.</p>
+            </div>
+            <div id="pressa"></div>
+          </section>
+
+          <!-- 7. Cálculo rápido -->
+          <section class="bloco" aria-labelledby="t-rapido">
+            <div class="bloco-cabeca">
+              <h2 id="t-rapido">Cálculo rápido</h2>
+              <p>Quando erra demais, o aluno enfrenta o monstro respondendo 4 contas curtas seguidas, uma de cada operação.</p>
+            </div>
+            <div id="rapido"></div>
+          </section>
+        </div>
+
+        <!-- 8. Até onde chegam -->
+        <section class="bloco" aria-labelledby="t-progresso">
+          <div class="bloco-cabeca">
+            <h2 id="t-progresso">Até onde as partidas chegam</h2>
+            <p>Quantas partidas passaram de cada porta. As contas ficam mais difíceis a partir da 6ª e da 11ª porta.</p>
+          </div>
+          <div id="progresso"></div>
+          <div class="fins" id="fins"></div>
+        </section>
+
+        <!-- 9. Melhores partidas -->
+        <section class="bloco" aria-labelledby="t-melhores">
+          <div class="bloco-cabeca">
+            <h2 id="t-melhores">Partidas que foram mais longe</h2>
+            <p>As partidas são anônimas: aparecem pelo dia e horário em que começaram.</p>
+          </div>
+          <div class="tabela-rolagem"><table class="tabela" id="melhores"></table></div>
+        </section>
+
+        <details class="bloco ajuda">
+          <summary>Como ler este painel</summary>
+          <dl>
+            <dt>Acertou de primeira</dt>
+            <dd>Respondeu certo na primeira tentativa. O jogo deixa tentar até 3 vezes, então acertar depois de errar pode ser eliminação ou chute. Por isso este painel usa o acerto de primeira como medida de domínio.</dd>
+            <dt>Porta</dt>
+            <dd>A coruja corre e para numa porta a cada 20 segundos. Cada porta é uma conta. As contas ficam mais difíceis a cada 5 portas.</dd>
+            <dt>Fácil, médio e difícil</dt>
+            <dd>Portas 1 a 5, 6 a 10 e da 11 em diante. Passe o mouse sobre cada faixa para ver o tipo de conta.</dd>
+            <dt>Tipo de erro</dt>
+            <dd>É uma pista, não um diagnóstico: o aluno pode ter chutado. Vale olhar os erros que se repetem muitas vezes.</dd>
+            <dt>Poucos dados</dt>
+            <dd>Com menos de 5 respostas, a porcentagem ainda muda muito de uma partida para outra. Espere mais partidas antes de concluir.</dd>
+            <dt>Quedas na lava</dt>
+            <dd>Medem a habilidade com o controle do jogo, não com a matemática.</dd>
+            <dt>Privacidade</dt>
+            <dd>Nenhum nome é guardado. Cada partida tem um código aleatório e fica só neste computador.</dd>
+          </dl>
+        </details>
+      </div>
+    </main>
+
+    <div class="dica" id="dica" role="tooltip" hidden></div>
+    <script type="module" src="painel.js"></script>
+  </body>
+</html>

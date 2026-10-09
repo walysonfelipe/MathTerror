@@ -20,6 +20,7 @@ import { updateOwlPhysics } from './runner-physics.js';
 import { createRunnerInput } from './runner-input.js';
 import { createRunnerRenderer } from './runner-renderer.js';
 import { planFightStage, planFightPath, sampleFightPath } from './runner-fight-path.js';
+import * as telemetry from './telemetry.js';
 
 import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
 import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
@@ -243,14 +244,19 @@ function resize() {
 // ===================== LOOP =====================
 function frame(now) {
   if (!active) return;
-  const dt = Math.min(0.05, (now - lastTime) / 1000 || 0);
+  const frameMs = now - lastTime;
+  const dt = Math.min(0.05, frameMs / 1000 || 0);
   lastTime = now;
   // Celular em pé ou algum popup aberto: congela a corrida
   if (needsRotation() || document.querySelector('.modal-backdrop:not([hidden])')) {
+    telemetry.notePaused(frameMs);
     raf = requestAnimationFrame(frame);
     return;
   }
   const controls = pollGamepadInput(now);
+  // O A do controle pode ter acionado "Voltar ao menu": a partida já acabou, não termina o quadro
+  if (!active) return;
+  if (controls.controllerActive) telemetry.noteControl('gamepad');
   clock += dt;
   stateTime += dt;
   update(dt, controls);
@@ -360,6 +366,7 @@ function update(dt, controls = {}) {
       // Tempo esgotado: trava as respostas enquanto o boss caminha até a coruja
       answering = true;
       panel.querySelectorAll('button').forEach(b => b.disabled = true);
+      telemetry.endCheckpoint('tempo_esgotado');
     }
   }
   // Quando o cronômetro acaba (ou no 3º erro) o boss anda até a coruja; a luta só
@@ -440,7 +447,10 @@ function update(dt, controls = {}) {
 }
 
 function fellInPit() {
+  // Sem vidas a coruja continua abaixo da tela: não conta a mesma queda a cada quadro
+  if (state === 'over') return;
   lives--;
+  telemetry.noteFall(checkpointsReached + 1, lives);
   updateStatusBar();
   shake = 1;
   if (lives <= 0) {
@@ -540,7 +550,10 @@ function enterCheckpoint() {
   errors = 0;
   checkpointPace = 1;
   answering = false;
-  renderQuestion(nextQuestion(Math.floor(checkpointsReached++ / QUESTION_LEVEL_EVERY)));
+  const level = Math.floor(checkpointsReached++ / QUESTION_LEVEL_EVERY);
+  const question = nextQuestion(level);
+  telemetry.startCheckpoint(checkpointsReached, level, question.stats);
+  renderQuestion(question);
 }
 
 
@@ -596,6 +609,7 @@ function bossReachedOwl() {
 
 function beginFight() {
   fightStartedFromRun = state === 'run';
+  telemetry.startFight(fightStartedFromRun ? 'corrida_lenta' : errors >= MAX_ERRORS ? 'tres_erros' : 'tempo_esgotado', lives);
   setState('fight');
   fightStartedAt = clock;
   fightAction = 'idle';
@@ -717,13 +731,15 @@ function completeFightRound() {
 
 function renderFightQuestion(feedbackText = '') {
   const problem = fightProblems[fightRound];
+  telemetry.showFightRound();
   renderFightQuestionPanel(panel, problem, fightRound, clock - fightStartedAt, FIGHT_TURN_TIME,
     answerFight, () => state === 'fight' && fightRound === 0, isPhone(), feedbackText);
 }
 
-function answerFight(correct) {
+function answerFight(correct, index) {
   if (state !== 'fight' || answering) return;
   answering = true;
+  telemetry.noteFightRound(fightProblems[fightRound], index);
   panel.querySelectorAll('button').forEach(button => { button.disabled = true; });
   fightEffect = correct ? 'boss-hit' : 'owl-hit';
   fightEffectAt = clock;
@@ -756,6 +772,7 @@ function finishFight() {
     beginFightDeath('O boss venceu a luta.');
     return;
   }
+  telemetry.endFight(true, lives);
   panel.hidden = true;
   resetPulse();
   hideCheckpointDoor = false;
@@ -780,8 +797,10 @@ function renderQuestion(node) {
 
 function answer(correct, button) {
   if (state !== 'checkpoint' || answering) return;
+  telemetry.noteAttempt([...panel.querySelectorAll('.quiz-options > button')].indexOf(button), boss.progress);
   const feedback = panel.querySelector('.answer-feedback');
   if (correct) {
+    telemetry.endCheckpoint('acertou');
     answering = true;
     score++;
     updateStatusBar();
@@ -803,6 +822,7 @@ function answer(correct, button) {
     getCurrentDoor(doors).rattleAt = clock;
     if (errors >= MAX_ERRORS) {
       // Sem mais tentativas: o boss vem andando e a luta abre quando ele alcança a coruja
+      telemetry.endCheckpoint('tres_erros');
       answering = true;
       panel.querySelectorAll('button').forEach(b => b.disabled = true);
       boss.progress = 1;
@@ -839,6 +859,7 @@ function startGrab() {
 
 // ===================== HUD =====================
 function updateStatusBar() {
+  if (!root) return;   // fora da partida o HUD fica escondido (stopRunnerMode)
   updateRunnerHud({ statusBar, livesEl, scoreEl, lives, maxLives: LIVES, score, state, answering, errors });
 }
 
@@ -846,9 +867,19 @@ function updateStatusBar() {
 // Painel (gameover-panel.webp), botões (gameover-buttons.webp) e números (digits-sheet.webp)
 // vêm de fimdepartidaHUd.png, botoesHudFimDepartida.png e numeros.png.
 
+// Motivo de fim nos dados de desempenho, a partir do texto mostrado na tela
+const END_REASONS = {
+  'A coruja caiu na lava.': 'lava',
+  'O boss pegou a coruja.': 'capturado',
+  'O boss venceu a luta.': 'luta_perdida',
+};
+// Fase do jogo nos dados de desempenho
+const PHASES = { run: 'corrida', resume: 'corrida', checkpoint: 'checkpoint', fight: 'luta', death: 'luta', caught: 'luta' };
+
 function gameOver(reason) {
   if (!active || state === 'over') return;
   fightDeathOver = state === 'death';
+  telemetry.endMatch(END_REASONS[reason] || (fightDeathOver ? 'luta_perdida' : 'capturado'));
   setState('over');
   resetPulse();
   renderRunnerGameOver(panel, reason, score, () => {
@@ -862,6 +893,8 @@ function gameOver(reason) {
 // Chamado pelo resetGame para não deixar loop, eventos nem canvas para trás.
 export function stopRunnerMode() {
   if (!active && !root) return;
+  // Saiu no meio da partida (Esc); depois do fim de partida ela já foi enviada
+  telemetry.endMatch('abandono_esc');
   active = false;
   cancelAnimationFrame(raf);
   resetPulse();
@@ -939,6 +972,7 @@ export function startRunnerMode() {
 
   resetLives(livesEl);
   updateStatusBar();
+  telemetry.startMatch({ phone: isPhone(), snapshot: () => ({ score, lives, phase: PHASES[state] || 'corrida' }) });
   active = true;
   lastTime = performance.now();
   raf = requestAnimationFrame(frame);

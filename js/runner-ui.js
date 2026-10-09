@@ -142,7 +142,7 @@ export function renderFightQuestion(panel, problem, round, elapsed, turnTime, on
     content.className = 'quiz-option-content';
     content.textContent = String(value);
     button.append(key, content);
-    button.addEventListener('click', () => onAnswer(index === problem.answer));
+    button.addEventListener('click', () => onAnswer(index === problem.answer, index));
     options.appendChild(button);
   });
   if (turning) {

@@ -79,6 +79,27 @@ python3 -m http.server 8080
 
 Depois, acesse <http://localhost:8080> no navegador. Também é possível usar outro servidor estático, como `npx serve .`.
 
+### Servidor com dados de desempenho
+
+Para guardar os dados das partidas, use o servidor Node do projeto (Node 18 ou mais novo, sem `npm install`):
+
+```bash
+npm start
+```
+
+Ele entrega o jogo em <http://localhost:8080> e grava cada partida, de forma anônima, em `data/partidas.jsonl`. O jogo envia a partida uma vez só, quando ela termina (ou quando o jogador sai com `Esc` ou fecha a aba). Se o servidor não estiver no ar, a partida fica guardada no navegador e é enviada na próxima vez que o jogo abrir (ou outra partida terminar) com o servidor rodando. O painel fica em <http://localhost:8080/painel/>. Ao iniciar, ele também salva uma cópia do dia em `data/backup/`. A pasta `data/` não vai para o Git.
+
+| Rota | O que faz |
+|---|---|
+| `POST /api/partidas` | Grava uma partida |
+| `GET /api/partidas` | Lista as partidas, mais recentes primeiro |
+| `GET /api/partidas/:id` | Uma partida |
+| `GET /api/ranking` | Partidas que chegaram mais longe |
+| `GET /api/estatisticas` | Resumos para o dashboard |
+| `GET /api/saude` | Confere se o servidor está no ar |
+
+As rotas de leitura aceitam `?de=AAAA-MM-DD`, `?ate=AAAA-MM-DD` e `?limite=N`. O formato dos dados está em [`docs/dados-de-desempenho.md`](docs/dados-de-desempenho.md). Variáveis opcionais: `PORT` (padrão `8080`), `HOST` (padrão `127.0.0.1`, só esta máquina) e `DATA_DIR`.
+
 ## Tecnologias
 
 - **HTML5** para a estrutura da página.

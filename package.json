@@ -1,0 +1,12 @@
+{
+  "name": "mathterror",
+  "private": true,
+  "type": "module",
+  "description": "Jogo educativo de terror para treinar contas, com servidor local de dados de desempenho.",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
