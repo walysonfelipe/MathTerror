@@ -1,7 +1,7 @@
 // ===================== FUGA INFERNAL =====================
 // Estilo "dinossauro do Google": a coruja corre sozinha pelas plataformas de lava
 // e o jogador pula os buracos. A cada 20 segundos ela chega num checkpoint, para
-// responde questões enquanto o boss vem chegando pela esquerda. Depois de quatro
+// responde questões enquanto o boss vem chegando pela esquerda. Depois de três
 // erros no checkpoint, a coruja encara o boss em quatro rodadas de contas rápidas.
 
 import { livesEl, scoreEl, statusBar } from './dom-elements.js';
@@ -97,6 +97,7 @@ let hideCheckpointDoor = false;
 let cameraZoom = 1;
 let cameraLift = 0;         // sobe a cena da luta para o chão ficar acima do painel de respostas
 let fallSounded = false;     // o assobio já tocou nesta queda
+let respawnDrop = false;     // renasceu e está descendo do céu: cai reta até tocar a plataforma
 
 const { onKeyDown, onPointerDown, onPanelClick, pollGamepadInput, ignoreHeldButtons } = createRunnerInput({
   isActive: () => active,
@@ -291,7 +292,8 @@ function update(dt, controls = {}) {
     owlScreenX += (owlScreenBase - owlScreenX) * (1 - Math.exp(-dt * 1.4));
     const before = owl.x;
     const forwardStrength = controls.controllerActive ? controls.forwardStrength : 1;
-    activeRunSpeed = speed * forwardStrength;
+    // Descendo depois de renascer a coruja não anda: se andasse, passaria da plataforma e cairia de novo
+    activeRunSpeed = respawnDrop ? 0 : speed * forwardStrength;
     owl.x = Math.min(owl.x + activeRunSpeed * dt, markerX);
     if (owl.grounded) runPhase = (runPhase + (owl.x - before) / STRIDE) % RUN_FRAMES.length;
     if (owl.x >= markerX && owl.grounded) enterCheckpoint();
@@ -301,7 +303,8 @@ function update(dt, controls = {}) {
       boss.progress = (runSlowTime / LEG_SECONDS) ** 2;
       if (boss.mode === 'hidden' && boss.progress >= BOSS_APPEAR_AT) bossEnter();
       updatePulse(boss.progress);
-      if (boss.progress >= 1) beginFight();
+      // No ar a luta espera o pouso: começar sobre um vão faria a coruja cair na lava durante a luta
+      if (boss.progress >= 1 && owl.grounded) beginFight();
     } else if (!controls.controllerActive) {
       if (runSlowTime > 0) {
         runSlowTime = 0;
@@ -323,7 +326,7 @@ function update(dt, controls = {}) {
     launch, kickDust,
     getRunPhase: () => runPhase,
     setRunPhase: value => { runPhase = value; },
-    onLand: () => { landingPoseHeld = controllerRunActive; },
+    onLand: () => { landingPoseHeld = controllerRunActive; respawnDrop = false; },
     getFallSounded: () => fallSounded,
     setFallSounded: value => { fallSounded = value; },
     playFallSfx, lives, fellInPit,
@@ -468,6 +471,7 @@ function fellInPit() {
   owl.jumping = false;
   owl.invulnerableUntil = clock + 1.5;
   fallSounded = false;
+  respawnDrop = true;
 }
 
 // ===================== DESENHO =====================
@@ -810,7 +814,8 @@ function answer(correct, button) {
     bossRetreatAfterCorrect();
     boss.progress = 0;
     setTimeout(() => {
-      if (!active) return;
+      // Saiu com Esc e já começou outra partida: este acerto não vale para ela
+      if (!active || state !== 'checkpoint') return;
       panel.hidden = true;
       setState('resume');
     }, 700);
@@ -900,6 +905,7 @@ export function stopRunnerMode() {
   resetPulse();
   stopFallSfx();
   fallSounded = false;
+  respawnDrop = false;
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('resize', resize);
   root?.remove();
