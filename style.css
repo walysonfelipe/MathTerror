@@ -279,3 +279,19 @@ body.in-game .game-video{opacity:1}
 #soundBtn.is-gamepad-selected,#fullscreenBtn.is-gamepad-selected{--sx:50%;filter:drop-shadow(0 0 12px #ff3b1f88);outline:2px solid #ff6a4d;outline-offset:2px}
 .start-button.is-gamepad-selected{background-position:0 100%;filter:drop-shadow(0 0 16px #ff3b1f66) drop-shadow(0 6px 18px #000a)}
 .rotate-screen .btn.is-gamepad-selected,.modal .btn.is-gamepad-selected{outline:2px solid #ff6a4d;outline-offset:2px}
+
+/* Telas grandes (TV, monitor de sala): a pergunta do checkpoint cresce junto com a tela
+   para dar leitura de longe. Escala em vw/vh, então vale tanto para 1080p quanto 4K. */
+@media(min-width:1600px) and (min-height:860px){
+.runner-question:not(.is-fight-question):not(.is-game-over){top:clamp(150px,15vh,320px);width:62vw;max-height:calc(100dvh - clamp(150px,15vh,320px) - 40px);padding:clamp(20px,2vw,80px) clamp(24px,2.4vw,96px);border-top-width:clamp(2px,.2vw,6px)}
+.runner-question:not(.is-fight-question) .runner-question-head{gap:clamp(14px,1vw,40px);margin-bottom:clamp(12px,1.4vh,40px)}
+.runner-question:not(.is-fight-question) .runner-question-head .hud-label{font-size:clamp(9px,.8vw,30px)}
+.runner-question:not(.is-fight-question) .runner-question-head progress{height:clamp(6px,.7vh,20px)}
+.runner-question:not(.is-fight-question) .quiz-title{font-size:clamp(25px,2.6vw,110px);margin-bottom:clamp(14px,2vh,60px)}
+.runner-question:not(.is-fight-question) .quiz-options{gap:clamp(10px,1vw,40px)}
+.runner-question:not(.is-fight-question) .quiz-options .btn{min-height:clamp(62px,8vh,220px);font-size:clamp(14px,1.6vw,68px);padding:clamp(14px,1.2vw,48px) clamp(18px,1.5vw,60px);border-left-width:clamp(3px,.3vw,10px)}
+.runner-question:not(.is-fight-question) .quiz-image{max-height:clamp(200px,24vh,700px)}
+.runner-question:not(.is-fight-question) .option-image{max-height:clamp(130px,15vh,440px)}
+.runner-question:not(.is-fight-question) .option-caption{font-size:clamp(12px,1vw,40px)}
+.runner-question:not(.is-fight-question) .answer-feedback{font-size:clamp(12px,1.1vw,44px);min-height:1.4em;margin-top:clamp(18px,2vh,60px)}
+}

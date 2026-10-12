@@ -2,8 +2,8 @@ import {
   FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_FRAME_TIME,
   BOSS_CASTS, BOSS_CAST_FRAME, BOSS_CAST_TIME, BOSS_AFTER_CAST, BOSS_RELEASE,
   BOSS_SLAM, BOSS_SLAM_TIMES, FIGHT_DEATH, FIGHT_DEATH_HIT_AT, FIGHT_DEATH_TRAVEL,
-  FIGHT_DEATH_SLAM_AT, BOSS_POWER, BOSS_POWER_FRAME_TIMES, BOSS_POWER_IMPACT_AT,
-  BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_OWL_COMBOS,
+  FIGHT_DEATH_SLAM_AT, BOSS_POWER, BOSS_POWER_FRAME_TIMES,
+  FIGHT_TURN_TIME, FIGHT_OWL_COMBOS, fightKnockback,
 } from './runner-fight-assets.js';
 import {
   OWL, BOSS, BOSS_FRAME_RECTS, PASS, GRAB, GRAB_OWL_X, PASS_FRAME_TIME, PASS_DRAW_W, PASS_DRAW_H,
@@ -395,10 +395,9 @@ function drawBossPowerSequence() {
   // Nos quadros compostos, ancoramos a coruja no mesmo ponto para evitar saltos
   // causados pelos limites diferentes de cada recorte. A última linha a empurra
   // para trás e para cima, como reação ao impacto, e então mostra a recuperação.
-  const recoil = Math.max(0, Math.min(1, (elapsed - BOSS_POWER_IMPACT_AT) / (BOSS_POWER_DURATION - BOSS_POWER_IMPACT_AT)));
-  const recoilEase = recoil * recoil * (3 - 2 * recoil);
-  const owlX = fightOwlPosition() + recoilEase * 58;
-  const knockbackLift = recoilEase * Math.sin(recoil * Math.PI) * 20;
+  const knockback = fightKnockback(elapsed);
+  const owlX = fightOwlPosition() + knockback.dx;
+  const knockbackLift = knockback.lift;
   const left = owlX - (anchorX + x0 - sx) * scale;
   const top = groundY + 4 - (anchorY + y0 - sy) * scale - knockbackLift;
 

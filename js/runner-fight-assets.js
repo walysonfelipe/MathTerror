@@ -121,6 +121,14 @@ export const BOSS_POWER_FRAME_TIMES = [
 ];
 export const BOSS_POWER_IMPACT_AT = BOSS_POWER_FRAME_TIMES.slice(0, 8).reduce((sum, time) => sum + time, 0);
 export const BOSS_POWER_DURATION = BOSS_POWER_FRAME_TIMES.reduce((sum, time) => sum + time, 0);
+export const FIGHT_KNOCKBACK = 58;   // quanto o poder do boss empurra a coruja para trás
+
+// Empurrão do poder em t segundos desde que a esfera sai: deslocamento para trás (dx) e altura (lift).
+export function fightKnockback(t) {
+  const recoil = Math.max(0, Math.min(1, (t - BOSS_POWER_IMPACT_AT) / (BOSS_POWER_DURATION - BOSS_POWER_IMPACT_AT)));
+  const ease = recoil * recoil * (3 - 2 * recoil);
+  return { dx: ease * FIGHT_KNOCKBACK, lift: ease * Math.sin(recoil * Math.PI) * 20 };
+}
 export const FIGHT_TURN_TIME = 0.8;
 // Letreiro "Fight" antes da primeira pergunta: 0 surge, 1 explode, 2 e 3 pulsam.
 // [x, y, w, h, anchorX, anchorY]: recorte pelo alfa de cada quadrante e centro das letras,

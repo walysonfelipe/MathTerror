@@ -18,4 +18,5 @@ export const SPEED_START = 330;         // unidades/segundo
 export const SPEED_GAIN = 1.08;         // aumento de velocidade a cada checkpoint
 export const GRAVITY = 2600;
 export const JUMP_VELOCITY = -1080;
-
+export const EDGE_NEAR = 40;           // a menos disso da borda a coruja conta como 'na beirada'
+export const SPRINT_BOOST = 0.6;        // RT apertado até o fim: corre 60% mais rápido

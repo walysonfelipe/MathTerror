@@ -19,8 +19,9 @@ export const RUN_STEP = 3;                  // quadros por passo
 export const GROUND = { src: 'assets/images/ground-sheet.webp', w: 244, h: 108, cols: 3, count: 12 };
 // runboss.png: grade 4x4, olhando para a direita. 0–7: corrida (dois passos) · 8: em pé ·
 // 9: agachado (prepara o salto) · 10: decola · 11: encolhido no ar (desce e pousa no 0) ·
-// 12, 13 e 15: guarda · 14: golpe. Os desenhos não respeitam a grade, por isso cada recorte
-// termina exatamente na base das garras: o renderer apoia a borda de baixo no chão.
+// 12, 13 e 15: guarda (12 e 13 tiram os pés do chão e, parados, pareciam pulos: só o 15 é usado) ·
+// 14: golpe. Os desenhos não respeitam a grade, por isso cada recorte termina exatamente
+// na base das garras: o renderer apoia a borda de baixo no chão.
 export const BOSS = { src: 'assets/images/runboss.png', w: 362, h: 271.5, cols: 4 };
 export const BOSS_FRAME_RECTS = [
   [19, 1, 368, 262], [410, 7, 321, 261], [753, 2, 336, 265], [1117, 2, 331, 257],
@@ -30,7 +31,7 @@ export const BOSS_FRAME_RECTS = [
 ];
 export const BOSS_ANIMS = {
   idle: { frames: [8], fps: 1 },
-  guard: { frames: [12, 12, 15, 12, 12, 15], fps: 3 },   // já perto: posição de luta
+  guard: { frames: [15], fps: 1 },   // já perto: posição de luta, os dois pés no chão
 };
 export const BOSS_WALK = [0, 1, 2, 3, 4, 5, 6, 7];
 // door-pass-sheet.webp (gerado): grade 4x5 de 472x252, coruja e porta juntas.
@@ -77,7 +78,12 @@ export const BOSS_STRIDE = 26;              // unidades no chão por quadro do c
 export const BOSS_GRAVITY = 3200;
 export const BOSS_LEAP_TIME = 0.6;          // tempo no ar de cada salto
 export const BOSS_CROUCH_TIME = 0.14;        // agacha antes de sair do chão (quadro 9)
+export const BOSS_FOOT = BOSS_W * 0.14;      // meia largura das garras do boss para pisar no chão
+export const BOSS_TAKEOFF = BOSS_W * 0.27;   // a essa distância da borda ele salta o vão
+export const BOSS_LANDING = BOSS_W * 0.29;   // pousa essa distância depois da outra borda
 export const BOSS_LAND_TIME = 0.12;          // amortece a queda no 1º quadro da corrida e segue correndo
+export const BOSS_GAP_LAND_TIME = 0.22;      // depois de saltar um vão firma os pés antes de voltar a correr
+export const BOSS_ACCEL = 600;               // retomando a corrida acelera aos poucos (unidades/s²), sem disparar
 export const STRIDE = 18;                   // unidades percorridas por quadro de corrida (evita pé deslizando)
 export const RUN_BOB = 7;                   // quanto o corpo sobe na passagem entre os passos
 export const CROUCH_TIME = 0.08;            // agachada antes de sair do chão (quadro 12)

@@ -4,6 +4,8 @@ import { setGamepadAnswerMode } from './runner-ui.js';
 import { noteControl } from './telemetry.js';
 
 const CONFIRM_BUTTON = 0; // A
+const SPRINT_BUTTON = 7;  // RT (gatilho direito, analógico de 0 a 1)
+const SPRINT_DEADZONE = 0.1;
 const AXIS_DEADZONE = 0.45;
 const FORWARD_DEADZONE = 0.15;
 const NAV_REPEAT_DELAY = 320;
@@ -93,10 +95,16 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     return 0;
   }
 
+  // Quanto o RT está apertado (0 a 1): acelera a corrida
+  function readSprint(pad) {
+    const value = pad.buttons?.[SPRINT_BUTTON]?.value || 0;
+    return value > SPRINT_DEADZONE ? Math.min(1, (value - SPRINT_DEADZONE) / (1 - SPRINT_DEADZONE)) : 0;
+  }
+
   function readForwardStrength(pad) {
     const buttons = pad.buttons || [];
     const pressed = index => Boolean(buttons[index]?.pressed || buttons[index]?.value >= 0.5);
-    if (pressed(15)) return 1; // D-pad para a direita
+    if (pressed(15) || readSprint(pad) > 0) return 1; // D-pad para a direita, ou RT: corre mesmo sem direcional
     if ([12, 13, 14].some(pressed)) return 0;
 
     const x = pad.axes?.[0] || 0;
@@ -114,15 +122,16 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
   }
 
   function pollGamepadInput(now) {
-    if (!isActive()) return { controllerActive: false, forwardStrength: 1 };
+    if (!isActive()) return { controllerActive: false, forwardStrength: 1, sprint: 0 };
 
     const pads = getConnectedGamepads();
     let forwardStrength = 0;
+    let sprint = 0;
     setGamepadAnswerMode(getPanel(), pads.length > 0);
     const gameOverHint = getPanel()?.querySelector('.game-over-control-hint');
     if (gameOverHint) gameOverHint.hidden = pads.length === 0;
     const hint = getHint?.();
-    const hintText = pads.length ? 'D-PAD → / ANALÓGICO → CORRER · A PULAR' : getFallbackJumpHint?.();
+    const hintText = pads.length ? 'D-PAD → / ANALÓGICO → CORRER · RT CORRER RÁPIDO · A PULAR' : getFallbackJumpHint?.();
     if (hint && hintText && hint.textContent !== hintText) hint.textContent = hintText;
 
     const activeIndexes = new Set();
@@ -130,6 +139,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
     for (const pad of pads) {
       activeIndexes.add(pad.index);
       forwardStrength = Math.max(forwardStrength, readForwardStrength(pad));
+      sprint = Math.max(sprint, readSprint(pad));
       const wasPressed = previousButtons.get(pad.index) || new Set();
       const pressedButtons = new Set();
 
@@ -162,7 +172,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
       clearOptionSelection();
       previousDirection = 0;
       nextDirectionAt = 0;
-      return { controllerActive: pads.length > 0, forwardStrength: pads.length ? forwardStrength : 1 };
+      return { controllerActive: pads.length > 0, forwardStrength: pads.length ? forwardStrength : 1, sprint };
     }
 
     const buttons = getSelectionButtons();
@@ -188,7 +198,7 @@ export function createRunnerInput({ isActive, getState, getCanvas, getPanel, get
       nextDirectionAt = now + NAV_REPEAT_INTERVAL;
     }
 
-    return { controllerActive: true, forwardStrength };
+    return { controllerActive: true, forwardStrength, sprint };
   }
 
   function onKeyDown(event) {

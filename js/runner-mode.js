@@ -11,7 +11,7 @@ import { shuffleInPlace } from './utils.js';
 import { resetGame, hideHome } from './game-state.js';
 import { resetLives } from './hud.js';
 import { createCheckpointQuestions, makeFightProblem } from './runner-quiz.js';
-import { createSegment, generateLeg, passOwlX, currentDoor as getCurrentDoor, supportUnder as isSupported } from './runner-world.js';
+import { createSegment, generateLeg, passOwlX, currentDoor as getCurrentDoor, supportUnder as isSupported, footingAt, gapLeapTarget } from './runner-world.js';
 import { drawLegProgress, drawFightIntro, updateRunnerHud, renderRunnerGameOver, renderCheckpointQuestion, renderFightQuestion as renderFightQuestionPanel, updateThreatLabel } from './runner-ui.js';
 import { playFallSfx, stopFallSfx, playJumpSfx, playDoorSfx, updatePulse, resetPulse } from './runner-audio.js';
 import { createBossController, getBossPose } from './runner-boss.js';
@@ -22,9 +22,9 @@ import { createRunnerRenderer } from './runner-renderer.js';
 import { planFightStage, planFightPath, sampleFightPath } from './runner-fight-path.js';
 import * as telemetry from './telemetry.js';
 
-import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY } from './runner-config.js';
-import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
-import { OWL, RUN_FRAMES, GROUND, BOSS, BOSS_W, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE, BOSS_CROUCH_TIME, BOSS_LEAP_TIME } from './runner-assets.js';
+import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY, GRAVITY, SPRINT_BOOST } from './runner-config.js';
+import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_KNOCKBACK, fightKnockback, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
+import { OWL, RUN_FRAMES, GROUND, BOSS, BOSS_W, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE, BOSS_CROUCH_TIME, BOSS_LEAP_TIME, BOSS_FOOT, BOSS_TAKEOFF, BOSS_LANDING } from './runner-assets.js';
 
 const images = {};
 function loadImage(src) {
@@ -58,7 +58,7 @@ let markerX = 0;          // posição do próximo checkpoint
 let doors = [];           // portas no mundo: { x (centro), passAt, rattleAt }
 let legStartX = 0;
 
-const owl = { x: 0, y: 0, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0 };
+const owl = { x: 0, y: 0, vy: 0, grounded: true, landedAt: -1, jumpedAt: -1, crouchAt: -1, bufferedAt: -1, jumping: false, invulnerableUntil: 0, footing: null };
 // progress: ameaça de 0 (longe) a 1 (pegou). x/y em coordenadas de tela, y = altura acima do chão.
 const boss = { progress: 0, mode: 'hidden', modeTime: 0, x: 0, y: 0, vx: 0, vy: 0, facing: 1, walking: false, phase: 0, landedAt: -1, onLand: null };
 let clock = 0;            // tempo total do modo, em segundos
@@ -85,6 +85,8 @@ let fightActionAt = 0;
 let fightStage = null;      // { cameraX, bossX, strikeX, restX } escolhidos sobre o chão real
 let fightPath = [];         // passos (corrida/salto) do movimento atual da coruja na luta
 let fightCounterHit = false;
+let fightKnockedOff = false; // o empurrão desta rodada joga a coruja no vão atrás dela
+let fightFall = null;        // { x, lift } de onde a coruja saiu do chão ao cair na luta
 let fightStrikeSoundPlayed = false;
 let fightCombo = 0;
 let fightBossAttack = 0;
@@ -132,6 +134,8 @@ const {
   getRunChasePace: () => controllerRunActive ? 1 + boss.progress * 1.5 : 1,
   getChaseSpeed: checkpointChaseSpeed,
   findGapJumpTarget: getBossGapJumpTarget,
+  findGapLeap: bossGapLeap,
+  getFooting: worldX => footingAt(segments, worldX, BOSS_TAKEOFF, BOSS_FOOT),
   getCameraX: () => owl.x - owlScreenX,
   getErrors: () => errors,
   setLives: value => { lives = value; },
@@ -156,27 +160,17 @@ function buildLeg(fromX, startX) {
   doors.push(leg.door);
 }
 
+// Onde o boss pousa se saltar agora o vão no sentido dir, a partir de worldX (null: sem vão por perto).
+function bossGapLeap(worldX, dir) {
+  return gapLeapTarget(segments, worldX, dir, { foot: BOSS_FOOT, takeoff: BOSS_TAKEOFF, landing: BOSS_LANDING });
+}
+
 // Salta antes de um vão e mira a plataforma seguinte, usando a posição do boss no mundo.
 function getBossGapJumpTarget() {
   if ((state !== 'run' && state !== 'checkpoint') || boss.mode !== 'stalk') return null;
   const cameraX = owl.x - owlScreenX;
-  const bossWorldX = boss.x + cameraX;
-  const current = segments.find(seg => bossWorldX >= seg.x - 18 && bossWorldX <= seg.x + seg.w - 18);
-  if (!current) return null;
-
-  const next = segments
-    .filter(seg => seg.x > current.x + current.w)
-    .sort((a, b) => a.x - b.x)[0];
-  if (!next) return null;
-
-  const gap = next.x - (current.x + current.w);
-  if (gap <= 0 || gap > 220) return null;
-
-  const takeoffAt = current.x + current.w - BOSS_W * 0.18;
-  if (bossWorldX < takeoffAt) return null;
-  const landingAt = next.x + BOSS_W * 0.2;
-  const distance = landingAt - bossWorldX;
-  if (distance <= 0 || distance > 360) return null;
+  const landingAt = bossGapLeap(boss.x + cameraX, 1);
+  if (landingAt === null) return null;
   // Com a coruja parada ou lenta a câmera quase não anda: se saltasse antes do alvo chegar ao
   // outro lado, pousaria à frente dele e ficaria travado em guarda antes de voltar a correr.
   // Conta o quanto a câmera ainda anda durante o salto; se não der, espera na borda.
@@ -292,8 +286,10 @@ function update(dt, controls = {}) {
     owlScreenX += (owlScreenBase - owlScreenX) * (1 - Math.exp(-dt * 1.4));
     const before = owl.x;
     const forwardStrength = controls.controllerActive ? controls.forwardStrength : 1;
+    // RT acelera a corrida (só no controle); as passadas seguem a distância, então as pernas aceleram junto
+    const sprintBoost = controls.controllerActive ? 1 + SPRINT_BOOST * (controls.sprint || 0) : 1;
     // Descendo depois de renascer a coruja não anda: se andasse, passaria da plataforma e cairia de novo
-    activeRunSpeed = respawnDrop ? 0 : speed * forwardStrength;
+    activeRunSpeed = respawnDrop ? 0 : speed * forwardStrength * sprintBoost;
     owl.x = Math.min(owl.x + activeRunSpeed * dt, markerX);
     if (owl.grounded) runPhase = (runPhase + (owl.x - before) / STRIDE) % RUN_FRAMES.length;
     if (owl.x >= markerX && owl.grounded) enterCheckpoint();
@@ -331,6 +327,8 @@ function update(dt, controls = {}) {
     setFallSounded: value => { fallSounded = value; },
     playFallSfx, lives, fellInPit,
   });
+  // Firme, na beirada ou sobre o vão (ver footingAt); lido por quem precisar reagir a isso
+  owl.footing = footingAt(segments, owl.x);
 
   updateBoss(dt);
 
@@ -623,6 +621,7 @@ function beginFight() {
   });
   fightPath = [];
   fightCounterHit = false;
+  fightKnockedOff = false;
   hideCheckpointDoor = true;
   answering = false;
   fightRound = 0;
@@ -656,6 +655,7 @@ function fightRunSpeed() {
 }
 
 function fightOwlPosition() {
+  if (fightAction === 'fall') return fightFall.x;
   if (fightAction === 'approach' || fightAction === 'retreat') return sampleFightPath(fightPath, clock - fightActionAt).x;
   if (fightAction === 'strike') return fightStage ? fightStage.strikeX : fightRestX();
   return fightRestX();
@@ -672,6 +672,8 @@ function startFightMove(action, toX) {
 
 // Quadro, altura e lado da coruja enquanto ela se move na luta (null parada).
 function fightOwlMovePose() {
+  if (fightAction === 'fall') return { frame: 14, flip: false, lift: fightDropLift() };
+  if (fightAction === 'respawn') return { frame: 3, flip: false, lift: Math.max(0, fightDropLift()) };
   if (fightAction !== 'approach' && fightAction !== 'retreat') return null;
   const sample = sampleFightPath(fightPath, clock - fightActionAt);
   const flip = fightAction === 'retreat';                 // o sprite olha para o boss (esquerda)
@@ -709,14 +711,55 @@ function updateFightAction() {
       playSfx('impact');
       fightEffect = 'owl-hit';
       fightEffectAt = clock;
-      lives--;
       shake = 0.8;
+      // Com o vão logo atrás o empurrão a derruba: quem tira a vida é a queda, não o golpe
+      fightKnockedOff = !isSupported(segments, fightStage.cameraX + fightRestX() + FIGHT_KNOCKBACK);
+      if (!fightKnockedOff) lives--;
       updateStatusBar();
       const feedback = panel.querySelector('.answer-feedback');
-      if (feedback) feedback.textContent = 'O poder do boss atingiu a coruja!';
+      if (feedback) feedback.textContent = fightKnockedOff ? 'O poder do boss jogou a coruja no buraco!' : 'O poder do boss atingiu a coruja!';
     }
-    if (elapsed >= BOSS_CAST_TIME + BOSS_POWER_DURATION) completeFightRound();
+    const push = fightKnockback(elapsed - BOSS_CAST_TIME);
+    if (fightKnockedOff && !isSupported(segments, fightStage.cameraX + fightRestX() + push.dx)) {
+      startFightFall(fightRestX() + push.dx, push.lift);
+    } else if (elapsed >= BOSS_CAST_TIME + BOSS_POWER_DURATION) completeFightRound();
+  } else if (fightAction === 'fall') {
+    if (-fightDropLift() > viewH - groundY + OWL_H) fightFellInPit();
+  } else if (fightAction === 'respawn') {
+    if (fightDropLift() <= 0) completeFightRound();
   }
+}
+
+// Altura da coruja caindo no vão da luta (negativa: abaixo do chão) ou descendo do céu ao renascer.
+function fightDropLift() {
+  const t = clock - fightActionAt;
+  const start = fightAction === 'fall' ? fightFall.lift : groundY + OWL_H;
+  return start - GRAVITY * t * t / 2;
+}
+
+function startFightFall(x, lift) {
+  fightKnockedOff = false;
+  fightFall = { x, lift };
+  fightAction = 'fall';
+  fightActionAt = clock;
+  playFallSfx(lives);
+}
+
+// Caiu no vão durante a luta: perde uma vida e volta do céu ao ponto de descanso; a luta segue.
+function fightFellInPit() {
+  lives--;
+  telemetry.noteFall(checkpointsReached + 1, lives);
+  updateStatusBar();
+  shake = 1;
+  if (lives <= 0) {
+    // Fica fora da tela: a cena de fim não mostra a coruja de pé onde a luta começou
+    Object.assign(owl, { y: viewH + OWL_H * 2, vy: 0, grounded: false });
+    gameOver('A coruja caiu na lava.');
+    return;
+  }
+  stopFallSfx();
+  fightAction = 'respawn';
+  fightActionAt = clock;
 }
 
 function completeFightRound() {
@@ -956,6 +999,7 @@ export function startRunnerMode() {
   fightAction = 'idle';
   fightIntro = false;
   fightCounterHit = false;
+  fightKnockedOff = false;
   fightDeathOver = false;
   embers = [];
   boss.progress = 0;

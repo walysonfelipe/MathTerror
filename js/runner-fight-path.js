@@ -1,6 +1,6 @@
 // Palco e trajetos da coruja na luta, calculados sobre as plataformas reais.
 // Tudo em coordenadas de tela; cameraX converte para o mundo (a câmera fica parada na luta).
-import { supportUnder } from './runner-world.js';
+import { supportUnder, footingAt } from './runner-world.js';
 import { GRAVITY } from './runner-config.js';
 
 const EDGE_MARGIN = 26;       // distância da borda para decolar/pousar sem escorregar
@@ -44,8 +44,10 @@ export function planFightStage(segments, cameraX, { viewW, bossReach, bossW, owl
   let restX = null;
   best = Infinity;
   for (let x = minRest; x <= maxRest; x += 4) {
-    if (!firm(x)) continue;
-    const score = Math.abs(x - restHome);
+    // Nunca sobre o vão; na beirada só se não houver lugar firme no palco
+    const footing = footingAt(segments, cameraX + x);
+    if (!footing.supported) continue;
+    const score = Math.abs(x - restHome) + (footing.status === 'firm' ? 0 : 2000);
     if (score < best) { best = score; restX = x; }
   }
   return { cameraX, bossX, strikeX, restX: restX ?? Math.max(minRest, restHome) };
