@@ -20,3 +20,14 @@ export const GRAVITY = 2600;
 export const JUMP_VELOCITY = -1080;
 export const EDGE_NEAR = 40;           // a menos disso da borda a coruja conta como 'na beirada'
 export const SPRINT_BOOST = 0.6;        // RT apertado até o fim: corre 60% mais rápido
+// Fases do mundo: a partir de quantos checkpoints o chão muda. Cada etapa nova usa a fase
+// do checkpoint em que começou, então a troca chega pela direita, depois da porta.
+// ground: 'lava' (sheet original) ou 'stone' (a mesma sheet esfriada em cinza)
+export const WORLD_STAGES = [
+  { from: 0, ground: 'lava' },
+  { from: 5, ground: 'stone' },
+];
+
+export function worldStageAt(checkpoints) {
+  return WORLD_STAGES.reduce((found, stage, i) => (checkpoints >= stage.from ? i : found), 0);
+}

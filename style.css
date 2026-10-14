@@ -233,7 +233,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 }
 
 /* ===== Fundo da partida: game-bg.mp4 aparece com fade só durante o jogo ===== */
-.game-video{opacity:0;transition:opacity .6s ease;filter:brightness(.9) contrast(1.08) saturate(1.1)}   /* mais claro que o do menu: o canvas já escurece por cima */
+.game-video{opacity:0;transition:opacity .6s ease;filter:brightness(.9) contrast(1.08) saturate(1.1);transform:scaleX(-1)}   /* espelhado para o cenário avançar no sentido da corrida */
 body.is-ready .game-video{animation:none}
 body.in-game .game-video{opacity:1}
 

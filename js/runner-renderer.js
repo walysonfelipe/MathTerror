@@ -30,6 +30,16 @@ export function createRunnerRenderer(helpers) {
       ctx.globalAlpha = ember.life * flicker;
       ctx.translate(x, ember.y);
       ctx.rotate(Math.sin(ember.age * 4 + ember.phase) * 0.22);
+      if (ember.ash) {
+        // Fase de pedra fria: cinza apagada, sem brilho
+        ctx.globalAlpha *= 0.7;
+        ctx.fillStyle = ember.life > 0.45 ? '#8a8d94' : '#5d6068';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size * 0.55, size * 0.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
       ctx.shadowColor = '#ff4b12';
       ctx.shadowBlur = size * 2.4;
       ctx.fillStyle = ember.life > 0.45 ? '#ff6a1b' : '#ffb33b';

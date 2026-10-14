@@ -2,23 +2,24 @@
 import { GROUND, TILE_W, TILE_STEP, PASS, PASS_OWL_DX, PASS_SCALE, PASS_TIME, FOOT } from './runner-assets.js';
 import { LEG_SECONDS, EDGE_NEAR } from './runner-config.js';
 
-export function createSegment(x, tileCount) {
+// stage: índice da fase do mundo (WORLD_STAGES) que decide o visual do chão
+export function createSegment(x, tileCount, stage = 0) {
   const tiles = Array.from({ length: tileCount }, () => Math.floor(Math.random() * GROUND.count));
-  return { x, w: tileCount * TILE_STEP + (TILE_W - TILE_STEP), tiles };
+  return { x, w: tileCount * TILE_STEP + (TILE_W - TILE_STEP), tiles, stage };
 }
 
-export function generateLeg(fromX, startX, speed) {
+export function generateLeg(fromX, startX, speed, stage = 0) {
   const segments = [];
   const end = startX + speed * LEG_SECONDS;
   let x = fromX;
   while (x < end - TILE_STEP * 14) {
     x += 90 + Math.random() * 90;
-    const seg = createSegment(x, 2 + Math.floor(Math.random() * 4));
+    const seg = createSegment(x, 2 + Math.floor(Math.random() * 4), stage);
     segments.push(seg);
     x = seg.x + seg.w;
   }
   x += 110;
-  const last = createSegment(x, Math.ceil((end - x) / TILE_STEP) + 6);
+  const last = createSegment(x, Math.ceil((end - x) / TILE_STEP) + 6, stage);
   segments.push(last);
   const markerX = Math.max(end, last.x + TILE_STEP * 2);
   const door = { x: markerX - PASS_OWL_DX[0] * PASS_SCALE, passAt: -1, rattleAt: -1 };

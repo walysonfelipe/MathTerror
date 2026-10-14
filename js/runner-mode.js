@@ -22,7 +22,8 @@ import { createRunnerRenderer } from './runner-renderer.js';
 import { planFightStage, planFightPath, sampleFightPath } from './runner-fight-path.js';
 import * as telemetry from './telemetry.js';
 
-import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY, GRAVITY, SPRINT_BOOST } from './runner-config.js';
+import { LIVES, QUESTION_LEVEL_EVERY, LEG_SECONDS, QUESTION_SECONDS, BOSS_APPEAR_AT, ERROR_STEPS, MAX_ERRORS, SPEED_START, SPEED_GAIN, JUMP_VELOCITY, GRAVITY, SPRINT_BOOST, worldStageAt } from './runner-config.js';
+import { groundSheet, stageColdness } from './runner-ground.js';
 import { FIGHT_OWL, FIGHT_BOSS, FIGHT_BOSS_HIT, FIGHT_BOSS_HIT_DURATION, BOSS_CASTS, BOSS_CAST_TIME, BOSS_SLAM_HIT, FIGHT_DEATH, FIGHT_DEATH_IMPACT_AT, FIGHT_DEATH_LANDED_AT, FIGHT_DEATH_SLAM_AT, FIGHT_DEATH_DURATION, BOSS_POWER, BOSS_POWER_IMPACT_AT, BOSS_POWER_DURATION, FIGHT_KNOCKBACK, fightKnockback, FIGHT_TURN_TIME, FIGHT_INTRO, FIGHT_INTRO_DURATION } from './runner-fight-assets.js';
 import { OWL, RUN_FRAMES, GROUND, BOSS, BOSS_W, PASS, PASS_DOOR_FRAME, GRAB, TILE_W, TILE_H, TILE_STEP, SURFACE, OWL_H, OWL_W, PASS_DRAW_W, CELEBRATE_TIME, PASS_FRAME_TIME, PASS_TIME, BOSS_H, STRIDE, BOSS_CROUCH_TIME, BOSS_LEAP_TIME, BOSS_FOOT, BOSS_TAKEOFF, BOSS_LANDING } from './runner-assets.js';
 
@@ -65,6 +66,7 @@ let clock = 0;            // tempo total do modo, em segundos
 let stateTime = 0;        // tempo no estado atual
 let shake = 0;
 let embers = [];
+let coldness = 0;          // 0 lava · 1 pedra fria: segue a fase do chão sob a coruja (céu e brasas)
 let dust = [];
 
 let nextQuestion = createCheckpointQuestions();
@@ -154,7 +156,7 @@ const {
 // terminando numa plataforma longa com o checkpoint.
 function buildLeg(fromX, startX) {
   legStartX = startX;
-  const leg = generateLeg(fromX, startX, speed);
+  const leg = generateLeg(fromX, startX, speed, worldStageAt(checkpointsReached));
   segments.push(...leg.segments);
   markerX = leg.markerX;
   doors.push(leg.door);
@@ -414,7 +416,10 @@ function update(dt, controls = {}) {
   const floorY = viewH + cameraLift;
   const groundBottom = groundY - SURFACE + TILE_H;
   const underGround = x => segments.some(seg => x > seg.x && x < seg.x + seg.w);
-  const EMBER_RATE = 45;     // brasas por segundo
+  // Na pedra fria a lava lá embaixo esfria aos poucos: menos brasas, e parte vira cinza
+  const here = segments.find(seg => owl.x >= seg.x && owl.x < seg.x + seg.w);
+  if (here) coldness += (stageColdness(here.stage) - coldness) * (1 - Math.exp(-dt * 0.8));
+  const EMBER_RATE = 45 * (1 - coldness * 0.55);     // brasas por segundo
   const spawnCount = Math.floor(EMBER_RATE * dt + Math.random());
   for (let n = 0; n < spawnCount; n++) {
     const duration = 3 + Math.random() * 1.4;
@@ -428,6 +433,7 @@ function update(dt, controls = {}) {
       age: 0,
       duration,
       life: 1,
+      ash: Math.random() < coldness * 0.8,
     });
   }
   const FADE = 36;
@@ -473,9 +479,15 @@ function fellInPit() {
 }
 
 // ===================== DESENHO =====================
+// Mistura duas cores [r, g, b, alfa] (t de 0 a 1) num rgba para o canvas.
+function mixColor(a, b, t) {
+  const [r, g, bl, al] = a.map((v, i) => v + (b[i] - v) * t);
+  return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(bl)}, ${al.toFixed(2)})`;
+}
+
 function getRendererState() {
   return { ctx, state, boss, clock, fightStartedAt, fightAction, fightActionAt, fightCounterHit,
-    fightCombo, fightBossAttack, dust, embers, segments, owl, groundY, owlScreenX, viewW, viewH,
+    fightCombo, fightBossAttack, dust, embers, coldness, segments, owl, groundY, owlScreenX, viewW, viewH,
     fightDeathAt, fightDeathOver, fightEffect, cameraLift, doors, hideCheckpointDoor, stateTime, runPhase,
     runStopped: controllerRunStopped, landingPoseHeld, waitingAfterFight: state === 'resume' && fightStartedFromRun };
 }
@@ -491,21 +503,22 @@ function draw() {
     ctx.translate(-viewW / 2, -viewH / 2);
   }
 
-  // Céu escuro por cima do vídeo de fundo
+  // Céu escuro por cima do vídeo de fundo; esfria para cinza-azulado na fase de pedra
   const sky = ctx.createLinearGradient(0, 0, 0, viewH);
-  sky.addColorStop(0, '#05060899');
-  sky.addColorStop(0.7, '#1a050588');
-  sky.addColorStop(1, '#4a0a06dd');
+  sky.addColorStop(0, mixColor([5, 6, 8, 0.6], [6, 8, 12, 0.7], coldness));
+  sky.addColorStop(0.7, mixColor([26, 5, 5, 0.53], [18, 20, 26, 0.7], coldness));
+  sky.addColorStop(1, mixColor([74, 10, 6, 0.87], [40, 36, 40, 0.88], coldness));
   ctx.fillStyle = sky;
   ctx.fillRect(-20, -20, viewW + 40, viewH + 40 + cameraLift * 2);
 
   const camera = owl.x - owlScreenX;
   const scene = getRendererState();
   renderer.drawEmbers(scene, camera);
-  const groundImg = loadImage(GROUND.src);
   const tileY = groundY - SURFACE;
   for (const seg of segments) {
     if (seg.x - camera > viewW || seg.x + seg.w - camera < -TILE_W) continue;
+    const groundImg = groundSheet(seg.stage, loadImage);
+    if (!groundImg) continue;
     seg.tiles.forEach((tile, i) => {
       const sx = (tile % GROUND.cols) * GROUND.w;
       const sy = Math.floor(tile / GROUND.cols) * GROUND.h;
@@ -1002,6 +1015,7 @@ export function startRunnerMode() {
   fightKnockedOff = false;
   fightDeathOver = false;
   embers = [];
+  coldness = 0;
   boss.progress = 0;
   setBossMode('hidden');
   nextQuestion = createCheckpointQuestions();
