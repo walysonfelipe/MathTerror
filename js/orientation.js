@@ -58,7 +58,8 @@ export function lockLandscape() {
   screen.orientation?.lock?.('landscape').catch(() => { });
 }
 
-async function enterFullscreenLandscape() {
+// Entra em tela cheia (precisa ser chamado dentro de um clique/toque).
+export async function enterFullscreenLandscape() {
   const el = document.documentElement;
   if (!document.fullscreenElement && !document.webkitFullscreenElement) {
     try {

@@ -4,7 +4,7 @@ import { initFullscreen, onFullscreenChange } from './js/fullscreen.js';
 import { isAudioEnabled, setAudioEnabled, onAudioChange } from './js/audio.js';
 import { hideHome } from './js/game-state.js';
 import { startRunnerMode } from './js/runner-mode.js';
-import { initOrientation, maybeShowInstallHint } from './js/orientation.js';
+import { initOrientation, maybeShowInstallHint, enterFullscreenLandscape } from './js/orientation.js';
 import './js/gamepad-status.js';
 import './js/menu-gamepad.js';
 
@@ -67,7 +67,10 @@ initOrientation();
 
 // ===================== INÍCIO DO JOGO =====================
 // startRunnerMode liga todo o áudio dentro deste clique (js/audio.js).
+// Ao iniciar, o jogo já entra em tela cheia ocupando 100% da tela
+// (o clique é o gesto que o navegador exige; o botão ⛶ continua saindo/voltando).
 runnerBtn?.addEventListener('click', () => {
+  enterFullscreenLandscape();
   hideHome();
   startRunnerMode();
 });
