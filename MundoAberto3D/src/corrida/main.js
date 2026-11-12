@@ -41,7 +41,7 @@ const ui = {
 // ---------- renderer / cena ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(innerWidth, innerHeight, false); // o CSS estica o canvas na tela toda
 renderer.shadowMap.enabled = true;
 renderer.autoClear = false; // fundo 2D e mundo 3D em duas passadas
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -115,15 +115,15 @@ function viewHalfWidth() {
 }
 
 // tamanho real da tela (no celular, ao girar, o innerWidth às vezes chega atrasado)
+// tamanho real em que o canvas aparece (fixo, tela toda): funciona igual no navegador e no app instalado (PWA)
 const viewSize = () => {
-  const vv = window.visualViewport;
-  return [Math.round(document.documentElement.clientWidth || vv?.width || innerWidth),
-    Math.round(document.documentElement.clientHeight || vv?.height || innerHeight)];
+  const r = renderer.domElement.getBoundingClientRect();
+  return [Math.round(r.width) || innerWidth, Math.round(r.height) || innerHeight];
 };
 let sizeW = 0, sizeH = 0;
 function resize() {
   [sizeW, sizeH] = viewSize();
-  renderer.setSize(sizeW, sizeH);
+  renderer.setSize(sizeW, sizeH, false);
   camera.aspect = sizeW / sizeH;
   // telas em pé (celular): abre um pouco o campo de visão
   camera.fov = camera.aspect < 1 ? 55 : 38;

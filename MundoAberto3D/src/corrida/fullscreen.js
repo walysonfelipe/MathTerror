@@ -53,6 +53,8 @@ export function setupFullscreen() {
     :root.is-fs #fs-btn .fs-out { display: block; }
     :root.is-fs #fs-btn { opacity: .4; }
     :root.is-fs #fs-btn:hover { opacity: 1; }
+    /* app instalado (PWA): já abre em tela cheia */
+    @media (display-mode: fullscreen), (display-mode: standalone) { #fs-btn { display: none; } }
   `;
   document.head.appendChild(style);
 
