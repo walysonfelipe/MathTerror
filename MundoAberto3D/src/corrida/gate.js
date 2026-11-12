@@ -667,7 +667,7 @@ export function createGateRoom({ character, sfx, tex, el }) {
   const HINT = () => (dread > 0 ? 'Eles estão mais perto… monte a conta.' : 'Monte a conta nos ossos para abrir a porta.');
   const PAD_KEYS = '<b class="pb">◀▶</b> escolhe <i>✦</i> <b class="pb pb-a">A</b> coloca <i>✦</i> <b class="pb pb-b">B</b> desfaz';
   const KEYS = () => (coarse
-    ? `<span class="pad-only">${PAD_KEYS}</span>`
+    ? `<span class="key-only">toque num osso para colocar <i>✦</i> toque no espaço para desfazer</span><span class="pad-only">${PAD_KEYS}</span>`
     : `<span class="key-only"><kbd>1</kbd>–<kbd>${tiles.length}</kbd> escolhe <i>✦</i> <kbd>⌫</kbd> desfaz</span><span class="pad-only">${PAD_KEYS}</span>`);
   function setHint(text, cls = '', keys = cls ? '' : KEYS()) {
     el.hint.innerHTML = `<span class="gh-text"></span>${keys ? `<span class="gh-keys">${keys}</span>` : ''}`;

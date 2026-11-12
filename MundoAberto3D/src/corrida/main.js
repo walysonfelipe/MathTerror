@@ -586,6 +586,8 @@ function gameOver() {
 }
 
 let lastHud = '';
+// só no modo de desenvolvimento: atalhos para testar as telas (layout)
+if (import.meta.env.DEV) window.__ts = { castle, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
 // ---------- ponte quebrada: escolher tábuas que somam a medida do buraco ----------
 const cm = { modal: $('cmodal'), card: $('cm-card'), title: $('cm-title'), body: $('cm-body'), close: $('cm-close') };
 let bridgeUI = null; // { bridge, hole, sel:Set }
@@ -687,8 +689,11 @@ function renderVitals(P) {
   });
 }
 
+const fireBtn = document.querySelector("[data-key='TouchFire']");
 function updateHud() {
   const P = player.P;
+  // botão de fogo apagado sem carga (e no castelo, onde não há bola de fogo)
+  fireBtn?.classList.toggle('empty', powers.charges === 0 || state === 'castle');
   const meters = Math.max(0, Math.floor(P.maxX));
   const prog = Math.round(powers.rechargeProgress * 10);
   const oilK = Math.ceil(oil / 5);
@@ -707,6 +712,9 @@ function updateHud() {
 // G / R3 alterna, empurrar o analógico direito entra; o analógico direito vira a cabeça.
 // Sai com G, B, Esc, andando, pulando, se apanhar ou se abrir uma janela.
 const lookHint = $('look-hint');
+// toque: a dica embaixo do quadro entra no modo "olhar"; "voltar" sai (= G / Q)
+lookHint.addEventListener('click', () => input.lookToggle());
+$('look-exit').addEventListener('click', () => input.back());
 const portraitView = { k: 0, target: null, lx: 0, ly: 0 };
 const _baseQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(PITCH, 0, 0));
 const _viewQ = new THREE.Quaternion(), _m4 = new THREE.Matrix4(), _vPos = new THREE.Vector3(), _vAt = new THREE.Vector3();

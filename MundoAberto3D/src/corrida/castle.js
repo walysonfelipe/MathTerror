@@ -1058,6 +1058,11 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
   }
 
   return {
+    // só no modo de desenvolvimento: abre as janelas direto (testes de layout)
+    debugOpen: import.meta.env.DEV ? {
+      note: (k = Object.keys(NOTES)[0]) => openNote(k), lock: () => openLock({}), scale: () => openScale({}),
+      shelf: () => openShelf({}), throne: () => { pieces = 3; openThrone(); },
+    } : null,
     scene, start, stop, update, render, prewarm,
     minX: 0.2, maxX: W - 0.2, width: W,
     get hidden() { return hidden; },

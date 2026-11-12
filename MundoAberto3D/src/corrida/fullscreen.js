@@ -33,22 +33,23 @@ export function setupFullscreen() {
   btn.type = 'button';
   btn.title = 'Tela cheia (T)';
   btn.setAttribute('aria-label', 'Alternar tela cheia');
+  const art = 'img/trilha-sombria-controles/webp/';
   btn.innerHTML =
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>' +
-    '<path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+    `<img class="fs-in" src="${art}tela-cheia-entrar.webp" alt="" />` +
+    `<img class="fs-out" src="${art}tela-cheia-sair.webp" alt="" />`;
   btn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); btn.blur(); });
   document.body.appendChild(btn);
 
   const style = document.createElement('style');
   style.textContent = `
     #fs-btn { position: fixed; top: var(--fs-top, max(10px, env(safe-area-inset-top))); right: max(10px, env(safe-area-inset-right));
-      z-index: 9999; width: 38px; height: 38px; padding: 7px; border: 1px solid #c8954a66; border-radius: 6px;
-      background: #0d0705b3; color: #e8c78a; cursor: pointer; opacity: .55; transition: opacity .2s; }
+      z-index: 9999; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
+      background: none; cursor: pointer; opacity: .7; transition: opacity .2s; }
     #fs-btn:hover, #fs-btn:focus-visible { opacity: 1; }
-    #fs-btn svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+    #fs-btn img { width: 100%; height: 100%; display: block; }
     #fs-btn .fs-out, :root.is-fs #fs-btn .fs-in { display: none; }
-    :root.is-fs #fs-btn .fs-out { display: inline; }
-    :root.is-fs #fs-btn { opacity: .25; }
+    :root.is-fs #fs-btn .fs-out { display: block; }
+    :root.is-fs #fs-btn { opacity: .4; }
     :root.is-fs #fs-btn:hover { opacity: 1; }
   `;
   document.head.appendChild(style);

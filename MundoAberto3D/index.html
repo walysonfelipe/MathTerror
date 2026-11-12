@@ -465,12 +465,26 @@
         font: 600 12px/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: #b49a86; text-shadow: 0 1px 0 #000, 0 0 10px #000; }
       #look-exit > span { display: inline-flex; align-items: center; gap: 6px; }
       #look-exit i { color: #5a3a2a; font-style: normal; }
-      @media (pointer: coarse) { #look-hint, #look-exit { display: none !important; } }
+      .touch-only { display: none !important; }
+      @media (pointer: coarse) {
+        .touch-only { display: inline-flex !important; }
+        #look-hint .key-only, #look-exit .key-only { display: none !important; }
+        body:not(.pad) #look-exit .lx-word { display: none; }
+        /* no toque a dica vira botão; o "voltar" sobe para não ficar atrás dos botões */
+        #look-hint { pointer-events: auto; cursor: pointer; padding: 9px 16px 10px; font-size: 16px; }
+        #look-exit { pointer-events: auto; cursor: pointer; flex-direction: column; gap: 10px;
+          bottom: max(180px, calc(env(safe-area-inset-bottom) + 162px)); }
+        #look-exit .lx-btn { align-items: center; gap: 6px; padding: 7px 18px 7px 12px; border-radius: 999px; color: var(--bone); font-size: 13px;
+          background: #0a0505cc; box-shadow: inset 0 0 0 1px #6a3a1e, 0 6px 14px #000a; }
+      }
 
       .cm-close { position: absolute !important; top: 16px; right: 18px; z-index: 2 !important; width: 34px; height: 34px; border-radius: 50%;
         border: 1px solid #000; background: linear-gradient(#3a2420, #160c0b); color: var(--muted); font: 16px/1 Georgia, serif;
         box-shadow: inset 0 1px 0 #ffffff18, 0 3px 0 #0a0505; }
       .cm-close:hover { color: var(--gold); }
+      .cm-close-ico { width: 100%; height: 100%; }
+      body:not(.pad) .cm-close { padding: 0; border: 0; background: none; box-shadow: none; }
+      body:not(.pad) .cm-close:hover { filter: brightness(1.25); }
       /* com o controle, o fechar vira o botão B do Xbox (é o B que fecha) */
       .cm-close-b { place-items: center; font: 700 17px/1 var(--font-num); color: #ff6a5a; text-shadow: 0 0 8px #ff2a1a88; }
       body.pad .cm-close { box-shadow: inset 0 0 0 2px #ff6a5a55, 0 3px 0 #000, 0 0 12px #ff2a1a44; }
@@ -659,19 +673,28 @@
       #touch { display: none; }
       @media (pointer: coarse) {
         #touch { display: block; }
+        /* artes em public/img/trilha-sombria-controles (3x); o símbolo em texto fica só para leitores de tela */
         .tbtn {
           position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); z-index: 6; width: 76px; height: 76px;
-          border-radius: 50%; border: 1px solid #000; color: var(--gold);
-          background: radial-gradient(circle at 40% 30%, #3a2020cc, #140808cc);
-          box-shadow: inset 0 1px 0 #ffffff22, 0 5px 0 #0a0404aa, 0 10px 16px #0008;
-          font-size: 30px; display: grid; place-items: center; user-select: none; -webkit-user-select: none; touch-action: none;
+          border-radius: 50%; font-size: 0; color: transparent; background: center / contain no-repeat;
+          filter: drop-shadow(0 5px 0 #0a0404aa) drop-shadow(0 8px 10px #0009);
+          user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none;
         }
-        .tbtn.on { transform: translateY(4px); box-shadow: inset 0 1px 0 #ffffff22, 0 1px 0 #0a0404aa; }
-        [data-key='TouchLeft'] { left: 18px; }
-        [data-key='TouchRight'] { left: 108px; }
-        [data-key='TouchJump'] { right: 22px; width: 92px; height: 92px; background: radial-gradient(circle at 40% 30%, #6a1a14cc, #2a0606cc); }
-        [data-key='TouchFire'] { right: 128px; bottom: max(40px, env(safe-area-inset-bottom)); background: radial-gradient(circle at 40% 30%, #8a3a10cc, #3a1004cc); }
-        [data-key='TouchUse'] { right: 30px; bottom: max(130px, env(safe-area-inset-bottom)); background: radial-gradient(circle at 40% 30%, #3a4a2acc, #141a0ccc); }
+        .tbtn.on { transform: translateY(4px); filter: drop-shadow(0 1px 0 #0a0404aa) drop-shadow(0 3px 6px #0009); }
+        [data-key='TouchLeft'] { left: 18px; background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-normal.webp'); }
+        [data-key='TouchLeft'].on { background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-pressionado.webp'); }
+        [data-key='TouchRight'] { left: 108px; background-image: url('img/trilha-sombria-controles/webp/andar-direita-normal.webp'); }
+        [data-key='TouchRight'].on { background-image: url('img/trilha-sombria-controles/webp/andar-direita-pressionado.webp'); }
+        [data-key='TouchJump'] { right: 22px; width: 92px; height: 92px; background-image: url('img/trilha-sombria-controles/webp/pular-normal.webp'); }
+        [data-key='TouchJump'].on { background-image: url('img/trilha-sombria-controles/webp/pular-pressionado.webp'); }
+        [data-key='TouchFire'] { right: 128px; bottom: max(40px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-normal.webp'); }
+        [data-key='TouchFire'].on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-pressionado.webp'); }
+        [data-key='TouchFire'].empty, [data-key='TouchFire'].empty.on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-sem-carga.webp'); }
+        #trun { left: 30px; bottom: max(112px, calc(env(safe-area-inset-bottom) + 94px)); width: 56px; height: 56px; background-image: url('img/trilha-sombria-controles/webp/correr-ligado.webp'); }
+        #trun.off { background-image: url('img/trilha-sombria-controles/webp/correr-desligado.webp'); }
+        [data-key='TouchUse'] { right: 30px; bottom: max(130px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/interagir-normal.webp'); }
+        [data-key='TouchUse'].on { background-image: url('img/trilha-sombria-controles/webp/interagir-pressionado.webp'); }
+        .ctl-ico { width: 24px; height: 24px; flex: none; }
         .keys, .keys-box { display: none; }
         .ts-cols { grid-template-columns: 1fr; }
       }
@@ -697,6 +720,14 @@
         .card, #prompt, #gate-hud .gate-title { animation: none; }
       }
     </style>
+    <!-- controles de toque: estados que só aparecem ao tocar -->
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/andar-esquerda-pressionado.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/andar-direita-pressionado.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/pular-pressionado.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/bola-de-fogo-pressionado.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/bola-de-fogo-sem-carga.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/correr-desligado.webp" />
+    <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/interagir-pressionado.webp" />
   </head>
   <body>
     <!-- tela de carregamento: some sozinha quando tudo estiver baixado e compilado (preload.js) -->
@@ -746,13 +777,14 @@
     <div id="toast" class="outline"></div>
     <div id="warp"></div>
     <div id="fade"></div>
-    <div id="look-hint" hidden><kbd class="key-only">G</kbd><b class="pb pb-wide pad-only">RS</b><span>olhar o quadro</span></div>
-    <div id="look-exit" hidden><span class="key-only"><kbd>G</kbd> ou <kbd>Q</kbd></span><span class="pad-only"><b class="pb pb-b">B</b></span><span>voltar</span>
-      <span class="pad-only"><i>✦</i><b class="pb pb-wide">RS</b> olhar em volta</span><span class="key-only"><i>✦</i>mouse olha em volta</span></div>
+    <div id="look-hint" role="button" hidden><img class="touch-only ctl-ico" src="img/trilha-sombria-controles/webp/olhar-quadro.webp" alt="" /><kbd class="key-only">G</kbd><b class="pb pb-wide pad-only">RS</b><span>olhar o quadro</span></div>
+    <div id="look-exit" hidden><span class="key-only"><kbd>G</kbd> ou <kbd>Q</kbd></span><span class="pad-only"><b class="pb pb-b">B</b></span><span class="lx-word">voltar</span>
+      <span class="pad-only"><i>✦</i><b class="pb pb-wide">RS</b> olhar em volta</span><span class="key-only"><i>✦</i>mouse olha em volta</span>
+      <span class="touch-only lx-btn" role="button"><img class="ctl-ico" src="img/trilha-sombria-controles/webp/sair-quadro.webp" alt="" /> voltar</span><span class="touch-only">arraste o dedo para olhar em volta</span></div>
     <div id="prompt" hidden><kbd class="key-only">E</kbd><b class="pb pb-y pad-only">Y</b><span id="prompt-text"></span></div>
     <div id="cmodal" hidden>
       <div class="card" id="cm-card">
-        <button class="cm-close" id="cm-close" aria-label="Fechar"><span class="key-only">✕</span><b class="pad-only cm-close-b">B</b></button>
+        <button class="cm-close" id="cm-close" aria-label="Fechar"><img class="key-only cm-close-ico" src="img/trilha-sombria-controles/webp/fechar-janela.webp" alt="" /><b class="pad-only cm-close-b">B</b></button>
         <h2 id="cm-title"></h2>
         <div id="cm-body"></div>
       </div>
@@ -813,6 +845,7 @@
       <div class="tbtn" data-key="TouchJump">⤒</div>
       <div class="tbtn" data-key="TouchFire">🔥</div>
       <div class="tbtn" data-key="TouchUse" id="tuse" hidden>✋</div>
+      <div class="tbtn" id="trun" role="button" aria-label="Correr ao andar">🏃</div>
     </div>
 
     <script type="module" src="/src/corrida/main.js"></script>

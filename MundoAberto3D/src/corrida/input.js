@@ -44,7 +44,36 @@ export function createInput() {
   let backQueued = false;  // Esc / B: sair do modo "olhar"
   const look = { x: 0, y: 0 }; // analógico direito (-1..1)
   const mouse = { x: 0, y: 0 }; // posição do mouse na tela (-1..1), para olhar em volta no teclado
-  addEventListener('mousemove', (e) => { mouse.x = (e.clientX / innerWidth) * 2 - 1; mouse.y = (e.clientY / innerHeight) * 2 - 1; });
+  // no toque, arrastar o dedo na tela faz o mesmo papel (solta → volta ao centro)
+  const drag = { id: null, x: 0, y: 0 };
+  const clamp1 = (v) => Math.max(-1, Math.min(1, v));
+  addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'mouse') { mouse.x = (e.clientX / innerWidth) * 2 - 1; mouse.y = (e.clientY / innerHeight) * 2 - 1; return; }
+    if (e.pointerId !== drag.id) return;
+    const s = Math.min(innerWidth, innerHeight) * 0.4;
+    mouse.x = clamp1((e.clientX - drag.x) / s);
+    mouse.y = clamp1((e.clientY - drag.y) / s);
+  });
+  addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' || e.target?.tagName !== 'CANVAS' || drag.id !== null) return;
+    Object.assign(drag, { id: e.pointerId, x: e.clientX, y: e.clientY });
+  });
+  const endDrag = (e) => { if (e.pointerId === drag.id) { drag.id = null; mouse.x = mouse.y = 0; } };
+  addEventListener('pointerup', endDrag);
+  addEventListener('pointercancel', endDrag);
+
+  // toque: andar = correr (padrão) ou andar calmo; o botão 🏃 alterna e fica salvo
+  let touchRun = true;
+  try { touchRun = localStorage.getItem('trilhaSombria.touchRun') !== '0'; } catch {}
+  const runBtn = $('trun');
+  const syncRun = () => { runBtn?.classList.toggle('off', !touchRun); runBtn?.setAttribute('aria-pressed', String(touchRun)); };
+  runBtn?.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    touchRun = !touchRun;
+    try { localStorage.setItem('trilhaSombria.touchRun', touchRun ? '1' : '0'); } catch {}
+    syncRun();
+  });
+  syncRun();
 
   // body.pad = último dispositivo usado foi o controle (troca os ícones das dicas)
   const setPad = (on) => document.body.classList.toggle('pad', on);
@@ -225,8 +254,8 @@ export function createInput() {
   return {
     get left() { return any(LEFT) || keys.has('TouchLeft'); },
     get right() { return any(RIGHT) || keys.has('TouchRight'); },
-    // no toque, andar já é correr
-    get run() { return any(RUN) || keys.has('TouchLeft') || keys.has('TouchRight'); },
+    // no toque, andar é correr enquanto o botão 🏃 estiver ligado
+    get run() { return any(RUN) || (touchRun && (keys.has('TouchLeft') || keys.has('TouchRight'))); },
     get jumpHeld() { return [...JUMP].some((k) => keys.has(k)) || keys.has('TouchJump') || keys.has('PadJump'); },
     consumeJump() { const j = jumpQueued; jumpQueued = false; return j; },
     consumeFire() { const f = fireQueued; fireQueued = false; return f; },
@@ -234,6 +263,8 @@ export function createInput() {
     consumeUse() { const u = useQueued; useQueued = false; return u; },
     consumeLook() { const l = lookQueued; lookQueued = null; return l; },
     consumeBack() { const b = backQueued; backQueued = false; return b; },
+    lookToggle() { lookQueued = 'toggle'; }, // toque na dica "olhar o quadro"
+    back() { backQueued = true; },           // toque em "voltar"
     look, // analógico direito { x, y }
     mouse, // mouse { x, y } (-1..1)
     clear() {

@@ -1,0 +1,295 @@
+{
+  "jogo": "Trilha Sombria",
+  "versao": 1,
+  "fundo": "transparente",
+  "assets": [
+    {
+      "id": "andar-esquerda-normal",
+      "acao": "Andar para a esquerda",
+      "estado": "normal",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/andar-esquerda-normal.png",
+      "webp": "webp/andar-esquerda-normal.webp"
+    },
+    {
+      "id": "andar-esquerda-pressionado",
+      "acao": "Andar para a esquerda",
+      "estado": "pressionado",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/andar-esquerda-pressionado.png",
+      "webp": "webp/andar-esquerda-pressionado.webp"
+    },
+    {
+      "id": "andar-direita-normal",
+      "acao": "Andar para a direita",
+      "estado": "normal",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/andar-direita-normal.png",
+      "webp": "webp/andar-direita-normal.webp"
+    },
+    {
+      "id": "andar-direita-pressionado",
+      "acao": "Andar para a direita",
+      "estado": "pressionado",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/andar-direita-pressionado.png",
+      "webp": "webp/andar-direita-pressionado.webp"
+    },
+    {
+      "id": "pular-normal",
+      "acao": "Pular",
+      "estado": "normal",
+      "tela": {
+        "largura": 92,
+        "altura": 92
+      },
+      "exportacao": {
+        "largura": 276,
+        "altura": 276,
+        "escala": 3
+      },
+      "png": "png/pular-normal.png",
+      "webp": "webp/pular-normal.webp"
+    },
+    {
+      "id": "pular-pressionado",
+      "acao": "Pular",
+      "estado": "pressionado",
+      "tela": {
+        "largura": 92,
+        "altura": 92
+      },
+      "exportacao": {
+        "largura": 276,
+        "altura": 276,
+        "escala": 3
+      },
+      "png": "png/pular-pressionado.png",
+      "webp": "webp/pular-pressionado.webp"
+    },
+    {
+      "id": "bola-de-fogo-normal",
+      "acao": "Bola de fogo",
+      "estado": "normal",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/bola-de-fogo-normal.png",
+      "webp": "webp/bola-de-fogo-normal.webp"
+    },
+    {
+      "id": "bola-de-fogo-pressionado",
+      "acao": "Bola de fogo",
+      "estado": "pressionado",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/bola-de-fogo-pressionado.png",
+      "webp": "webp/bola-de-fogo-pressionado.webp"
+    },
+    {
+      "id": "bola-de-fogo-sem-carga",
+      "acao": "Bola de fogo",
+      "estado": "sem-carga",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/bola-de-fogo-sem-carga.png",
+      "webp": "webp/bola-de-fogo-sem-carga.webp"
+    },
+    {
+      "id": "correr-ligado",
+      "acao": "Correr ao andar",
+      "estado": "ligado",
+      "tela": {
+        "largura": 56,
+        "altura": 56
+      },
+      "exportacao": {
+        "largura": 168,
+        "altura": 168,
+        "escala": 3
+      },
+      "png": "png/correr-ligado.png",
+      "webp": "webp/correr-ligado.webp"
+    },
+    {
+      "id": "correr-desligado",
+      "acao": "Correr ao andar",
+      "estado": "desligado",
+      "tela": {
+        "largura": 56,
+        "altura": 56
+      },
+      "exportacao": {
+        "largura": 168,
+        "altura": 168,
+        "escala": 3
+      },
+      "png": "png/correr-desligado.png",
+      "webp": "webp/correr-desligado.webp"
+    },
+    {
+      "id": "interagir-normal",
+      "acao": "Usar / examinar / esconder",
+      "estado": "normal",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/interagir-normal.png",
+      "webp": "webp/interagir-normal.webp"
+    },
+    {
+      "id": "interagir-pressionado",
+      "acao": "Usar / examinar / esconder",
+      "estado": "pressionado",
+      "tela": {
+        "largura": 76,
+        "altura": 76
+      },
+      "exportacao": {
+        "largura": 228,
+        "altura": 228,
+        "escala": 3
+      },
+      "png": "png/interagir-pressionado.png",
+      "webp": "webp/interagir-pressionado.webp"
+    },
+    {
+      "id": "olhar-quadro",
+      "acao": "Olhar o quadro",
+      "estado": "normal",
+      "tela": {
+        "largura": 24,
+        "altura": 24
+      },
+      "exportacao": {
+        "largura": 72,
+        "altura": 72,
+        "escala": 3
+      },
+      "png": "png/olhar-quadro.png",
+      "webp": "webp/olhar-quadro.webp"
+    },
+    {
+      "id": "sair-quadro",
+      "acao": "Sair do quadro / voltar",
+      "estado": "normal",
+      "tela": {
+        "largura": 24,
+        "altura": 24
+      },
+      "exportacao": {
+        "largura": 72,
+        "altura": 72,
+        "escala": 3
+      },
+      "png": "png/sair-quadro.png",
+      "webp": "webp/sair-quadro.webp"
+    },
+    {
+      "id": "tela-cheia-entrar",
+      "acao": "Entrar em tela cheia",
+      "estado": "entrar",
+      "tela": {
+        "largura": 38,
+        "altura": 38
+      },
+      "exportacao": {
+        "largura": 114,
+        "altura": 114,
+        "escala": 3
+      },
+      "png": "png/tela-cheia-entrar.png",
+      "webp": "webp/tela-cheia-entrar.webp"
+    },
+    {
+      "id": "tela-cheia-sair",
+      "acao": "Sair da tela cheia",
+      "estado": "sair",
+      "tela": {
+        "largura": 38,
+        "altura": 38
+      },
+      "exportacao": {
+        "largura": 114,
+        "altura": 114,
+        "escala": 3
+      },
+      "png": "png/tela-cheia-sair.png",
+      "webp": "webp/tela-cheia-sair.webp"
+    },
+    {
+      "id": "fechar-janela",
+      "acao": "Fechar janela",
+      "estado": "normal",
+      "tela": {
+        "largura": 34,
+        "altura": 34
+      },
+      "exportacao": {
+        "largura": 102,
+        "altura": 102,
+        "escala": 3
+      },
+      "png": "png/fechar-janela.png",
+      "webp": "webp/fechar-janela.webp"
+    }
+  ]
+}

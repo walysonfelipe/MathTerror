@@ -1,0 +1,107 @@
+CONTROLES DO CELULAR - TRILHA SOMBRIA
+Lista para criar as imagens dos botões
+=====================================================
+
+TAMANHOS: medidas na tela. Desenhe em 3x (ex.: 76 px -> 228 px).
+FORMATO: PNG ou WebP com fundo transparente (ou SVG).
+ESTILO: ficam por cima do jogo escuro; contorno/brilho dourado
+        combina com o HUD atual.
+"PRESSIONADO": o jogo já afunda o botão sozinho; só desenhe
+        uma arte separada se quiser um visual diferente.
+
+
+-----------------------------------------------------
+1) BOTÕES FIXOS DE JOGO (sempre na tela, redondos)
+-----------------------------------------------------
+
+[1] ANDAR PARA A ESQUERDA
+    Hoje: ◀
+    Tamanho: 76 px (exportar 228 px)
+    Posição: embaixo, à esquerda
+    Estados: normal / pressionado
+
+[2] ANDAR PARA A DIREITA
+    Hoje: ▶
+    Tamanho: 76 px (exportar 228 px)
+    Posição: ao lado do ◀
+    Estados: normal / pressionado
+
+[3] PULAR (segurar pula mais alto)
+    Hoje: ⤒
+    Tamanho: 92 px - o maior (exportar 276 px)
+    Posição: embaixo, à direita
+    Estados: normal / pressionado
+
+[4] BOLA DE FOGO
+    Hoje: 🔥
+    Tamanho: 76 px (exportar 228 px)
+    Posição: à esquerda do pular
+    Estados: normal / pressionado
+             (opcional: sem carga - quando as 3 orbes estão vazias)
+
+[5] CORRER AO ANDAR (liga/desliga)
+    Hoje: 🏃
+    Tamanho: 56 px (exportar 168 px)
+    Posição: acima das setas
+    Estados: LIGADO / DESLIGADO (hoje fica riscado e cinza)
+
+
+-----------------------------------------------------
+2) BOTÃO QUE APARECE SÓ QUANDO PRECISA
+-----------------------------------------------------
+
+[6] USAR / EXAMINAR / ESCONDER
+    Hoje: ✋
+    Tamanho: 76 px (exportar 228 px)
+    Quando: perto de porta, alavanca, bilhete, esconderijo etc.
+    Estados: normal / pressionado
+
+
+-----------------------------------------------------
+3) BOTÕES EM FORMATO DE ETIQUETA (ícone + texto)
+   A imagem é só o ícone pequeno ao lado do texto.
+-----------------------------------------------------
+
+[7] OLHAR O QUADRO
+    Hoje: 👁 + "olhar o quadro"
+    Ícone: ~24 px (exportar ~72 px)
+    Onde: embaixo da pintura, na galeria do castelo
+
+[8] SAIR DO QUADRO
+    Hoje: ✕ + "voltar"
+    Ícone: ~24 px (exportar ~72 px)
+    Onde: parte de baixo da tela, no modo olhar
+
+
+-----------------------------------------------------
+4) BOTÕES DE INTERFACE (já são SVG/CSS - opcionais)
+-----------------------------------------------------
+
+[9] TELA CHEIA
+    Hoje: ícone de cantos (SVG)
+    Tamanho: 38 px (exportar 114 px)
+    Posição: canto superior direito
+    Estados: ENTRAR em tela cheia / SAIR da tela cheia
+    Obs.: não aparece no iPhone (o Safari não permite)
+
+[10] FECHAR JANELA (cadeado, bilhete, ponte)
+    Hoje: ✕
+    Tamanho: 34 px (exportar 102 px)
+    Posição: canto da janela
+
+
+-----------------------------------------------------
+5) TOQUES SEM BOTÃO (não precisam de imagem)
+-----------------------------------------------------
+
+- Tocar na tela durante a corrida lança uma bola de fogo.
+- Arrastar o dedo no modo de olhar o quadro vira a cabeça.
+- No portão de ossos, toca-se direto nos ossos e nos espaços
+  (tocar num espaço preenchido desfaz).
+- O teclado numérico do cadeado é feito de botões com texto.
+
+
+=====================================================
+MÍNIMO PARA TROCAR TUDO: 7 imagens
+  ◀  ▶  ⤒  🔥  ✋  🏃 ligado  🏃 desligado
+=====================================================
