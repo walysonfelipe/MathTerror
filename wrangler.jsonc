@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mathterror",
+  "compatibility_date": "2026-10-12",
+  "observability": { "enabled": true },
+  // antes de publicar, monta _site/ (2D na raiz + Trilha Sombria em /trilha/)
+  "build": { "command": "node scripts/build-site.mjs" },
+  "assets": {
+    "directory": "./_site",
+    "html_handling": "auto-trailing-slash"
+  }
+}

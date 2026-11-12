@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 const page = (p) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
+  // caminhos relativos: o jogo funciona em qualquer pasta do site (publicado em /trilha/)
+  base: './',
   // a Cloudflare (wrangler deploy) adiciona o plugin dela aqui automaticamente
   plugins: [],
   build: {
