@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Trilha Sombria — MathTerror 2.5D</title>
     <style>
       /* =========================================================
@@ -58,7 +58,7 @@
       #hud {
         position: fixed; top: 0; left: 0; right: 0; z-index: 5; pointer-events: none;
         display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
-        padding: max(14px, env(safe-area-inset-top)) clamp(12px, 2.5vw, 22px) 0;
+        padding: max(14px, env(safe-area-inset-top)) calc(clamp(12px, 2.5vw, 22px) + env(safe-area-inset-right, 0px)) 0 calc(clamp(12px, 2.5vw, 22px) + env(safe-area-inset-left, 0px));
         font: 700 clamp(17px, 2.8vw, 26px) var(--font-num); letter-spacing: .04em; color: var(--bone);
       }
       #hud .box { display: flex; align-items: center; gap: 10px; }
@@ -150,6 +150,11 @@
       #keys { color: #e0b860; margin-left: 14px; }
       .label { display: block; font: 600 .48em var(--font-num); letter-spacing: .18em; color: var(--muted); margin-bottom: 2px; }
       #hud .right { text-align: right; display: flex; gap: 18px; }
+      /* celular: HUD bem menor (encolhe tudo por igual) e mais colado no topo */
+      @media (max-height: 500px), (max-width: 500px) {
+        :root.touch #hud { padding-top: max(6px, env(safe-area-inset-top)); }
+        :root.touch #hud > * { zoom: .58; }
+      }
 
       /* aviso no meio da tela: letras gravadas */
       #toast {
@@ -165,7 +170,8 @@
 
       /* ---------- placa 3D (telas e desafios) ---------- */
       #overlay, #cmodal {
-        position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+        position: fixed; inset: 0; display: grid; place-items: center;
+        padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
         perspective: 1400px; overflow: auto;
       }
       #overlay { z-index: 10; background: radial-gradient(ellipse at center, #0000 20%, #000b 100%); }
@@ -290,6 +296,29 @@
       @media (max-height: 460px) { .boot-logo { width: min(260px, 50vw); margin-bottom: 8px; } #boot-tip { margin-top: 10px; } }
       @media (prefers-reduced-motion: reduce) { #boot .ember, #boot-bar::before, .boot-logo { animation: none; } }
 
+      /* ---------- celular em pé: pedir para virar ---------- */
+      .rot-ico { position: relative; width: 64px; height: 64px; flex: none; }
+      .rot-ico svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--gold); stroke-width: 3;
+        stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 8px #ff8a2a66); }
+      .rot-ico .rot-arrow { stroke: #c08850; stroke-width: 2.4; opacity: .8; }
+      .rot-ico .rot-phone { transform-origin: 50% 50%; animation: rotPhone 2.4s cubic-bezier(.6, 0, .3, 1) infinite; }
+      @keyframes rotPhone { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+      #boot-rotate, #rotate { display: none; }
+      @media (orientation: portrait) and (max-width: 700px) {
+        :root.touch #boot-rotate { display: flex; align-items: center; gap: 16px; margin: clamp(18px, 4vh, 34px) 0 0; padding: 14px 18px;
+          border-radius: 14px; background: #0a0505cc; box-shadow: inset 0 0 0 1px #6a3a1e, 0 8px 18px #000a; text-align: left;
+          font: italic 16px/1.35 var(--font-text); color: var(--text); }
+        :root.touch #boot-rotate b { display: block; font: 700 15px/1.3 var(--font-num); letter-spacing: .08em; text-transform: uppercase; font-style: normal; color: var(--gold); }
+        :root.touch #rotate { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 18px; padding: 24px; text-align: center; background: radial-gradient(ellipse at center, #1a0c0cf5, #050202fa);
+          font: italic 17px/1.45 var(--font-text); color: var(--text); }
+        :root.touch #rotate .rot-ico { width: 96px; height: 96px; }
+        :root.touch #rotate h2 { margin: 0; font: 700 clamp(28px, 8vw, 38px)/1 var(--font-title); color: #d42a22; letter-spacing: .03em;
+          text-shadow: 0 2px 0 #3a0000, 0 4px 0 #180000, 0 10px 20px #000; }
+        :root.touch #rotate p { margin: 0; max-width: 28ch; color: var(--muted); }
+      }
+      @media (prefers-reduced-motion: reduce) { .rot-ico .rot-phone { animation: none; transform: rotate(-90deg); } }
+
       /* ---------- botões no estilo da logo: pedra vulcânica rachada, lava nas fendas,
          borda em brasa com pontas de losango e nós dourados nas extremidades ---------- */
       :root {
@@ -344,9 +373,16 @@
         display: block; padding: 0;
         background: linear-gradient(90deg, #000e 0%, #000a 30%, #0000 58%), radial-gradient(ellipse at 70% 55%, #0000 30%, #000c 100%);
       }
-      .title-menu { position: absolute; left: clamp(20px, 7vw, 120px); top: 50%; transform: translateY(-52%);
+      .title-menu { position: absolute; left: calc(clamp(20px, 7vw, 120px) + env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-52%);
         width: min(440px, calc(100vw - 40px)); animation: tsIn 1.2s ease-out both; }
       @keyframes tsIn { from { opacity: 0; transform: translate(-20px, -52%); } }
+      /* tela baixa e deitada (celular): o logo se ajusta à altura e o menu cabe inteiro */
+      @media (max-height: 560px) and (min-aspect-ratio: 1/1) {
+        .title-menu { width: min(440px, 46vw); }
+        .ts-logo { width: min(100%, calc((100dvh - 150px) * 1.5)); margin: 0 auto 10px; }
+        .ts-menu { gap: 8px; }
+        .ts-item { min-width: 200px; padding: 9px 40px 8px; font-size: 20px; }
+      }
       .ts-logo { display: block; width: 100%; height: auto; margin: 0 0 clamp(22px, 5vh, 44px);
         filter: drop-shadow(0 6px 10px #000) drop-shadow(0 0 26px #ff2a0a55); animation: logoGlow 4s ease-in-out infinite; }
       @keyframes logoGlow { 50% { filter: drop-shadow(0 6px 10px #000) drop-shadow(0 0 40px #ff2a0a88); } }
@@ -355,7 +391,7 @@
         font: italic 15px var(--font-text); color: var(--muted); opacity: 0; transition: opacity .6s; }
       .title-menu.ready + .ts-press { opacity: 1; animation: pressPulse 2.4s ease-in-out infinite; }
       @keyframes pressPulse { 50% { opacity: .45; } }
-      @media (pointer: coarse) { .ts-press { display: none; } }
+       :root.touch .ts-press { display: none; }
       .title-menu[hidden] + .ts-press { display: none; }
       /* celular em pé: menu em cima, personagem embaixo */
       @media (max-aspect-ratio: 1/1) {
@@ -368,6 +404,10 @@
 
       /* como jogar */
       .help-card { width: min(680px, 100%); }
+      .touch-box { display: none; }
+      .tb-ico { display: inline-flex; gap: 2px; flex: 0 0 58px; justify-content: center; }
+      .tb-ico img { width: 28px; height: 28px; }
+       :root.touch .touch-box { display: block; }
       .ts-cols { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; margin: 0 auto 20px; text-align: left; }
       .ts-box { padding: 12px 14px 10px; border-radius: 10px; background: #0007;
         box-shadow: inset 0 2px 6px #000, inset 0 0 0 1px #3a2214; }
@@ -454,7 +494,7 @@
         box-shadow: inset 0 0 0 1px #6a3a1e, 0 4px 0 #0a0505, 0 10px 18px #000c;
         color: var(--bone); font: italic 17px var(--font-text); animation: promptBob 1.6s ease-in-out infinite; }
       @keyframes promptBob { 50% { transform: translate(-50%, calc(-100% - 5px)); } }
-      @media (pointer: coarse) { #prompt kbd { display: none; } }
+       :root.touch #prompt kbd { display: none; }
       /* olhar o quadro (galeria do castelo) */
       #look-hint { position: fixed; z-index: 6; transform: translate(-50%, 0); pointer-events: none; display: flex; align-items: center; gap: 8px;
         padding: 5px 12px 6px; border-radius: 999px; white-space: nowrap; color: #e6d2b0; font: italic 15px var(--font-text);
@@ -466,17 +506,15 @@
       #look-exit > span { display: inline-flex; align-items: center; gap: 6px; }
       #look-exit i { color: #5a3a2a; font-style: normal; }
       .touch-only { display: none !important; }
-      @media (pointer: coarse) {
-        .touch-only { display: inline-flex !important; }
-        #look-hint .key-only, #look-exit .key-only { display: none !important; }
-        body:not(.pad) #look-exit .lx-word { display: none; }
+              :root.touch .touch-only { display: inline-flex !important; }
+        :root.touch #look-hint .key-only, :root.touch #look-exit .key-only { display: none !important; }
+        :root.touch body:not(.pad) #look-exit .lx-word { display: none; }
         /* no toque a dica vira botão; o "voltar" sobe para não ficar atrás dos botões */
-        #look-hint { pointer-events: auto; cursor: pointer; padding: 9px 16px 10px; font-size: 16px; }
-        #look-exit { pointer-events: auto; cursor: pointer; flex-direction: column; gap: 10px;
+        :root.touch #look-hint { pointer-events: auto; cursor: pointer; padding: 9px 16px 10px; font-size: 16px; }
+        :root.touch #look-exit { pointer-events: auto; cursor: pointer; flex-direction: column; gap: 10px;
           bottom: max(180px, calc(env(safe-area-inset-bottom) + 162px)); }
-        #look-exit .lx-btn { align-items: center; gap: 6px; padding: 7px 18px 7px 12px; border-radius: 999px; color: var(--bone); font-size: 13px;
+        :root.touch #look-exit .lx-btn { align-items: center; gap: 6px; padding: 7px 18px 7px 12px; border-radius: 999px; color: var(--bone); font-size: 13px;
           background: #0a0505cc; box-shadow: inset 0 0 0 1px #6a3a1e, 0 6px 14px #000a; }
-      }
 
       .cm-close { position: absolute !important; top: 16px; right: 18px; z-index: 2 !important; width: 34px; height: 34px; border-radius: 50%;
         border: 1px solid #000; background: linear-gradient(#3a2420, #160c0b); color: var(--muted); font: 16px/1 Georgia, serif;
@@ -671,33 +709,32 @@
 
       /* ---------- controles de toque ---------- */
       #touch { display: none; }
-      @media (pointer: coarse) {
-        #touch { display: block; }
+              :root.touch #touch { display: block; }
+        :root.touch #touch[hidden] { display: none; }
         /* artes em public/img/trilha-sombria-controles (3x); o símbolo em texto fica só para leitores de tela */
-        .tbtn {
+        :root.touch .tbtn {
           position: fixed; bottom: max(18px, env(safe-area-inset-bottom)); z-index: 6; width: 76px; height: 76px;
           border-radius: 50%; font-size: 0; color: transparent; background: center / contain no-repeat;
           filter: drop-shadow(0 5px 0 #0a0404aa) drop-shadow(0 8px 10px #0009);
           user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none;
         }
-        .tbtn.on { transform: translateY(4px); filter: drop-shadow(0 1px 0 #0a0404aa) drop-shadow(0 3px 6px #0009); }
-        [data-key='TouchLeft'] { left: 18px; background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-normal.webp'); }
-        [data-key='TouchLeft'].on { background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-pressionado.webp'); }
-        [data-key='TouchRight'] { left: 108px; background-image: url('img/trilha-sombria-controles/webp/andar-direita-normal.webp'); }
-        [data-key='TouchRight'].on { background-image: url('img/trilha-sombria-controles/webp/andar-direita-pressionado.webp'); }
-        [data-key='TouchJump'] { right: 22px; width: 92px; height: 92px; background-image: url('img/trilha-sombria-controles/webp/pular-normal.webp'); }
-        [data-key='TouchJump'].on { background-image: url('img/trilha-sombria-controles/webp/pular-pressionado.webp'); }
-        [data-key='TouchFire'] { right: 128px; bottom: max(40px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-normal.webp'); }
-        [data-key='TouchFire'].on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-pressionado.webp'); }
-        [data-key='TouchFire'].empty, [data-key='TouchFire'].empty.on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-sem-carga.webp'); }
-        #trun { left: 30px; bottom: max(112px, calc(env(safe-area-inset-bottom) + 94px)); width: 56px; height: 56px; background-image: url('img/trilha-sombria-controles/webp/correr-ligado.webp'); }
-        #trun.off { background-image: url('img/trilha-sombria-controles/webp/correr-desligado.webp'); }
-        [data-key='TouchUse'] { right: 30px; bottom: max(130px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/interagir-normal.webp'); }
-        [data-key='TouchUse'].on { background-image: url('img/trilha-sombria-controles/webp/interagir-pressionado.webp'); }
-        .ctl-ico { width: 24px; height: 24px; flex: none; }
-        .keys, .keys-box { display: none; }
-        .ts-cols { grid-template-columns: 1fr; }
-      }
+        :root.touch .tbtn.on { transform: translateY(4px); filter: drop-shadow(0 1px 0 #0a0404aa) drop-shadow(0 3px 6px #0009); }
+        :root.touch [data-key='TouchLeft'] { left: calc(18px + env(safe-area-inset-left, 0px)); background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-normal.webp'); }
+        :root.touch [data-key='TouchLeft'].on { background-image: url('img/trilha-sombria-controles/webp/andar-esquerda-pressionado.webp'); }
+        :root.touch [data-key='TouchRight'] { left: calc(108px + env(safe-area-inset-left, 0px)); background-image: url('img/trilha-sombria-controles/webp/andar-direita-normal.webp'); }
+        :root.touch [data-key='TouchRight'].on { background-image: url('img/trilha-sombria-controles/webp/andar-direita-pressionado.webp'); }
+        :root.touch [data-key='TouchJump'] { right: calc(22px + env(safe-area-inset-right, 0px)); width: 92px; height: 92px; background-image: url('img/trilha-sombria-controles/webp/pular-normal.webp'); }
+        :root.touch [data-key='TouchJump'].on { background-image: url('img/trilha-sombria-controles/webp/pular-pressionado.webp'); }
+        :root.touch [data-key='TouchFire'] { right: calc(128px + env(safe-area-inset-right, 0px)); bottom: max(40px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-normal.webp'); }
+        :root.touch [data-key='TouchFire'].on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-pressionado.webp'); }
+        :root.touch [data-key='TouchFire'].empty, :root.touch [data-key='TouchFire'].empty.on { background-image: url('img/trilha-sombria-controles/webp/bola-de-fogo-sem-carga.webp'); }
+        :root.touch #trun { left: calc(30px + env(safe-area-inset-left, 0px)); bottom: max(112px, calc(env(safe-area-inset-bottom) + 94px)); width: 56px; height: 56px; background-image: url('img/trilha-sombria-controles/webp/correr-ligado.webp'); }
+        :root.touch #trun.off { background-image: url('img/trilha-sombria-controles/webp/correr-desligado.webp'); }
+        :root.touch [data-key='TouchUse'] { right: calc(30px + env(safe-area-inset-right, 0px)); bottom: max(130px, env(safe-area-inset-bottom)); background-image: url('img/trilha-sombria-controles/webp/interagir-normal.webp'); }
+        :root.touch [data-key='TouchUse'].on { background-image: url('img/trilha-sombria-controles/webp/interagir-pressionado.webp'); }
+        :root.touch .ctl-ico { width: 24px; height: 24px; flex: none; }
+        :root.touch .keys, :root.touch .keys-box { display: none; }
+        :root.touch .ts-cols { grid-template-columns: 1fr; }
       @media (max-width: 480px) {
         .card { border-radius: 12px; }
         #hud .right { gap: 10px; }
@@ -716,6 +753,46 @@
         .cm-scale { --pan-h: 88px; }
         .cm-tally { margin-bottom: 10px; }
       }
+      @media (max-height: 500px) {
+        .card { width: min(620px, 100%); padding: 16px clamp(16px, 4vw, 28px) 14px; border-radius: 12px; }
+        .card::after { height: 28px; }
+        .card::before { inset: 8px; }
+        .card h1 { font-size: clamp(30px, 10vh, 44px); }
+        .card h2 { font-size: clamp(24px, 8vh, 34px); }
+        .card h1::after, .card h2::after { margin: 4px auto 0; font-size: 14px; }
+        .card .sub, .cm-text { font-size: 15px; line-height: 1.4; margin: 6px auto 10px; max-width: 52ch; }
+        .cm-text.small { margin: 8px auto 6px; font-size: 13px; }
+        .btn { padding: 9px 40px 8px; font-size: 20px; min-width: 200px; }
+        .cm-close { top: 10px; right: 12px; }
+        /* cadeado: visor menor e teclado em 2 linhas de 6 */
+        .cm-eq { padding: 6px 12px; margin: 2px auto 4px; }
+        .cm-lock { width: 150px; margin: 26px auto 10px; }
+        .cm-lock::before { top: -24px; height: 36px; border-width: 8px; left: 32px; right: 32px; }
+        .cm-lock-body { height: 46px; }
+        #cm-typed { font-size: 24px; }
+        .cm-pad { grid-template-columns: repeat(6, 1fr); max-width: 440px; gap: 8px; }
+        .cm-pad button, .cm-weights button { padding: .32em 0 .28em; font-size: 20px; }
+        .cm-scale { --pan-h: 62px; margin: 0 auto; }
+        .cm-tally { margin-bottom: 8px; font-size: 17px; padding: 4px 14px; }
+        .cm-weights { margin-bottom: 10px; gap: 8px; }
+        .cm-note { margin: 4px auto 12px; padding: 14px 18px 10px; font-size: 15px; }
+        .cm-note p { margin-bottom: 6px; }
+        .br-gap { height: 70px; margin: 4px auto; }
+        /* ajuda: duas colunas aproveitando a largura */
+        .ts-cols, :root.touch .ts-cols { grid-template-columns: 1fr 1fr; margin-bottom: 10px; gap: 8px; }
+        .ts-box { padding: 8px 10px 6px; }
+        .ts-box ul { gap: 3px; }
+        .ts-box li { font-size: 13.5px; }
+        .tb-ico img { width: 24px; height: 24px; }
+        /* fim de jogo */
+        #over-screen h1 { font-size: clamp(28px, 9vh, 40px); }
+        .go-dist { font-size: clamp(44px, 14vh, 64px); }
+        .go-track { margin-top: 10px; }
+        .go-tiles { margin-top: 10px; gap: 8px; }
+        .go-tile { padding: 6px 4px; }
+        .go-tile b { font-size: 20px; }
+        #over-stats { margin-bottom: 10px; }
+      }
       @media (prefers-reduced-motion: reduce) {
         .card, #prompt, #gate-hud .gate-title { animation: none; }
       }
@@ -728,17 +805,29 @@
     <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/bola-de-fogo-sem-carga.webp" />
     <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/correr-desligado.webp" />
     <link media="(pointer: coarse)" rel="preload" as="image" href="img/trilha-sombria-controles/webp/interagir-pressionado.webp" />
+    <script>
+      // celular/tablet: tela de toque, aparelho móvel ou o primeiro toque na tela → html.touch
+      (function () {
+        var root = document.documentElement;
+        var mobile = matchMedia('(pointer: coarse)').matches || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)
+          || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)); // iPad se passando por Mac
+        if (mobile) root.classList.add('touch');
+        addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch') root.classList.add('touch'); }, true);
+      })();
+    </script>
   </head>
   <body>
     <!-- tela de carregamento: some sozinha quando tudo estiver baixado e compilado (preload.js) -->
     <div id="boot" role="progressbar" aria-label="Carregando">
       <div class="boot-inner">
-        <img class="boot-logo" src="img/logo-trilha-sombria-v3.png" alt="MathTerror — Trilha Sombria" width="1536" height="1024" fetchpriority="high" />
+        <img class="boot-logo" src="img/logo-trilha-sombria-v3-1024.webp" alt="MathTerror — Trilha Sombria" width="1024" height="683" fetchpriority="high" />
         <div class="boot-row"><span id="boot-text">Despertando os mortos</span><span id="boot-pct">0%</span></div>
         <div class="boot-track"><div id="boot-bar"></div></div>
+        <div id="boot-rotate"><span class="rot-ico"><svg class="rot-phone" viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="52" rx="5"/><path d="M29 52h6"/></svg><svg class="rot-arrow" viewBox="0 0 64 64" aria-hidden="true"><path d="M50 22a22 22 0 0 0-30-10M14 42a22 22 0 0 0 30 10"/><path d="M20 6l0 7 7 0M44 58l0-7-7 0"/></svg></span><span><b>Vire o celular</b>O jogo é jogado com o celular deitado.</span></div>
         <p id="boot-tip"></p>
       </div>
     </div>
+    <div id="rotate" role="alert"><span class="rot-ico"><svg class="rot-phone" viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="52" rx="5"/><path d="M29 52h6"/></svg><svg class="rot-arrow" viewBox="0 0 64 64" aria-hidden="true"><path d="M50 22a22 22 0 0 0-30-10M14 42a22 22 0 0 0 30 10"/><path d="M20 6l0 7 7 0M44 58l0-7-7 0"/></svg></span><h2>Vire o celular</h2><p>A trilha só se revela com o celular deitado. O jogo fica pausado até você virar.</p></div>
     <div id="dark" hidden></div>
     <div class="fx-vignette"></div>
     <div class="fx-noise"></div>
@@ -797,7 +886,7 @@
 
     <div id="overlay">
       <div class="title-menu" id="title-screen">
-        <img class="ts-logo" src="img/logo-trilha-sombria-v3.png" alt="MathTerror — Trilha Sombria" width="1536" height="1024" />
+        <img class="ts-logo" src="img/logo-trilha-sombria-v3-1024.webp" alt="MathTerror — Trilha Sombria" width="1024" height="683" />
         <nav class="ts-menu" id="ts-menu">
           <button class="ts-item is-main" id="btn-start" disabled><span>Jogar</span></button>
           <button class="ts-item" id="btn-help"><span>Como jogar</span></button>
@@ -809,6 +898,16 @@
         <h2>Como jogar</h2>
         <p class="sub">A noite caiu. Corra pela trilha, resolva as contas dos mortos e não deixe a lanterna apagar…</p>
         <div class="ts-cols">
+          <section class="ts-box touch-box">
+            <h3>Controles</h3>
+            <ul>
+              <li><span class="tb-ico"><img src="img/trilha-sombria-controles/webp/andar-esquerda-normal.webp" alt="" /><img src="img/trilha-sombria-controles/webp/andar-direita-normal.webp" alt="" /></span>andar</li>
+              <li><span class="tb-ico"><img src="img/trilha-sombria-controles/webp/correr-ligado.webp" alt="" /></span>correr ligado / desligado</li>
+              <li><span class="tb-ico"><img src="img/trilha-sombria-controles/webp/pular-normal.webp" alt="" /></span>pular (segure para ir mais alto)</li>
+              <li><span class="tb-ico"><img src="img/trilha-sombria-controles/webp/bola-de-fogo-normal.webp" alt="" /></span>bola de fogo (ou toque na tela)</li>
+              <li><span class="tb-ico"><img src="img/trilha-sombria-controles/webp/interagir-normal.webp" alt="" /></span>examinar / esconder (aparece perto)</li>
+            </ul>
+          </section>
           <section class="ts-box keys-box">
             <h3>Controles</h3>
             <ul>
@@ -839,7 +938,7 @@
       </div>
     </div>
 
-    <div id="touch">
+    <div id="touch" hidden>
       <div class="tbtn" data-key="TouchLeft">◀</div>
       <div class="tbtn" data-key="TouchRight">▶</div>
       <div class="tbtn" data-key="TouchJump">⤒</div>

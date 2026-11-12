@@ -98,9 +98,9 @@ function portraitTex(kind) {
 // ----- quadros com imagem de verdade (public/img) -----
 // eyes: centro de cada olho na imagem (px) para o susto do relâmpago
 const PORTRAIT_IMAGES = {
-  0: { src: 'img/barao.png', eyes: [[350, 218], [455, 218]] },
-  1: { src: 'img/dama.png', eyes: [[350, 216], [455, 216]] },
-  2: { src: 'img/crianca.png', eyes: [[352, 283], [455, 281]] },
+  0: { src: 'img/barao.webp', eyes: [[350, 218], [455, 218]] },
+  1: { src: 'img/dama.webp', eyes: [[350, 216], [455, 216]] },
+  2: { src: 'img/crianca.webp', eyes: [[352, 283], [455, 281]] },
 };
 const imageCache = new Map();
 // carrega uma vez e prepara duas versões: pintura antiga e a "assombrada" (olhos pretos chorando sangue)

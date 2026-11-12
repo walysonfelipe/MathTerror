@@ -300,7 +300,7 @@ export function createGateRoom({ character, sfx, tex, el }) {
   scene.background = new THREE.Color(0x020101);
   scene.fog = new THREE.Fog(0x020101, 5, 19);
   const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 220);
-  const coarse = matchMedia('(pointer: coarse)').matches;
+  const coarse = document.documentElement.classList.contains('touch'); // celular/tablet (ver index.html)
 
   // ---------- luz ----------
   const hemi = new THREE.HemisphereLight(0x5a3a40, 0x080304, 0.32);

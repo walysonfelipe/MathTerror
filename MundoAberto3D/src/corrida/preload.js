@@ -7,7 +7,7 @@
 const BASE = import.meta.env.BASE_URL;
 
 // tudo que mora em public/ e só seria baixado no meio da partida
-export const PRELOAD_IMAGES = ['img/logo-trilha-sombria-v3.png', 'img/barao.png', 'img/dama.png', 'img/crianca.png']
+export const PRELOAD_IMAGES = ['img/logo-trilha-sombria-v3-1024.webp', 'img/barao.webp', 'img/dama.webp', 'img/crianca.webp']
   .map((p) => BASE + p);
 
 export const PRELOAD_SOUNDS = [

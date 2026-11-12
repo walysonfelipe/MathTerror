@@ -585,6 +585,22 @@ function gameOver() {
   ui.again.focus();
 }
 
+// Janelas (placas): se não couberem na altura da tela, encolhem por igual até caber.
+// O CSS já deixa tudo enxuto em telas baixas; isto é a garantia para qualquer aparelho.
+function fitCards() {
+  for (const card of document.querySelectorAll('#overlay .card, #cm-card')) {
+    if (!card.getClientRects().length) continue;
+    card.style.zoom = '';
+    const pad = 2 * Math.max(16, parseFloat(getComputedStyle(card.parentElement).paddingTop) || 16);
+    const avail = innerHeight - pad, h = card.scrollHeight;
+    if (h > avail) card.style.zoom = Math.max(0.6, avail / h).toFixed(3);
+  }
+}
+const fitSoon = () => requestAnimationFrame(fitCards);
+addEventListener('resize', fitSoon);
+new MutationObserver(fitSoon).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['hidden'], subtree: true, childList: true });
+new MutationObserver(fitSoon).observe(document.getElementById('cmodal'), { attributes: true, attributeFilter: ['hidden'], subtree: true, childList: true });
+
 let lastHud = '';
 // só no modo de desenvolvimento: atalhos para testar as telas (layout)
 if (import.meta.env.DEV) window.__ts = { castle, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
@@ -817,8 +833,17 @@ function frameCastle(dt) {
 const clock = new THREE.Clock();
 let time = 0;
 
+// celular em pé: a tela "vire o celular" cobre tudo e a partida fica pausada
+const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 700px)');
+const portraitPhone = { get matches() { return portraitMQ.matches && document.documentElement.classList.contains('touch'); } };
 function frame() {
   checkSize();
+  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal')) {
+    clock.getDelta(); // não acumula o tempo parado
+    input.clear();
+    requestAnimationFrame(frame);
+    return;
+  }
   const realDt = Math.min(clock.getDelta(), 1 / 30);
   // passos só na trilha (o castelo é de pedra)
   {

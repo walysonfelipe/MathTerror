@@ -13,7 +13,9 @@ export function enterFullscreen() {
     const p = root.requestFullscreen
       ? root.requestFullscreen({ navigationUI: 'hide' })
       : root.webkitRequestFullscreen();
-    p?.catch?.(() => {});
+    // no celular, tenta travar deitado (Android; o iPhone ignora e mostra o aviso "vire o celular")
+    const lock = () => { if (document.documentElement.classList.contains('touch')) screen.orientation?.lock?.('landscape')?.catch?.(() => {}); };
+    p?.then ? p.then(lock, () => {}) : lock();
   } catch { /* sem gesto válido ou bloqueado: ignora */ }
 }
 
