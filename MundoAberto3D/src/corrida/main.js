@@ -133,9 +133,30 @@ function resize() {
   particles.resize(renderer, camera);
   gateRoom?.resize();
 }
+// Girar o aparelho: o iPhone (principalmente no app instalado/PWA) avisa antes de saber o tamanho novo
+// e às vezes nem refaz o layout. Então: força o navegador a recalcular a área visível e ajusta
+// várias vezes durante a rotação, até o tamanho assentar.
+const vpMeta = document.querySelector('meta[name="viewport"]');
+const vpContent = vpMeta?.content;
+let relayoutTimers = [];
+function relayout() {
+  if (vpMeta) {
+    vpMeta.content = vpContent + ', maximum-scale=1';
+    requestAnimationFrame(() => { vpMeta.content = vpContent; });
+  }
+  if (scrollX || scrollY) scrollTo(0, 0);
+  resize();
+  dispatchEvent(new Event('game-relayout')); // janelas (placas) se reencaixam
+}
+function relayoutSoon() {
+  relayoutTimers.forEach(clearTimeout);
+  relayoutTimers = [0, 100, 250, 500, 900, 1500].map((t) => setTimeout(relayout, t));
+}
 addEventListener('resize', resize);
-addEventListener('orientationchange', () => setTimeout(resize, 250));
+addEventListener('orientationchange', relayoutSoon);
+screen.orientation?.addEventListener?.('change', relayoutSoon);
 window.visualViewport?.addEventListener('resize', resize);
+matchMedia('(orientation: portrait)').addEventListener?.('change', relayoutSoon);
 // rede de segurança: se a tela mudou e nenhum evento avisou, corrige no próximo quadro
 function checkSize() {
   const [w, h] = viewSize();
@@ -598,6 +619,7 @@ function fitCards() {
 }
 const fitSoon = () => requestAnimationFrame(fitCards);
 addEventListener('resize', fitSoon);
+addEventListener('game-relayout', fitSoon);
 new MutationObserver(fitSoon).observe(document.getElementById('overlay'), { attributes: true, attributeFilter: ['hidden'], subtree: true, childList: true });
 new MutationObserver(fitSoon).observe(document.getElementById('cmodal'), { attributes: true, attributeFilter: ['hidden'], subtree: true, childList: true });
 

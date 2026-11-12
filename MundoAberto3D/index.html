@@ -13,8 +13,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Trilha Sombria" />
-    <!-- o jogo vai por baixo da barra de status; o layout já respeita as áreas seguras -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- barra de status preta e opaca: o "black-translucent" erra a altura da página do iPhone X em diante -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <!-- tela de abertura do iPhone (sem isto ela é branca) -->
     <link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="pwa/splash-440x956@3x-deitado.jpg" />
     <link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="pwa/splash-440x956@3x-retrato.jpg" />
@@ -60,7 +60,11 @@
         --slab-bevel: inset 0 1px 0 #ffffff14, inset 0 -2px 0 #00000080, inset 0 0 0 6px #160c0c, inset 0 0 0 7px #6a3a1e,
           inset 0 0 0 8px #1a0c0a, inset 0 0 70px #000d;
       }
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      /* jogo: nada de seleção azul, lupa ou menu de copiar ao tocar/segurar */
+      html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+      img { -webkit-user-drag: none; }
+      :focus:not(:focus-visible) { outline: none; }
       html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #05040a; font-family: var(--font-num); color: var(--bone); }
       body > canvas { display: block; touch-action: none; position: fixed; inset: 0; width: 100% !important; height: 100% !important; }
       [hidden] { display: none !important; }
