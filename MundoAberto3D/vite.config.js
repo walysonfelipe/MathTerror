@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 const page = (p) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
+  // a Cloudflare (wrangler deploy) adiciona o plugin dela aqui automaticamente
+  plugins: [],
   build: {
     target: 'es2022', // permite top-level await
     rollupOptions: {
