@@ -1,11 +1,11 @@
-// Arte do MathTerror 2D reaproveitada na interface do 3D (mesmos arquivos, sem cópia).
+// Arte da interface (veio do MathTerror 2D; o jogo 2D está guardado no branch jogo-2d).
 const IMG = {
-  logo: new URL('../../assets/images/logo.webp', import.meta.url).href,
-  panel: new URL('../../assets/images/gameover-panel.webp', import.meta.url).href,
-  hud: new URL('../../assets/images/hud-frame-3.webp', import.meta.url).href,
-  buttons: new URL('../../assets/images/gameover-buttons.webp', import.meta.url).href,
-  hearts: new URL('../../assets/images/hearts-sheet.webp', import.meta.url).href,
-  digits: new URL('../../assets/images/digits-sheet.webp', import.meta.url).href,
+  logo: new URL('../assets/images/logo.webp', import.meta.url).href,
+  panel: new URL('../assets/images/gameover-panel.webp', import.meta.url).href,
+  hud: new URL('../assets/images/hud-frame-3.webp', import.meta.url).href,
+  buttons: new URL('../assets/images/gameover-buttons.webp', import.meta.url).href,
+  hearts: new URL('../assets/images/hearts-sheet.webp', import.meta.url).href,
+  digits: new URL('../assets/images/digits-sheet.webp', import.meta.url).href,
 };
 
 /** Expõe as imagens como variáveis CSS (--img-panel, --img-hud, ...) e preenche a logo. */

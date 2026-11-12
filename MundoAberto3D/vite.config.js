@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const page = (p) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
-  // caminhos relativos: o jogo funciona em qualquer pasta do site (publicado em /trilha/)
+  // caminhos relativos: o jogo funciona em qualquer pasta do site
   base: './',
   // a Cloudflare (wrangler deploy) adiciona o plugin dela aqui automaticamente
   plugins: [],
@@ -16,6 +16,4 @@ export default defineConfig({
       },
     },
   },
-  // Permite importar o gerador de perguntas e a fonte do jogo 2D (pasta acima)
-  server: { fs: { allow: ['..'] } },
 });

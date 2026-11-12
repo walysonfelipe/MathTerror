@@ -1,6 +1,4 @@
+# dados locais das partidas (servidor do jogo 2D, guardado no branch jogo-2d)
 data/
 node_modules/
-
-# Cloudflare: pasta gerada no deploy e arquivos do wrangler
-_site/
-.wrangler/
+.DS_Store

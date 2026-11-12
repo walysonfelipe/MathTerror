@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mathterror",
+  "compatibility_date": "2026-10-12",
+  "observability": { "enabled": true },
+  // a Cloudflare usa esta pasta (MundoAberto3D) como diretório raiz: compila com o Vite e publica o dist/
+  "build": { "command": "npm run build" },
+  "assets": { "directory": "./dist" }
+}
