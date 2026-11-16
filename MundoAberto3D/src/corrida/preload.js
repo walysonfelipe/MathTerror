@@ -13,7 +13,7 @@ export const PRELOAD_IMAGES = ['img/logo-trilha-sombria-v3-1024.webp', 'img/bara
 export const PRELOAD_SOUNDS = [
   'ambiente-noite', 'aparicao', 'asas', 'batimento', 'corvo', 'erro', 'lanterna', 'papel', 'passos-grama',
   'pedra', 'porta-batendo', 'porta-rangendo', 'queda', 'respiracao', 'revelacao', 'rosnado', 'sino',
-  'sumico', 'sussurros', 'tensao', 'vento',
+  'sumico', 'sussurros', 'tensao', 'vento', 'luta-punch', 'luta-fight', 'luta-impact', 'luta-spell',
   ...Object.entries({ terra: 8, corrida: 6, madeira: 5, pedra: 5 }).flatMap(([s, n]) => [...Array(n).keys()].map((i) => `passos/${s}_${i}`)),
   'passos/pulo', 'passos/aterrissagem',
 ].map((n) => `${BASE}sounds/${n}.mp3`);

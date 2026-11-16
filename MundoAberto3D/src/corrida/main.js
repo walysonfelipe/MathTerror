@@ -10,13 +10,14 @@ import { createBackground } from './background.js';
 import { createWorld, PIT_FLOOR } from './world.js';
 import { createPlayer } from './player.js';
 import { createSfx } from './sfx.js';
-import { createInput } from './input.js';
+import { createInput, rumble } from './input.js';
 import { createParticles } from './particles.js';
 import { createPowers } from './powers.js';
 import { createImpale } from './impale.js';
 import { createGateRoom } from './gate.js';
-import { BIOMES, nextBiome, startBiome } from './biomes.js';
+import { BIOMES, biomeIntro, nextBiome, startBiome } from './biomes.js';
 import { createCastle } from './castle.js';
+import { createFlat } from './flat.js';
 import { applyHudAssets } from '../hud-assets.js';
 import { setupFullscreen } from './fullscreen.js';
 import { createBootScreen, decodeImages, PRELOAD_IMAGES, PRELOAD_SOUNDS } from './preload.js';
@@ -101,6 +102,7 @@ const world = createWorld(scene, tex, sfx);
 const particles = createParticles(scene);
 
 let gateRoom = null; // sala da conta (criada depois de carregar o personagem)
+let flat = null;     // Dimensão Plana (multiverso 2D)
 const warpEl = document.getElementById('warp');
 const touchEl = document.getElementById('touch');
 
@@ -132,6 +134,7 @@ function resize() {
   bg.resize();
   particles.resize(renderer, camera);
   gateRoom?.resize();
+  flat?.resize(camera.aspect);
 }
 // Girar o aparelho: o iPhone (principalmente no app instalado/PWA) avisa antes de saber o tamanho novo
 // e às vezes nem refaz o layout. Então: força o navegador a recalcular a área visível e ajusta
@@ -204,8 +207,30 @@ gateRoom = createGateRoom({
   character, sfx, tex,
   el: { root: $('gate-hud'), n: $('gate-n'), hint: $('gate-hint'), warp: warpEl, blood: bloodEl },
 });
+flat = createFlat({
+  sfx, stats: world.stats,
+  cb: {
+    onEdge: () => { toast('O chão está cedendo…', 'Lá embaixo, alguém faz contas esperando por você.', 3.2); sfx.rumble?.(); rumble(0.5, 900); },
+    onBreak: () => { sfx.playClip('pedra', 0.7); sfx.boom?.(0.5); rumble(1, 500); },
+    onFall: () => { sfx.playClip('queda', 0.6); sfx.playClip('vento', 0.5); sfx.ambience(0.1, 800); },
+    onArena: () => { touchEl.hidden = true; sfx.playClip('rosnado', 0.5); },
+    onHurt: () => { bloodEl.style.opacity = '0.75'; },
+    onFaint: () => { ui.hud.hidden = true; sfx.playClip('batimento', 0.6); sfx.playClip('respiracao', 0.5); },
+    // desmaiou e tudo ficou branco: acorda de volta na trilha 3D
+    onWin: () => {
+      sfx.stopClip('batimento');
+      finishFlat();
+      warpFade = 0;
+      warpEl.style.opacity = 0;
+      toast('Foi só um pesadelo…?', 'O π ainda arde na sua memória. A trilha continua.', 3.8);
+      sfx.playClip('sino', 0.35);
+    },
+    onLose: () => { player.P.deathCause = 'boss'; gameOver(); },
+  },
+});
+flat.resize(camera.aspect);
 // clique na tela também lança
-renderer.domElement.addEventListener('pointerdown', (e) => { if (e.button === 0 && state === 'play') input.fire(); });
+renderer.domElement.addEventListener('pointerdown', (e) => { if (e.button === 0 && (state === 'play' || state === 'flat')) input.fire(); });
 
 
 // placas 3D inclinam de leve acompanhando o mouse
@@ -325,6 +350,8 @@ function startGame() {
   sfx.ambience(1, 600);
   input.clear();
   castle.stop();
+  flat.stop();
+  flatVisits = 0;
   active = world;
   castlesPassed = 0;
   castleGate = null;
@@ -355,9 +382,17 @@ function startGame() {
   ui.hud.hidden = false;
   touchEl.hidden = false;
   state = 'play';
+  toast(firstBiome.name, biomeIntro(firstBiome), 3.6);
   // teste: index.html?castelo (ou ?sala=masmorra…) começa direto dentro do castelo
   const qs = new URLSearchParams(location.search);
   if (qs.has('castelo') || qs.has('sala')) { castleGate = { p: { x: 0, top: 0 } }; enterCastle(); }
+  // teste: index.html?plano começa direto na Dimensão Plana
+  // (index.html?arena pula direto para a luta com o boss)
+  else if ((qs.has('plano') || qs.has('arena')) && flat.ok) {
+    enter = { p: { x: 0, top: 0, kind: 'plano' } };
+    enterFlat();
+    if (qs.has('arena')) flat.toArena();
+  }
 }
 
 // ---------- portal ----------
@@ -393,7 +428,10 @@ function updateEntering(realDt) {
   cam.y = enter.cy + (p.top + 2.05 - enter.cy) * e;
   cam.z = enter.z0 + (2.2 - enter.z0) * e * e;
   warpEl.style.opacity = String(Math.max(0, (k - 0.35) / 0.65));
-  if (enter.t >= 1.3) {
+  if (enter.t >= 1.3 && p.kind === 'plano' && flat.ok) {
+    root.scale.setScalar(1);
+    enterFlat();
+  } else if (enter.t >= 1.3) {
     state = 'portal';
     root.scale.setScalar(1);
     ui.hud.hidden = true;
@@ -401,6 +439,69 @@ function updateEntering(realDt) {
     darkEl.hidden = true;
     gateRoom.start(portalsPassed, renderer, finishPortal);
   }
+}
+
+// ---------- Dimensão Plana (multiverso 2D) ----------
+// O personagem 3D some e vira a coruja desenhada; a física de lado é a mesma.
+let flatVisits = 0;
+let flatMaxX = 0; // a distância da trilha não conta lá dentro
+function enterFlat() {
+  state = 'flat';
+  active = flat;
+  flatMaxX = player.P.maxX;
+  character.root.removeFromParent();
+  darkEl.hidden = true;
+  promptEl.hidden = true;
+  useBtn.hidden = true;
+  ui.hud.hidden = false;
+  touchEl.hidden = false;
+  flat.start(flatVisits, player);
+  input.clear();
+  warpFade = 1;
+  sfx.ambience(0.25, 1200);
+  const flatIntro = [
+    'Aqui o mundo perdeu a profundidade. A lava, não.',
+    'Você virou desenho. As coisas que moram na lava também.',
+    'Tudo é chato neste lugar, menos o que quer te queimar.',
+  ];
+  toast('Dimensão Plana', flatIntro[Math.floor(Math.random() * flatIntro.length)], 3.6);
+}
+
+// venceu o boss da arena e desmaiou (o sonho é desenhado em flat-fight.js): volta para a trilha, num reino novo
+function finishFlat() {
+  flatVisits++;
+  active = world;
+  flat.stop();
+  player.P.maxX = flatMaxX;
+  sfx.warp?.();
+  finishPortal();
+}
+
+function frameFlat(dt) {
+  time += dt;
+  const P = player.P;
+  if (state === 'flat') {
+    if (!flat.busy) {
+      player.update(dt, input, flat.minX, time);
+      if (P.x > flat.maxX - P.w / 2) { P.x = flat.maxX - P.w / 2; P.vx = 0; }
+    } else input.consumeJump();
+    P.maxX = flatMaxX;
+    // bola de fogo em 2D (mesmas cargas da trilha); sem "usar" e sem "olhar" lá dentro
+    powers.tick(dt);
+    if (input.consumeFire() && !flat.busy && !P.dead) { if (powers.spend()) flat.fire(); else sfx.empty?.(); }
+    input.consumeUse(); input.consumeLook(); input.consumeBack();
+    flat.update(dt, time);
+    if (state === 'flat' && player.deathDone()) gameOver();
+    updateHud();
+  }
+  if (active === flat) flat.place(dt, time);
+  character.mixer.update(dt);
+  if (warpFade > 0) { warpFade = Math.max(0, warpFade - dt * 1.4); warpEl.style.opacity = String(warpFade); }
+  const bl = parseFloat(bloodEl.style.opacity) || 0;
+  if (bl > 0) bloodEl.style.opacity = String(Math.max(0, bl - dt * 0.9));
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) ui.toast.classList.remove('show'); }
+  renderer.clear();
+  if (active === flat) flat.render(renderer);
 }
 
 // ---------- castelo ----------
@@ -444,7 +545,7 @@ function enterCastle() {
   touchEl.hidden = false;
   Object.assign(cam, { x: sx, y: 3.2, focusY: 0, z: CAM_Z_CASTLE });
   fadeOut = 1;
-  toast('O portão se fechou atrás de você…');
+  toast('O portão se fechou atrás de você…', 'A saída pede a Chave do Corvo, e ela está em três pedaços.', 3.6);
 }
 
 function finishCastle() {
@@ -468,7 +569,7 @@ function finishCastle() {
   input.clear();
   fadeOut = 1;
   state = 'play';
-  toast(realm.name);
+  toast(realm.name, biomeIntro(realm), 3.6);
   sfx.ambience(1);
   sfx.playClip('corvo', 0.45);
   sfx.playClip('asas', 0.4);
@@ -499,7 +600,7 @@ function finishPortal() {
   warpFade = 1;
   darkEl.hidden = false;
   state = 'play';
-  toast(realm.name);
+  toast(realm.name, biomeIntro(realm), 3.6);
   sfx.ambience(1);
   sfx.playClip('corvo', 0.45);
   sfx.playClip('asas', 0.4);
@@ -551,10 +652,15 @@ const DEATH_TITLES = {
   trap: 'A armadilha se fechou…',
   dama: 'A Dama te encontrou…',
   spikes: 'Você caiu nos espinhos…',
+  lava: 'O fogo te alcançou…',
+  sombra: 'A sombra rastejante te alcançou…',
+  caveira: 'A caveira em chamas te queimou…',
+  boss: 'O Guardião te derrotou…',
   drown: 'Você se afogou…',
 };
 function deathTitle(P) {
   if (P.deathCause === 'ghost' && oil <= 0) return 'A escuridão te levou…';
+  if (active === flat && P.deathCause === 'drown') return 'A lava te engoliu…';
   return DEATH_TITLES[P.deathCause] ?? 'Você caiu…';
 }
 
@@ -581,7 +687,7 @@ function gameOver() {
   const tile = (ico, n, lbl) => `<div class="go-tile">${ICO[ico]}<b data-count="${n}">0</b><span>${lbl}</span></div>`;
   ui.overStats.innerHTML =
     `<div class="go-hero"><div class="go-dist"><span data-count="${meters}">0</span><small>M</small></div>` +
-    `<div class="go-biome">${biome.name}</div>` +
+    `<div class="go-biome">${active === flat ? 'Dimensão Plana' : biome.name}</div>` +
     (record && meters > 0 ? '<div class="go-stamp">Novo recorde!</div>' : '') + '</div>' +
     `<div class="go-track"><div class="bar"><div class="go-fill"></div></div>` +
     `<div class="go-track-lbl"><span>Distância</span><span>Recorde <b>${best} m</b></span></div></div>` +
@@ -625,7 +731,7 @@ new MutationObserver(fitSoon).observe(document.getElementById('cmodal'), { attri
 
 let lastHud = '';
 // só no modo de desenvolvimento: atalhos para testar as telas (layout)
-if (import.meta.env.DEV) window.__ts = { castle, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
+if (import.meta.env.DEV) window.__ts = { castle, flat, player, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
 // ---------- ponte quebrada: escolher tábuas que somam a medida do buraco ----------
 const cm = { modal: $('cmodal'), card: $('cm-card'), title: $('cm-title'), body: $('cm-body'), close: $('cm-close') };
 let bridgeUI = null; // { bridge, hole, sel:Set }
@@ -867,7 +973,7 @@ const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 700px)');
 const portraitPhone = { get matches() { return portraitMQ.matches && document.documentElement.classList.contains('touch'); } };
 function frame() {
   checkSize();
-  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal')) {
+  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal' || state === 'flat')) {
     clock.getDelta(); // não acumula o tempo parado
     input.clear();
     requestAnimationFrame(frame);
@@ -878,13 +984,20 @@ function frame() {
   {
     const P = player.P, gk = P.groundKind;
     const surface = gk === 'plank' ? 'madeira' : gk === 'block' || gk === 'pillar' || gk === 'roof' ? 'pedra'
-      : biome.id === 'pantano' ? 'lama' : 'terra';
-    sfx.steps(state === 'play' && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
+      : state === 'flat' ? 'pedra' : biome.id === 'pantano' ? 'lama' : 'terra';
+    sfx.steps((state === 'play' || state === 'flat') && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
   }
 
   // dentro do castelo: outra cena, mesma física de lado
   if (state === 'castle' || (state === 'over' && active === castle)) {
     frameCastle(realDt);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  // Dimensão Plana: outra cena, tudo desenhado em 2D
+  if (state === 'flat' || (state === 'over' && active === flat)) {
+    frameFlat(realDt);
     requestAnimationFrame(frame);
     return;
   }
@@ -926,7 +1039,7 @@ function frame() {
       else if (ev.type === 'plank') { sfx.creak(); sfx.playClip('porta-rangendo', 0.25); }
       else if (ev.type === 'hand' && whisperCooldown <= 0) { sfx.playClip('sussurros', 0.4); whisperCooldown = 9; }
       // ----- ponte quebrada -----
-      else if (ev.type === 'bridgeNear') toast('A Ponte Quebrada');
+      else if (ev.type === 'bridgeNear') toast('A Ponte Quebrada', 'Faltam tábuas. Some os tamanhos certos ou o rio leva tudo.', 3.4);
       else if (ev.type === 'bridgeOpen') openBridge(ev.bridge, ev.hole);
       else if (ev.type === 'bridgeOk') { toast('Encaixou! +2 moedas'); sfx.wood(); sfx.coin(); }
       else if (ev.type === 'bridgeDone') { toast('A ponte está inteira! +7 moedas'); sfx.wood(); sfx.gateOk(); sfx.playClip('sino', 0.5); }
@@ -946,7 +1059,7 @@ function frame() {
     if (crowTimer <= 0) { sfx.playClip('corvo', 0.35); if (Math.random() < 0.4) sfx.playClip('asas', 0.25); crowTimer = 18 + Math.random() * 25; }
     if (!P.dead) {
       oil = Math.max(0, oil - OIL_DRAIN * dt);
-      if (oil < 25 && !lowWarned) { lowWarned = true; toast('A lanterna está apagando…'); sfx.playClip('tensao', 0.45); }
+      if (oil < 25 && !lowWarned) { lowWarned = true; toast('A lanterna está apagando…', 'No escuro, eles enxergam melhor que você.', 3); sfx.playClip('tensao', 0.45); }
       if (oil <= 0 && !lampOutPlayed) { lampOutPlayed = true; sfx.lampOut(); }
       if (oil > 0) lampOutPlayed = false;
       // no escuro total, eles vêm
@@ -1059,9 +1172,10 @@ requestAnimationFrame(frame);
 // ---------- fim do carregamento: aquece a GPU com tudo que vai aparecer na partida ----------
 await fontsReady; // os textos desenhados nas peças 3D usam essas fontes
 await extrasReady;
+await flat.ready;
 {
   const biomes = Object.values(BIOMES);
-  const steps = biomes.length + 4;
+  const steps = biomes.length + 5;
   let done = 0;
   const shaderTask = boot.track('Acendendo as tochas…', 3);
   const step = () => shaderTask.progress(++done / steps);
@@ -1110,7 +1224,7 @@ await extrasReady;
   step();
 
   // castelo (salas, armadura, Dama de Branco) e a Fenda, cada um com suas luzes
-  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom]]) {
+  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom], ['Achatando o multiverso…', flat]]) {
     shaderTask.label(label);
     place.prewarm();
     const s = place.scene;

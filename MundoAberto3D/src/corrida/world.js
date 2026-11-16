@@ -160,9 +160,9 @@ export function createWorld(scene, tex, sfx) {
   let warps = 0; // cada reino novo começa um pouco mais difícil
   let eventCount = 0;
   // lugares da trilha: saem de um saco embaralhado (todos aparecem, em ordem sorteada, sem repetir seguido)
-  const PLACES = ['castelo', 'fenda', 'rio'];
+  const PLACES = ['castelo', 'fenda', 'rio', 'plano'];
   const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
-  // teste: index.html?lugar=castelo|fenda|rio faz esse lugar ser o primeiro, logo no começo
+  // teste: index.html?lugar=castelo|fenda|rio|plano faz esse lugar ser o primeiro, logo no começo
   const LEGACY = { fendateste: 'fenda', rioteste: 'rio', portalteste: 'castelo' };
   const testPlace = PLACES.includes(qs.get('lugar')) ? qs.get('lugar') : Object.keys(LEGACY).map((k) => qs.has(k) && LEGACY[k]).find(Boolean);
   let placeBag = [], lastPlace = null;
@@ -393,12 +393,13 @@ export function createWorld(scene, tex, sfx) {
     checkpoints.push({ x, top, lamp, flame, glow, glassMat, on: false, lit: 0 });
   }
 
-  function addPortal(x, top) {
+  // kind: 'fenda' (sala da conta, vermelha) ou 'plano' (Dimensão Plana 2D, cor de lava)
+  function addPortal(x, top, kind = 'fenda') {
     const g = new THREE.Group();
     const ring = new THREE.Mesh(portalRingGeo, portalStoneMat);
     ring.position.y = PORTAL_CY;
     ring.castShadow = true;
-    const mat = makeVortexMaterial();
+    const mat = kind === 'plano' ? makeVortexMaterial(0x2a1000, 0xff8a10) : makeVortexMaterial();
     const disc = new THREE.Mesh(portalDiscGeo, mat);
     disc.position.set(0, PORTAL_CY, -0.02);
     g.add(ring, disc);
@@ -432,7 +433,7 @@ export function createWorld(scene, tex, sfx) {
     });
     g.position.set(x, top, PORTAL_Z);
     add(g);
-    portals.push({ kind: 'fenda', x, top, group: g, mat, disc, runes, used: false });
+    portals.push({ kind, x, top, group: g, mat, disc, runes, used: false });
   }
 
   // trecho calmo e plano com um portal no meio (sem monstros)
@@ -442,7 +443,7 @@ export function createWorld(scene, tex, sfx) {
     decorate(x0, x1, level);
     patCoins(x0 + 3, level);
     if (place === 'castelo') addCastleGate(x0 + 17, level);
-    else addPortal(x0 + 17, level);
+    else addPortal(x0 + 17, level, place);
     eventCount++;
     nextPortal = x0 + 17 + 220 + rand() * 120;
     if (nextCheckpoint < x1 + 20) nextCheckpoint = x1 + 20;

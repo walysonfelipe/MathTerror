@@ -121,6 +121,7 @@ export function createInput() {
   // Tela/janela aberta por cima do jogo? (aí o controle navega em vez de jogar)
   function uiContext() {
     if (visible($('cmodal'))) return { kind: 'modal', root: $('cm-card') };
+    if (visible($('fight-ui'))) return { kind: 'fight', root: $('fight-ui') }; // perguntas da luta com o boss
     if (visible($('help-screen'))) return { kind: 'help', root: $('help-screen') };
     if (visible($('over-screen'))) return { kind: 'over', root: $('over-screen'), main: $('btn-again') };
     if (visible($('title-screen'))) return { kind: 'title', root: $('title-screen'), main: $('btn-start') };

@@ -20,7 +20,7 @@ const ROOM_WHISPERS = [
   'Três rostos te olham da parede. Na mesa, um papel esquecido.',
   'Correntes, ossos e uma balança torta. Alguém riscou a parede da cela.',
   'Prateleiras até o teto. Um livro aberto espera sobre a mesa.',
-  '',
+  'O trono está vazio. O corvo de pedra espera a chave inteira.',
 ];
 // recados de cada sala: enigmas que apontam o caminho sem dar a resposta
 const NOTES = {
@@ -447,6 +447,16 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
     dama.next = Math.max(10, t + Math.random() * 12 - fury * 2);
   }
 
+  // some na hora (sem machucar) e só pode voltar depois de `wait` segundos
+  function damaBanish(wait) {
+    dama.state = 'away';
+    dama.alpha = 0;
+    dama.t = Math.max(dama.t ?? 0, wait);
+    dress.visible = false;
+    damaLight.intensity = 0;
+    sfx.stopClip('batimento');
+  }
+
   function updateDama(dt, time) {
     const P = player.P;
     if (dama.state === 'away') {
@@ -704,9 +714,13 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
     void el.card.offsetWidth;
     el.card.style.animation = ''; // a placa entra de novo a cada abertura
     el.prompt.hidden = true;
+    // fazendo a conta (ou lendo um bilhete) a Dama não fica rondando: se já estava por perto, some
+    if (dama.state !== 'away') damaBanish(8);
     setup?.(el.body);
   }
   function closeModal() {
+    // fechou a janela: um respiro antes de ela poder aparecer (errar a conta encurta isso, ver wrong)
+    if (modal && dama.state === 'away') dama.t = Math.max(dama.t, 6);
     modal = null;
     el.modal.hidden = true;
   }
@@ -735,6 +749,7 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
     pieces++;
     sfx.keyPiece();
     closeModal();
+    damaBanish(30); // acertou: ela não aparece, e a próxima sala começa em paz
     openDoor(door);
     cb.toast(msg ?? `Pedaço ${pieces}/3 da Chave do Corvo!`);
   }

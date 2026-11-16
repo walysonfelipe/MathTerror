@@ -13,6 +13,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: page('./index.html'), // Trilha Sombria (corrida lateral 2.5D)
+        dev: page('./dev.html'),    // atalhos de teste (abre em /dev)
       },
     },
   },

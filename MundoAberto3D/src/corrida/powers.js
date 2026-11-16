@@ -558,6 +558,20 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
 
   function trigger() { fireQueued = true; }
 
+  // Dimensão Plana (2D): gasta e recarrega as cargas sem os efeitos 3D
+  function spend() {
+    if (charges <= 0 || cooldown > 0) return false;
+    charges--;
+    cooldown = COOLDOWN;
+    return true;
+  }
+  function tick(dt) {
+    cooldown -= dt;
+    if (charges >= MAX_CHARGES) { recharge = 0; return; }
+    recharge += dt;
+    if (recharge >= RECHARGE) { recharge = 0; charges++; sfx.recharge?.(); }
+  }
+
   /**
    * Tela de carregamento: cria UM de cada efeito (bola de fogo, rastro, runas, orbe na mão,
    * explosão com alma, fogo no chão, estilhaços, fumaça) para a GPU preparar tudo.
@@ -796,6 +810,8 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
     poseArm,
     reset,
     trigger,
+    spend,
+    tick,
     prewarm,
     timeScale,
     get charges() { return charges; },
