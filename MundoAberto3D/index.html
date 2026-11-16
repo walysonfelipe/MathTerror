@@ -655,6 +655,7 @@
         padding: 5px 12px 6px; border-radius: 999px; white-space: nowrap; color: #e6d2b0; font: italic 15px var(--font-text);
         background: #0a0505cc; box-shadow: inset 0 0 0 1px #6a3a1e, 0 6px 14px #000a; }
       #look-hint kbd { font-style: normal; }
+      #look-hint:not(.alt-key) .lk-alt, #look-hint.alt-key .lk-use { display: none !important; }
       #look-exit { position: fixed; z-index: 6; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%);
         pointer-events: none; display: flex; align-items: center; gap: 8px; white-space: nowrap;
         font: 600 12px/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: #b49a86; text-shadow: 0 1px 0 #000, 0 0 10px #000; }
@@ -1064,8 +1065,8 @@
     <div id="toast" class="outline"></div>
     <div id="warp"></div>
     <div id="fade"></div>
-    <div id="look-hint" role="button" hidden><img class="touch-only ctl-ico" src="img/trilha-sombria-controles/webp/olhar-quadro.webp" alt="" /><kbd class="key-only">G</kbd><b class="pb pb-wide pad-only">RS</b><span>olhar o quadro</span></div>
-    <div id="look-exit" hidden><span class="key-only"><kbd>G</kbd> ou <kbd>Q</kbd></span><span class="pad-only"><b class="pb pb-b">B</b></span><span class="lx-word">voltar</span>
+    <div id="look-hint" role="button" hidden><img class="touch-only ctl-ico" src="img/trilha-sombria-controles/webp/olhar-quadro.webp" alt="" /><kbd class="key-only lk-use">E</kbd><b class="pb pb-y pad-only lk-use">Y</b><kbd class="key-only lk-alt">G</kbd><b class="pb pb-wide pad-only lk-alt">RS</b><span>olhar o quadro</span></div>
+    <div id="look-exit" hidden><span class="key-only"><kbd>E</kbd> ou <kbd>Q</kbd></span><span class="pad-only"><b class="pb pb-y">Y</b> ou <b class="pb pb-b">B</b></span><span class="lx-word">voltar</span>
       <span class="pad-only"><i>✦</i><b class="pb pb-wide">RS</b> olhar em volta</span><span class="key-only"><i>✦</i>mouse olha em volta</span>
       <span class="touch-only lx-btn" role="button"><img class="ctl-ico" src="img/trilha-sombria-controles/webp/sair-quadro.webp" alt="" /> voltar</span><span class="touch-only">arraste o dedo para olhar em volta</span></div>
     <div id="prompt" hidden><kbd class="key-only">E</kbd><b class="pb pb-y pad-only">Y</b><span id="prompt-text"></span></div>
@@ -1113,7 +1114,7 @@
               <li><span class="key-only"><kbd>Shift</kbd></span><span class="pad-only"><b class="pb pb-wide">RT</b></span>correr</li>
               <li><span class="key-only"><kbd>Espaço</kbd></span><span class="pad-only"><b class="pb pb-a">A</b></span>pular</li>
               <li><span class="key-only"><kbd>F</kbd></span><span class="pad-only"><b class="pb pb-b">B</b><b class="pb pb-wide">RB</b></span>bola de fogo</li>
-              <li><span class="key-only"><kbd>E</kbd></span><span class="pad-only"><b class="pb pb-y">Y</b></span>examinar / esconder</li>
+              <li><span class="key-only"><kbd>E</kbd></span><span class="pad-only"><b class="pb pb-y">Y</b></span>interagir: examinar, usar, esconder, olhar o quadro</li>
             </ul>
           </section>
           <section class="ts-box">

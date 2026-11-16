@@ -307,6 +307,7 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
   const dyn = new THREE.Group();
   scene.add(dyn);
   let solids = [], coins = [], interact = [], doors = [], portraits = [], wardrobes = [];
+  const interactNear = (P) => interact.find((it) => (it.on ? it.on() : true) && Math.abs(P.x - it.x) < it.w && P.y < 1.5);
   const coinGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.1, 24).rotateX(Math.PI / 2);
   const coinMat = std({ color: 0xffc627, metalness: 0.35, roughness: 0.3, emissive: 0x8a5a00, emissiveIntensity: 0.6 });
 
@@ -1018,7 +1019,7 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
     updateDama(dt, time);
 
     // interação: E / ✋ perto de um objeto
-    const near = interact.find((it) => (it.on ? it.on() : true) && Math.abs(P.x - it.x) < it.w && P.y < 1.5);
+    const near = interactNear(P);
     if (near && !exiting) {
       const v = new THREE.Vector3(near.x, 3.0, 0).project(camera);
       const key = near.label();
@@ -1068,6 +1069,8 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
     get hidden() { return hidden; },
     get paused() { return !!modal; },
     // quadro bem à frente do jogador (no chão): { x, y, z } do centro da pintura, ou null
+    // tem objeto de E / Y aqui? (ele tem prioridade sobre "olhar o quadro")
+    hasInteract: (P) => !!interactNear(P) && !exiting,
     portraitAt(P) {
       if (modal || hidden || P.y > 1.5) return null;
       const p = portraits.find((q) => Math.abs(P.x - q.x) < 1.0);

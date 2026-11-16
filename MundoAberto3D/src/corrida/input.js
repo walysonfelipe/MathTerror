@@ -15,11 +15,11 @@ const USE = new Set(['KeyE', 'ArrowDown', 'KeyS']); // examinar / usar / esconde
  *   A                       pular   B                  volta / fecha / desfaz
  *   RT (segurar)            correr  Start              começa / OK
  *   B ou RB                 fogo
- *   Y ou D-pad ↓            usar / examinar / esconder
+ *   Y ou D-pad ↓            usar / examinar / esconder / olhar o quadro (botão geral de interação)
  *   analógico dir. / R3     olhar o quadro de perto (castelo); o analógico dir. vira a cabeça
  *   B                       sai do modo "olhar"
  *
- *   Teclado: G olha o quadro (G de novo ou Esc sai)
+ *   Teclado: E é a interação geral (inclusive olhar o quadro); G também olha o quadro
  */
 const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, VIEW: 8, START: 9, L3: 10, R3: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 const DEAD = 0.35;      // zona morta do analógico
@@ -261,6 +261,7 @@ export function createInput() {
     consumeFire() { const f = fireQueued; fireQueued = false; return f; },
     fire() { fireQueued = true; },
     consumeUse() { const u = useQueued; useQueued = false; return u; },
+    get usePending() { return useQueued; },
     consumeLook() { const l = lookQueued; lookQueued = null; return l; },
     consumeBack() { const b = backQueued; backQueued = false; return b; },
     lookToggle() { lookQueued = 'toggle'; }, // toque na dica "olhar o quadro"

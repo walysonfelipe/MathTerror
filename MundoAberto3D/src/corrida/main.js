@@ -747,7 +747,7 @@ function updateHud() {
 }
 
 // ---------- olhar o quadro de perto (galeria do castelo) ----------
-// G / R3 alterna, empurrar o analógico direito entra; o analógico direito vira a cabeça.
+// E / Y (interação geral), G ou R3 alternam; empurrar o analógico direito entra; o analógico direito vira a cabeça.
 // Sai com G, B, Esc, andando, pulando, se apanhar ou se abrir uma janela.
 const lookHint = $('look-hint');
 // toque: a dica embaixo do quadro entra no modo "olhar"; "voltar" sai (= G / Q)
@@ -760,8 +760,11 @@ const _UP = new THREE.Vector3(0, 1, 0);
 function updatePortraitView(dt, P) {
   const v = portraitView;
   const near = state === 'castle' && !P.dead && P.grounded ? castle.portraitAt(P) : null;
-  const ask = input.consumeLook();
+  let ask = input.consumeLook();
   const back = input.consumeBack();
+  // E / Y (interação geral) também olha o quadro — se não houver outro objeto ali — e sai dele
+  const useFree = !!near && !castle.hasInteract(P);
+  if (input.usePending && (v.target || (useFree && !castle.paused))) { input.consumeUse(); ask = 'toggle'; }
   if (!v.target && ask && near) {
     v.target = near;
     v.lx = v.ly = 0;
@@ -788,6 +791,7 @@ function updatePortraitView(dt, P) {
     lookHint.style.top = `${((1 - p3.y) / 2) * innerHeight}px`;
   }
   lookHint.hidden = !showHint;
+  lookHint.classList.toggle('alt-key', !useFree); // o E/Y já é de outro objeto: mostra G/RS
   $('look-exit').hidden = !(v.target && v.k > 0.6);
 }
 function resetPortraitView() {

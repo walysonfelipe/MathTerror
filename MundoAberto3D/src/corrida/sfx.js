@@ -216,7 +216,7 @@ export function createSfx() {
     });
   }
   let stepPhase = 0;
-  const RUN_SPEED = 5; // acima disso o personagem está correndo (MAX_WALK + 0,5 no player)
+  const RUN_SPEED = 6; // acima disso o personagem está correndo (MAX_WALK + 0,5 no player)
   function steps(speed, dt = 0, surface = 'terra') {
     if (!ctx || speed < 0.6) { stepPhase = 0.6; return; } // parado: o próximo passo sai logo
     const running = speed > RUN_SPEED;
