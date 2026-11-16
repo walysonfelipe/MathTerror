@@ -753,7 +753,7 @@ const lookHint = $('look-hint');
 // toque: a dica embaixo do quadro entra no modo "olhar"; "voltar" sai (= G / Q)
 lookHint.addEventListener('click', () => input.lookToggle());
 $('look-exit').addEventListener('click', () => input.back());
-const portraitView = { k: 0, target: null, lx: 0, ly: 0 };
+const portraitView = { k: 0, target: null, lx: 0, ly: 0, inv: 0 };
 const _baseQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(PITCH, 0, 0));
 const _viewQ = new THREE.Quaternion(), _m4 = new THREE.Matrix4(), _vPos = new THREE.Vector3(), _vAt = new THREE.Vector3();
 const _UP = new THREE.Vector3(0, 1, 0);
@@ -764,13 +764,16 @@ function updatePortraitView(dt, P) {
   const back = input.consumeBack();
   // E / Y (interação geral) também olha o quadro — se não houver outro objeto ali — e sai dele
   const useFree = !!near && !castle.hasInteract(P);
+  // apanhou agora? (só o golpe novo tira do quadro; os 1,8 s de invulnerável depois não bloqueiam)
+  const hitNow = P.invuln > v.inv + 0.01;
+  v.inv = P.invuln;
   if (input.usePending && (v.target || (useFree && !castle.paused))) { input.consumeUse(); ask = 'toggle'; }
   if (!v.target && ask && near) {
     v.target = near;
     v.lx = v.ly = 0;
     P.vx = 0;
     sfx.playClip?.('papel', 0.15);
-  } else if (v.target && (ask === 'toggle' || back || input.left || input.right || input.jumpHeld || !near || P.invuln > 0)) {
+  } else if (v.target && (ask === 'toggle' || back || input.left || input.right || input.jumpHeld || !near || hitNow)) {
     v.target = null;
   }
   v.k += ((v.target ? 1 : 0) - v.k) * Math.min(1, dt * (v.target ? 4.5 : 6));
