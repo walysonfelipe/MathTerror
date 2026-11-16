@@ -159,53 +159,72 @@ export function createSfx() {
     }
   }
 
-  // passos: gravações reais (Kenney Impact Sounds, CC0), 5 variações por chão
+  // passos: gravações reais. terra/corrida = "Footsteps Dirt 01" (Pixabay, licença Pixabay),
+  // fatiada passo a passo; madeira/pedra = Kenney Impact Sounds (CC0)
   // surface: 'terra' | 'lama' | 'madeira' | 'pedra' (lama = terra mais grave e abafada)
   const STEP_FILES = { terra: 'terra', lama: 'terra', madeira: 'madeira', pedra: 'pedra' };
+  const STEP_COUNT = { terra: 8, corrida: 6, madeira: 5, pedra: 5 };
   const stepBufs = {};
+  const oneShots = {}; // pulo, aterrissagem
   let stepsLoading = false;
+  const decode = (url) => fetch(url).then((r) => r.arrayBuffer()).then((ab) => ctx.decodeAudioData(ab));
   function loadSteps() {
     if (stepsLoading || !ctx) return;
     stepsLoading = true;
-    for (const name of new Set(Object.values(STEP_FILES))) {
+    for (const [name, n] of Object.entries(STEP_COUNT)) {
       stepBufs[name] = [];
-      for (let i = 0; i < 5; i++) {
-        fetch(base + 'passos/' + name + '_' + i + '.mp3')
-          .then((r) => r.arrayBuffer())
-          .then((ab) => ctx.decodeAudioData(ab))
-          .then((buf) => stepBufs[name].push(buf))
-          .catch(() => {});
+      for (let i = 0; i < n; i++) {
+        decode(base + 'passos/' + name + '_' + i + '.mp3').then((buf) => stepBufs[name].push(buf)).catch(() => {});
       }
     }
+    for (const name of ['pulo', 'aterrissagem']) {
+      decode(base + 'passos/' + name + '.mp3').then((buf) => (oneShots[name] = buf)).catch(() => {});
+    }
   }
-  let lastStep = -1;
-  function footstep(surface = 'terra', k = 1) {
-    if (!ctx) return;
-    loadSteps();
-    const list = stepBufs[STEP_FILES[surface] ?? 'terra'];
-    if (!list?.length) return;
-    let i = Math.floor(Math.random() * list.length);
-    if (i === lastStep && list.length > 1) i = (i + 1) % list.length; // nunca o mesmo duas vezes
-    lastStep = i;
+  function playBuf(buf, { vol = 0.5, rate = 1, lowpass = 0 } = {}) {
     const src = ctx.createBufferSource();
-    src.buffer = list[i];
-    const lama = surface === 'lama';
-    src.playbackRate.value = (lama ? 0.82 : 1) * (0.93 + Math.random() * 0.14);
-    const f = ctx.createBiquadFilter();
-    f.type = 'lowpass';
-    f.frequency.value = lama ? 1400 : 6000;
+    src.buffer = buf;
+    src.playbackRate.value = rate;
     const g = ctx.createGain();
-    g.gain.value = 0.55 * k * (0.85 + Math.random() * 0.3);
-    src.connect(f).connect(g).connect(master);
+    g.gain.value = vol;
+    let node = src;
+    if (lowpass) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = lowpass;
+      node = node.connect(f);
+    }
+    node.connect(g).connect(master);
     src.start();
   }
+  const lastStep = {};
+  function footstep(surface = 'terra', k = 1, running = false) {
+    if (!ctx) return;
+    loadSteps();
+    let name = STEP_FILES[surface] ?? 'terra';
+    if (running && name === 'terra' && stepBufs.corrida?.length) name = 'corrida';
+    const list = stepBufs[name];
+    if (!list?.length) return;
+    let i = Math.floor(Math.random() * list.length);
+    if (i === lastStep[name] && list.length > 1) i = (i + 1) % list.length; // nunca o mesmo duas vezes
+    lastStep[name] = i;
+    const lama = surface === 'lama';
+    playBuf(list[i], {
+      rate: (lama ? 0.85 : 1) * (0.95 + Math.random() * 0.1),
+      lowpass: lama ? 1400 : 0,
+      vol: (running ? 0.6 : 0.5) * k * (0.85 + Math.random() * 0.3),
+    });
+  }
   let stepPhase = 0;
+  const RUN_SPEED = 5; // acima disso o personagem está correndo (MAX_WALK + 0,5 no player)
   function steps(speed, dt = 0, surface = 'terra') {
     if (!ctx || speed < 0.6) { stepPhase = 0.6; return; } // parado: o próximo passo sai logo
-    stepPhase += dt * (1.6 + speed * 0.17); // andar ≈ 2,4 passos/s, correr ≈ 3,5
+    const running = speed > RUN_SPEED;
+    // andar ≈ 1,8–2,2 passos/s (gravação a ~0,55 s); correr ≈ 3,3 passos/s (gravação a ~0,3 s)
+    stepPhase += dt * (running ? 2.2 + speed * 0.1 : 1.3 + speed * 0.2);
     if (stepPhase >= 1) {
       stepPhase -= 1;
-      footstep(surface, Math.min(1, 0.55 + speed * 0.045));
+      footstep(surface, running ? 1 : Math.min(1, 0.6 + speed * 0.08), running);
     }
   }
 
@@ -285,10 +304,12 @@ export function createSfx() {
     startAmbience,
     ambience,
     steps,
-    // sopro curto de impulso (nada de "boing")
+    // pulo: pé arrancando da terra + roupa/mochila farfalhando (gravação real)
     jump: () => {
-      noise(0.2, { type: 'bandpass', f0: 350, f1: 1100, q: 1.4, vol: 0.12, attack: 0.03 });
-      tone(140, 0.16, { type: 'sine', slide: 1.4, vol: 0.05 });
+      if (!ctx) return;
+      loadSteps();
+      if (oneShots.pulo) playBuf(oneShots.pulo, { vol: 0.45, rate: 0.96 + Math.random() * 0.08 });
+      else noise(0.2, { type: 'bandpass', f0: 350, f1: 1100, q: 1.4, vol: 0.12, attack: 0.03 });
     },
     // moeda velha: tilintar metálico seco
     coin: () => {
@@ -309,9 +330,13 @@ export function createSfx() {
       noise(0.08, { type: 'lowpass', f0: 600, f1: 150, vol: 0.2 });
     },
     // aterrissagem de um pulo alto: baque na terra (k = força)
-    land: (k = 1) => {
-      noise(0.16, { type: 'lowpass', f0: 500, f1: 60, vol: 0.18 + 0.25 * k });
-      tone(58, 0.14, { type: 'sine', slide: 0.6, vol: 0.1 + 0.15 * k });
+    // k = 0: pulinho (só um passo firme); k → 1: queda alta, baque pesado
+    land: (k = 1, surface = 'terra') => {
+      if (!ctx) return;
+      loadSteps();
+      footstep(surface, 0.7 + 0.3 * k, true);
+      if (k > 0.05 && oneShots.aterrissagem) playBuf(oneShots.aterrissagem, { vol: 0.25 + 0.4 * k, rate: 0.97 + Math.random() * 0.06 });
+      else if (k > 0.05) noise(0.16, { type: 'lowpass', f0: 500, f1: 60, vol: 0.18 + 0.25 * k });
     },
     // tábua encaixando: madeira batendo
     wood: () => {

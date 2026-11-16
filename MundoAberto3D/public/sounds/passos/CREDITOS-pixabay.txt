@@ -1,0 +1,8 @@
+terra_*, corrida_*, pulo, aterrissagem — fatiados/mixados a partir de sons do Pixabay
+(Pixabay Content License: uso livre, inclusive comercial, sem atribuição obrigatória)
+
+- "Footsteps Dirt 01" (freesound_community)
+  https://pixabay.com/sound-effects/film-special-effects-footsteps-dirt-01-73777/
+  terra_0..7 = caminhada (0–11 s), corrida_0..5 = corrida (12–16 s), arranque do pulo, terra da aterrissagem
+- "BackpackJumpRustle" — farfalhar de roupa/mochila do pulo
+- "land2" — baque da aterrissagem

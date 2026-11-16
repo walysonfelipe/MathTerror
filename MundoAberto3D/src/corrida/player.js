@@ -39,7 +39,7 @@ export function createPlayer(ch, world, sfx, impale) {
   function reset(x, y) {
     Object.assign(P, {
       x, y, vx: 0, vy: 0, grounded: false, coyote: 0, jumpBuf: 0, jumping: false, airTime: 0,
-      facing: 1, yaw: YAW, invuln: 0, hearts: MAX_HEARTS, dead: false, deadT: 0, maxX: x, inPit: false, deathKind: null, deathCause: null, jumpAnim: null,
+      facing: 1, yaw: YAW, invuln: 0, hearts: MAX_HEARTS, dead: false, deadT: 0, maxX: x, inPit: false, deathKind: null, deathCause: null, jumpAnim: null, tip: 0, ground: null, w: 0.7,
     });
     P.safe = { x, y };
     ch.root.visible = true;
@@ -79,11 +79,30 @@ export function createPlayer(ch, world, sfx, impale) {
 
   const DEATH_SPEED = 0.9; // um pouco mais lenta, mais dramática
   const BREAK_FROM = 3.0, BREAK_TO = 6.5;
+  const BODY_LEN = 1.1;   // até onde o tronco alcança ao desabar de costas (a partir dos pés)
+  const TIP_DELAY = 0.9;  // o corpo começa a pender depois de perder o equilíbrio
+  const TIP_SPEED = 3.2;  // velocidade com que escorrega da borda
+  const TIP_EXTRA = 0.9;  // tempo a mais antes do modal, para ver o corpo chegar ao chão
+
+  // morreu em cima de um bloco/plataforma: o centro de massa do corpo caído fica fora do apoio?
+  // devolve -1/+1 (lado para onde tomba) ou 0 se o corpo fica em cima
+  function tipSide() {
+    const s = P.grounded ? P.ground : null;
+    if (!s) return 0;
+    if (P.x < s.minX) return -1;               // já estava com o centro para fora
+    if (P.x > s.maxX) return 1;
+    const back = -P.facing;                    // cai para trás
+    const com = P.x + back * BODY_LEN * 0.55;  // centro de massa do corpo deitado
+    if (com < s.minX || com > s.maxX) return back;
+    return 0;
+  }
+
   function die() {
     P.dead = true;
     P.deadT = 0;
     P.vx = 0;
     P.invuln = 0;
+    P.tip = tipSide();
     ch.root.visible = true;
     // coruja: "break_fall" desaba de verdade entre 3s e 6,5s do clipe; senão usa defeat_03
     if (ch.actions?.break_fall) {
@@ -94,6 +113,7 @@ export function createPlayer(ch, world, sfx, impale) {
       // o modal só aparece depois da animação inteira + uma pausa
       P.deathDur = (a ? a.getClip().duration / DEATH_SPEED : 2) + 1.0;
     }
+    if (P.tip) P.deathDur += TIP_EXTRA;
     sfx.over();
   }
   // morte nos espinhos do buraco: pose congelada de queda + corpo deitado (impale.js)
@@ -190,9 +210,24 @@ export function createPlayer(ch, world, sfx, impale) {
     if (P.dead) {
       P.deadT += dt;
       input.consumeJump();
+      // tombou na borda: escorrega para fora do bloco e despenca até o chão
+      if (P.tip && P.deadT > TIP_DELAY) {
+        if (P.grounded && P.vx === 0 && P.ground && P.x >= P.ground.minX - 0.05 && P.x <= P.ground.maxX + 0.05) P.vx = P.tip * TIP_SPEED;
+        P.w = 0.12; // corpo mole: só o centro se apoia, então passa da quina e cai
+        moveX(P.vx * dt);
+      }
       // o corpo cai até o chão se morreu no ar
       P.vy = Math.max(P.vy - GRAV * dt, -MAX_FALL);
-      if (moveY(P.vy * dt)) P.grounded = true;
+      const landed = moveY(P.vy * dt);
+      P.grounded = !!landed;
+      if (landed) {
+        // chegou num apoio novo (o chão lá embaixo): para de escorregar
+        if (P.tip && landed !== P.ground) { P.vx = 0; P.tip = 0; }
+        P.ground = landed;
+      } else if (P.tip) {
+        P.vx *= Math.max(0, 1 - dt * 1.5);
+      }
+      if (P.y < PIT_FLOOR) { P.y = PIT_FLOOR; P.vy = 0; }
       if (P.inPit && P.y < PIT_FLOOR) { P.y = PIT_FLOOR; P.vy = 0; }
       if (P.deathKind === 'spikes' || P.deathKind === 'drown') { P.y = PIT_FLOOR; P.vy = 0; }
       return null;
@@ -250,8 +285,13 @@ export function createPlayer(ch, world, sfx, impale) {
     }
     P.maxX = Math.max(P.maxX, P.x);
     P.groundKind = ground?.kind ?? null;
-    // baque ao cair de um pulo alto
-    if (P.grounded && !wasGrounded && fallV < -12) sfx.land?.(Math.min(1, (-fallV - 12) / 12));
+    P.ground = ground;
+    // pouso: pulinho = passo firme; pulo alto = baque (k cresce com a velocidade da queda)
+    if (P.grounded && !wasGrounded && fallV < -5) {
+      const gk = P.groundKind;
+      const surf = gk === 'plank' ? 'madeira' : gk === 'block' || gk === 'pillar' || gk === 'roof' ? 'pedra' : 'terra';
+      sfx.land?.(clamp((-fallV - 10) / 14, 0, 1), surf);
+    }
 
     if (P.grounded && ground.kind === 'ground' && P.x > ground.minX + 1.2 && P.x < ground.maxX - 1.2) {
       P.safe = { x: P.x, y: ground.maxY };

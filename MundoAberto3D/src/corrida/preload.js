@@ -14,7 +14,8 @@ export const PRELOAD_SOUNDS = [
   'ambiente-noite', 'aparicao', 'asas', 'batimento', 'corvo', 'erro', 'lanterna', 'papel', 'passos-grama',
   'pedra', 'porta-batendo', 'porta-rangendo', 'queda', 'respiracao', 'revelacao', 'rosnado', 'sino',
   'sumico', 'sussurros', 'tensao', 'vento',
-  ...['terra', 'madeira', 'pedra'].flatMap((s) => [0, 1, 2, 3, 4].map((i) => `passos/${s}_${i}`)),
+  ...Object.entries({ terra: 8, corrida: 6, madeira: 5, pedra: 5 }).flatMap(([s, n]) => [...Array(n).keys()].map((i) => `passos/${s}_${i}`)),
+  'passos/pulo', 'passos/aterrissagem',
 ].map((n) => `${BASE}sounds/${n}.mp3`);
 
 const TIPS = [
@@ -47,7 +48,26 @@ export function createBootScreen() {
   const pct = $('boot-pct');
   const text = $('boot-text');
   const tip = $('boot-tip');
-  const started = performance.now();
+  let started = performance.now();
+  const bootStart = started;
+
+  // ---------- vitrine no lugar da logo: logo → equipe → oferecimento → logo (o carregamento corre junto) ----------
+  // a tela só termina depois que a vitrine volta para a logo
+  const slides = [['boot-logo', 1000], ['boot-team', 9200], ['boot-sponsor', 4300], ['boot-logo', 0]]
+    .map(([id, ms]) => ({ el: $(id), ms })).filter((x) => x.el);
+  // a barra acompanha a vitrine: só enche de vez quando a logo volta no final (mesmo se tudo já baixou)
+  const SHOWCASE_MS = slides.reduce((a, x) => a + x.ms, 0) + 2300;
+  const introDone = new Promise((resolve) => {
+    let i = 0;
+    const next = () => {
+      slides[i].el.classList.remove('on');
+      i++;
+      slides[i].el.classList.add('on');
+      if (i >= slides.length - 1) { started = performance.now(); resolve(); return; }
+      setTimeout(next, slides[i].ms);
+    };
+    if (slides.length < 2) resolve(); else setTimeout(next, slides[0].ms);
+  });
 
   // brasas subindo pelo fundo (só CSS: não pesa enquanto o jogo carrega)
   for (let i = 0; i < 18; i++) {
@@ -81,7 +101,9 @@ export function createBootScreen() {
     return w ? d / w : 0;
   };
   const paint = () => {
-    const goal = target();
+    // nunca à frente do tempo da vitrine; se a rede for lenta, segue o carregamento real
+    const time = Math.min(1, (performance.now() - bootStart) / SHOWCASE_MS);
+    const goal = Math.min(target(), time ** 0.9);
     shown += (goal - shown) * 0.12;
     if (goal - shown < 0.002) shown = goal;
     bar.style.width = `${(shown * 100).toFixed(1)}%`;
@@ -149,7 +171,8 @@ export function createBootScreen() {
   }
 
   /** termina: completa a barra, segura um instante e some com fade */
-  async function finish(minMs = 1400) {
+  async function finish(minMs = 2600) { // conta a partir da volta da logo: ela aparece bem antes do menu
+    await introDone;
     for (const t of tasks) t.p = 1;
     text.textContent = 'A trilha te espera';
     const wait = Math.max(0, minMs - (performance.now() - started));
