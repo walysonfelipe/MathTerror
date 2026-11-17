@@ -178,6 +178,7 @@
           { cover: 'fenda', title: 'Fenda', text: 'O portal vermelho que leva à sala da conta.', q: 'lugar=fenda' },
           { cover: 'rio', title: 'Ponte Quebrada', text: 'Some as tábuas certas para atravessar o rio.', q: 'lugar=rio' },
           { cover: 'plano', title: 'Portal da Dimensão Plana', text: 'O portal cor de lava que leva ao mundo 2D.', q: 'lugar=plano' },
+          { cover: 'castelo', title: 'Casa do Mago (fachada)', text: 'Ande um pouco e entre pela porta da casa.', q: 'lugar=casa' },
         ] },
         { id: 'castelo', title: 'Castelo por dentro', note: 'Começa já dentro do castelo, sem andar na trilha.', items: [
           { cover: 'castelo', title: 'Hall de Entrada', text: 'O castelo desde a primeira sala.', q: 'castelo' },
@@ -186,6 +187,10 @@
           { cover: 'biblioteca', title: 'Biblioteca Proibida', text: 'Os livros em sequência. Portas anteriores abertas.', q: 'sala=biblioteca' },
           { cover: 'trono', title: 'Sala do Trono', text: 'Já com os pedaços da Chave do Corvo.', q: 'sala=trono' },
           { cover: 'dama', title: 'Dama de Branco', text: 'Ela aparece quase na hora: teste de esconder no armário.', q: 'castelo&damateste' },
+        ] },
+        { id: 'casa', title: 'Casa do Mago', tag: 'novo', note: 'O Mago fala (voz + legenda), abre o livro e pede o Feitiço da Libertação.', items: [
+          { cover: 'castelo', title: 'Casa por dentro', text: 'Começa já dentro da casa: anda até o Mago e ouve a história.', q: 'casa' },
+          { cover: 'biblioteca', title: 'Só o feitiço', text: 'Pula a conversa: direto para montar as contas.', q: 'casa&feitico' },
         ] },
         { id: 'plano', title: 'Dimensão Plana', tag: '2D', note: 'O multiverso 2D: corrida na lava e a luta com o boss.', items: [
           { cover: 'plano', title: 'Corrida 2D', text: 'Lava, sombras, caveiras e o último chão que despedaça.', q: 'plano' },
@@ -223,7 +228,7 @@
               <select name="mundo"><option value="">sorteado</option><option value="cemiterio">Cemitério Esquecido</option><option value="floresta">Floresta dos Enforcados</option><option value="pantano">Pântano Afogado</option></select>
             </label>
             <label>Primeiro lugar
-              <select name="lugar"><option value="">sorteado</option><option value="castelo">Castelo</option><option value="fenda">Fenda</option><option value="rio">Ponte Quebrada</option><option value="plano">Dimensão Plana</option></select>
+              <select name="lugar"><option value="">sorteado</option><option value="castelo">Castelo</option><option value="fenda">Fenda</option><option value="rio">Ponte Quebrada</option><option value="plano">Dimensão Plana</option><option value="casa">Casa do Mago</option></select>
             </label>
             <label class="check"><input type="checkbox" name="vigilia" /> vigília cedo</label>
             <label class="check"><input type="checkbox" name="damateste" /> Dama aparece rápido</label>

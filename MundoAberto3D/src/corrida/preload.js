@@ -16,6 +16,8 @@ export const PRELOAD_SOUNDS = [
   'sumico', 'sussurros', 'tensao', 'vento', 'luta-punch', 'luta-fight', 'luta-impact', 'luta-spell',
   ...Object.entries({ terra: 8, corrida: 6, madeira: 5, pedra: 5 }).flatMap(([s, n]) => [...Array(n).keys()].map((i) => `passos/${s}_${i}`)),
   'passos/pulo', 'passos/aterrissagem',
+  // falas do Mago (Casa do Mago), gravadas no Fish Audio
+  ...['intro1', 'intro2', 'intro3', 'livro1', 'livro2', 'livro3', 'mestre', 'tarefa', 'certo', 'erro', 'livre', 'derrota'].map((n) => `mago/${n}`),
 ].map((n) => `${BASE}sounds/${n}.mp3`);
 
 const TIPS = [
@@ -27,6 +29,7 @@ const TIPS = [
   'Se a Dama de Branco aparecer… esconda-se e prenda a respiração.',
   'Segure Shift (ou RT) para correr — mas o barulho atrai olhares.',
   'Os retratos do castelo guardam números. Olhe bem para eles.',
+  'Na Casa do Mago, cada conta certa é um verso do feitiço que abre a porta.',
 ];
 
 const $ = (id) => document.getElementById(id);

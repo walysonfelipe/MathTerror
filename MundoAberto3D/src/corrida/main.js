@@ -18,6 +18,7 @@ import { createGateRoom } from './gate.js';
 import { BIOMES, biomeIntro, nextBiome, startBiome } from './biomes.js';
 import { createCastle } from './castle.js';
 import { createFlat } from './flat.js';
+import { createHouse } from './house.js';
 import { applyHudAssets } from '../hud-assets.js';
 import { setupFullscreen } from './fullscreen.js';
 import { createBootScreen, decodeImages, PRELOAD_IMAGES, PRELOAD_SOUNDS } from './preload.js';
@@ -230,6 +231,19 @@ flat = createFlat({
   },
 });
 flat.resize(camera.aspect);
+// Casa do Mago: conversa com voz e legenda, livro e o feitiço das contas
+const house = createHouse({
+  sfx, character, canvas: renderer.domElement,
+  el: { blood: bloodEl, fade: fadeEl },
+  cb: {
+    toast: (t, s, time) => toast(t, s, time),
+    rumble: (k, ms) => rumble(k, ms),
+    // em cena (o Mago falando, o livro aberto): somem os botões de toque e os avisos de tecla
+    onCine: (on) => { touchEl.hidden = on || state !== 'house'; if (on) { hideControls(); promptEl.hidden = true; useBtn.hidden = true; } },
+    onExit: () => finishHouse(),
+    onLose: () => { player.P.deathCause = 'mago'; gameOver(); },
+  },
+});
 // clique na tela também lança
 renderer.domElement.addEventListener('pointerdown', (e) => { if (e.button === 0 && (state === 'play' || state === 'flat')) input.fire(); });
 
@@ -293,7 +307,7 @@ function updateDarkness(P, view = 0) {
   const scale = (Math.min(innerWidth, innerHeight) / 700) * (1 + e * 0.6);
   const flick = 1 + Math.sin(time * 13) * 0.02 + Math.sin(time * 7.3) * 0.03;
   const r = (170 + 340 * Math.sqrt(k)) * scale * flick;
-  const a = Math.min(0.9, (state === 'castle' ? 0.5 : biome.dark) + (1 - k) * 0.2);
+  const a = Math.min(0.9, (state === 'castle' || state === 'house' ? 0.5 : biome.dark) + (1 - k) * 0.2);
   const key = `${sx | 0}|${sy | 0}|${r | 0}|${a.toFixed(2)}`;
   if (key === darkKey) return;
   darkKey = key;
@@ -345,6 +359,7 @@ function startGame() {
   input.clear();
   castle.stop();
   flat.stop();
+  house.stop();
   flatVisits = 0;
   active = world;
   castlesPassed = 0;
@@ -376,7 +391,9 @@ function startGame() {
   toast(firstBiome.name, biomeIntro(firstBiome), 3.6);
   // teste: index.html?castelo (ou ?sala=masmorra…) começa direto dentro do castelo
   const qs = new URLSearchParams(location.search);
-  if (qs.has('castelo') || qs.has('sala')) { castleGate = { p: { x: 0, top: 0 } }; enterCastle(); }
+  // teste: index.html?casa começa direto dentro da Casa do Mago
+  if (qs.has('casa')) { castleGate = { p: { x: 0, top: 0, kind: 'casa' } }; enterHouse(); }
+  else if (qs.has('castelo') || qs.has('sala')) { castleGate = { p: { x: 0, top: 0 } }; enterCastle(); }
   // teste: index.html?plano começa direto na Dimensão Plana
   // (index.html?arena pula direto para a luta com o boss)
   else if ((qs.has('plano') || qs.has('arena')) && flat.ok) {
@@ -497,6 +514,91 @@ function frameFlat(dt) {
   if (active === flat) flat.render(renderer);
 }
 
+// ---------- Casa do Mago ----------
+// Aparece na trilha sorteada como os outros lugares (castelo, Fenda, ponte, Dimensão Plana).
+// A porta bate, o Mago lê o livro e só o Feitiço da Libertação (três contas) abre a saída.
+let housesPassed = 0;
+let houseMaxX = 0; // a distância da trilha não conta lá dentro
+function enterHouse() {
+  state = 'house';
+  active = house;
+  houseMaxX = player.P.maxX;
+  character.root.rotation.set(0, 0, 0);
+  player.teleport(2.6, 0);
+  house.start(housesPassed, player);
+  darkEl.hidden = false;
+  ui.hud.hidden = false;
+  touchEl.hidden = false;
+  fadeOut = 1;
+  sfx.ambience(0.3, 1200);
+  toast('A Casa do Mago', 'A porta bateu atrás de você. Lá no fundo, uma vela ainda está acesa.', 3.8);
+  showControls('casa');
+}
+
+// feitiço lançado: a porta abre e a coruja sai para a trilha
+function finishHouse() {
+  resetPortraitView();
+  housesPassed++;
+  portalsPassed++;
+  const x = Math.ceil((castleGate?.p.x ?? houseMaxX) + 6);
+  castleGate = null;
+  active = world;
+  const realm = nextBiome(biome.id, Math.floor(portalsPassed / 3));
+  world.warp(x, (Math.random() * 1e9) | 0, realm);
+  applyBiome(realm);
+  scene.add(character.root);
+  character.root.rotation.set(0, 0, 0);
+  character.root.scale.setScalar(1);
+  player.P.maxX = houseMaxX;
+  player.teleport(x, 0);
+  player.heal();
+  powers.reset();
+  addOil(100);
+  particles.clear();
+  Object.assign(cam, { x: x + 3, y: 4, focusY: 0, z: CAM_Z });
+  camera.position.set(cam.x, cam.y, cam.z);
+  input.clear();
+  darkEl.hidden = false;
+  ui.hud.hidden = false;
+  touchEl.hidden = false;
+  fadeEl.style.opacity = 0;
+  state = 'play';
+  toast('Livre!', `O feitiço funcionou. À sua frente: ${realm.name}.`, 3.8);
+  sfx.ambience(1, 1500);
+  sfx.playClip('corvo', 0.45);
+  sfx.playClip('asas', 0.4);
+}
+
+function frameHouse(dt) {
+  time += dt;
+  const P = player.P;
+  if (state === 'house') {
+    if (!house.busy) {
+      player.update(dt, input, house.minX, time);
+      if (P.x > house.maxX - P.w / 2) { P.x = house.maxX - P.w / 2; P.vx = 0; }
+    }
+    P.maxX = houseMaxX;
+    house.update(dt, time, input);
+    if (state === 'house' && player.deathDone()) gameOver();
+    updateHud();
+  }
+  if (state === 'house' || active === house) {
+    player.sync(dt, time);
+    if (house.busy) character.root.visible = true; // sem piscar de "invulnerável" no meio da cena
+  }
+  character.mixer.update(dt);
+  if (active === house) house.placeCamera(dt, camera, time);
+  // a lanterna só escurece as bordas enquanto se anda; em cena a imagem fica limpa
+  darkEl.hidden = house.busy || state === 'over';
+  if (!darkEl.hidden) updateDarkness(P);
+  const bl = parseFloat(bloodEl.style.opacity) || 0;
+  if (bl > 0) bloodEl.style.opacity = String(Math.max(0, bl - dt * 0.8));
+  if (fadeOut > 0) { fadeOut = Math.max(0, fadeOut - dt * 1.2); fadeEl.style.opacity = String(fadeOut); }
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) ui.toast.classList.remove('show'); }
+  renderer.clear();
+  house.render(renderer, camera);
+}
+
 // ---------- castelo ----------
 let castlesPassed = 0;
 let castleGate = null;
@@ -527,7 +629,7 @@ function updateCastleEnter(realDt) {
   cam.x += (g.p.x - cam.x) * Math.min(1, realDt * 2);
   cam.z += (11 - cam.z) * Math.min(1, realDt * 1.5);
   fadeEl.style.opacity = String(Math.max(0, (k - 0.5) / 0.5));
-  if (g.t >= 1.7) enterCastle();
+  if (g.t >= 1.7) g.p.kind === 'casa' ? enterHouse() : enterCastle();
 }
 
 function enterCastle() {
@@ -649,6 +751,7 @@ const DEATH_TITLES = {
   sombra: 'A sombra rastejante te alcançou…',
   caveira: 'A caveira em chamas te queimou…',
   boss: 'O Guardião te derrotou…',
+  mago: 'O Mago ficou com o seu nome…',
   drown: 'Você se afogou…',
 };
 function deathTitle(P) {
@@ -662,6 +765,7 @@ function gameOver() {
   resetPortraitView();
   $('over-title').textContent = deathTitle(player.P);
   castle.stop();
+  house.stop();
   closeBridge();
   promptEl.hidden = true;
   const meters = Math.max(0, Math.floor(player.P.maxX));
@@ -680,7 +784,7 @@ function gameOver() {
   const tile = (ico, n, lbl) => `<div class="go-tile">${ICO[ico]}<b data-count="${n}">0</b><span>${lbl}</span></div>`;
   ui.overStats.innerHTML =
     `<div class="go-hero"><div class="go-dist"><span data-count="${meters}">0</span><small>M</small></div>` +
-    `<div class="go-biome">${active === flat ? 'Dimensão Plana' : biome.name}</div>` +
+    `<div class="go-biome">${active === flat ? 'Dimensão Plana' : active === house ? 'A Casa do Mago' : biome.name}</div>` +
     (record && meters > 0 ? '<div class="go-stamp">Novo recorde!</div>' : '') + '</div>' +
     `<div class="go-track"><div class="bar"><div class="go-fill"></div></div>` +
     `<div class="go-track-lbl"><span>Distância</span><span>Recorde <b>${best} m</b></span></div></div>` +
@@ -724,7 +828,7 @@ new MutationObserver(fitSoon).observe(document.getElementById('cmodal'), { attri
 
 let lastHud = '';
 // só no modo de desenvolvimento: atalhos para testar as telas (layout)
-if (import.meta.env.DEV) window.__ts = { castle, flat, player, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
+if (import.meta.env.DEV) window.__ts = { castle, flat, house, player, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
 // ---------- ponte quebrada: escolher tábuas que somam a medida do buraco ----------
 const cm = { modal: $('cmodal'), card: $('cm-card'), title: $('cm-title'), body: $('cm-body'), close: $('cm-close') };
 let bridgeUI = null; // { bridge, hole, sel:Set }
@@ -959,7 +1063,7 @@ const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 700px)');
 const portraitPhone = { get matches() { return portraitMQ.matches && document.documentElement.classList.contains('touch'); } };
 function frame() {
   checkSize();
-  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal' || state === 'flat')) {
+  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal' || state === 'flat' || state === 'house')) {
     clock.getDelta(); // não acumula o tempo parado
     input.clear();
     requestAnimationFrame(frame);
@@ -971,12 +1075,19 @@ function frame() {
     const P = player.P, gk = P.groundKind;
     const surface = gk === 'plank' ? 'madeira' : gk === 'block' || gk === 'pillar' || gk === 'roof' ? 'pedra'
       : state === 'flat' ? 'pedra' : biome.id === 'pantano' ? 'lama' : 'terra';
-    sfx.steps((state === 'play' || state === 'flat') && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
+    sfx.steps((state === 'play' || state === 'flat' || (state === 'house' && !house.busy)) && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
   }
 
   // dentro do castelo: outra cena, mesma física de lado
   if (state === 'castle' || (state === 'over' && active === castle)) {
     frameCastle(realDt);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  // Casa do Mago: outra cena, mesma física de lado
+  if (state === 'house' || (state === 'over' && active === house)) {
+    frameHouse(realDt);
     requestAnimationFrame(frame);
     return;
   }
@@ -1046,7 +1157,7 @@ function frame() {
     if (player.deathDone()) gameOver();
     updateTrailPrompt(P);
     const gate = !P.dead && world.portalAt(P);
-    if (gate) gate.kind === 'castelo' ? beginCastle(gate) : beginPortal(gate);
+    if (gate) gate.kind === 'castelo' || gate.kind === 'casa' ? beginCastle(gate) : beginPortal(gate);
     updateHud();
   } else if (state === 'title') {
     updateTitlePose(realDt);
@@ -1154,7 +1265,7 @@ await flat.ready;
   // retratos e logo já decodificados; clipes de som já criados e bufferizados
   shaderTask.label('Pendurando os retratos…');
   await decodeImages(PRELOAD_IMAGES);
-  sfx.preloadClips(PRELOAD_SOUNDS.filter((u) => !u.includes('/passos/')).map((u) => u.split('/').pop().replace('.mp3', '')));
+  sfx.preloadClips(PRELOAD_SOUNDS.filter((u) => !u.includes('/passos/')).map((u) => u.split('/sounds/').pop().replace('.mp3', '')));
   step();
 
   // nada do que for criado aqui é descartado: os shaders ficam vivos para a partida
@@ -1193,7 +1304,7 @@ await flat.ready;
   step();
 
   // castelo (salas, armadura, Dama de Branco) e a Fenda, cada um com suas luzes
-  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom], ['Achatando o multiverso…', flat]]) {
+  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom], ['Achatando o multiverso…', flat], ['Acordando o Mago…', house]]) {
     shaderTask.label(label);
     place.prewarm();
     const s = place.scene;

@@ -27,6 +27,8 @@ const SETS = {
   },
   // Dimensão Plana: só os básicos que ainda não foram mostrados
   plano: { title: 'Controles', once: ['andar', 'correr', 'pular', 'fogo'], always: [] },
+  // Casa do Mago: só andar; a conversa e o livro avançam com E / toque
+  casa: { title: 'Na casa', once: ['andar', 'pular'], always: [], note: 'Ande até o fundo da casa. Alguém está à sua espera.' },
 };
 const seen = new Set();
 

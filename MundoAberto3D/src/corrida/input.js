@@ -121,6 +121,8 @@ export function createInput() {
   // Tela/janela aberta por cima do jogo? (aí o controle navega em vez de jogar)
   function uiContext() {
     if (visible($('cmodal'))) return { kind: 'modal', root: $('cm-card') };
+    // livro do Mago: páginas (A vira a página) e as runas do feitiço
+    if (visible($('book-ui'))) return { kind: 'book', root: $('book-ui'), main: visible($('book-next')) ? $('book-next') : null };
     if (visible($('fight-ui'))) return { kind: 'fight', root: $('fight-ui') }; // perguntas da luta com o boss
     if (visible($('help-screen'))) return { kind: 'help', root: $('help-screen') };
     if (visible($('over-screen'))) return { kind: 'over', root: $('over-screen'), main: $('btn-again') };
@@ -241,7 +243,7 @@ export function createInput() {
           if (ui.main && !ui.main.disabled) ui.main.click();
           else synth('Enter'); // cadeado do castelo: OK
         }
-        if (hit(BTN.X) && ui.kind === 'modal') synth('Backspace'); // cadeado: apaga
+        if (hit(BTN.X) && (ui.kind === 'modal' || ui.kind === 'book')) synth('Backspace'); // cadeado: apaga
       }
     }
     stickRWas = rMag > 0.6 ? true : rMag < 0.3 ? false : stickRWas;

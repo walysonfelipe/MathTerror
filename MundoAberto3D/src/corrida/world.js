@@ -160,9 +160,9 @@ export function createWorld(scene, tex, sfx) {
   let warps = 0; // cada reino novo começa um pouco mais difícil
   let eventCount = 0;
   // lugares da trilha: saem de um saco embaralhado (todos aparecem, em ordem sorteada, sem repetir seguido)
-  const PLACES = ['castelo', 'fenda', 'rio', 'plano'];
+  const PLACES = ['castelo', 'fenda', 'rio', 'plano', 'casa'];
   const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
-  // teste: index.html?lugar=castelo|fenda|rio|plano faz esse lugar ser o primeiro, logo no começo
+  // teste: index.html?lugar=castelo|fenda|rio|plano|casa faz esse lugar ser o primeiro, logo no começo
   const LEGACY = { fendateste: 'fenda', rioteste: 'rio', portalteste: 'castelo' };
   const testPlace = PLACES.includes(qs.get('lugar')) ? qs.get('lugar') : Object.keys(LEGACY).map((k) => qs.has(k) && LEGACY[k]).find(Boolean);
   let placeBag = [], lastPlace = null;
@@ -443,6 +443,7 @@ export function createWorld(scene, tex, sfx) {
     decorate(x0, x1, level);
     patCoins(x0 + 3, level);
     if (place === 'castelo') addCastleGate(x0 + 17, level);
+    else if (place === 'casa') addHouseFront(x0 + 17, level);
     else addPortal(x0 + 17, level, place);
     eventCount++;
     nextPortal = x0 + 17 + 220 + rand() * 120;
@@ -833,6 +834,65 @@ export function createWorld(scene, tex, sfx) {
     g.position.set(x, top, 0);
     add(g);
     portals.push({ kind: 'castelo', x, top, group: g, runes: [], used: false });
+  }
+
+  // ----- fachada da Casa do Mago (entrada da fase da casa) -----
+  const houseWood = std({ color: 0x2c2018, roughness: 1 });
+  const houseDark = std({ color: 0x140e0c, roughness: 1 });
+  const houseWinMat = new THREE.MeshBasicMaterial({ color: 0x8aff4a });
+  function addHouseFront(x, top) {
+    const g = new THREE.Group();
+    const Z = -3.8;
+    // corpo torto de madeira, com tábuas na vertical
+    const bodyM = new THREE.Mesh(new THREE.BoxGeometry(9, 7, 1.6), houseWood);
+    bodyM.position.set(0, 3.5, Z);
+    g.add(bodyM);
+    for (let i = -4; i <= 4; i += 1) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.1, 7, 0.1), houseDark);
+      p.position.set(i + 0.5, 3.5, Z + 0.82);
+      g.add(p);
+    }
+    // telhado pontudo e uma torrinha de lado, com chapéu de bruxo
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(7.2, 4.6, 4), roofMat);
+    roof.rotation.y = Math.PI / 4;
+    roof.scale.z = 0.35;
+    roof.position.set(0, 9.3, Z);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.6, 11, 1.8), houseDark);
+    tower.position.set(4.6, 5.5, Z - 0.3);
+    tower.rotation.z = -0.04;
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(2.3, 5, 6), roofMat);
+    hat.position.set(4.9, 13.4, Z - 0.3);
+    hat.rotation.z = -0.12;
+    const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3, 0.9), houseDark);
+    chimney.position.set(-2.6, 9.6, Z);
+    chimney.rotation.z = 0.08;
+    g.add(roof, tower, hat, chimney);
+    // porta aberta (escuro lá dentro) e degrau
+    const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3.6), gateHoleMat);
+    hole.position.set(0, 1.8, Z + 0.81);
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.3, 0.3), houseDark);
+    lintel.position.set(0, 3.75, Z + 0.9);
+    lintel.rotation.z = 0.05;
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.1, 3.5, 0.1), houseDark);
+    leaf.position.set(-1.5, 1.78, Z + 1.3);
+    leaf.rotation.y = 1.1;
+    const stepM = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 3.4), bridgeMat);
+    stepM.position.set(0, 0.08, Z + 2.4);
+    g.add(hole, lintel, leaf, stepM);
+    // janelas acesas de verde (uma delas com cruz de madeira)
+    for (const [wx, wy, ww] of [[-2.9, 4.6, 1.1], [2.6, 4.9, 0.9], [4.6, 9.2, 0.8]]) {
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(ww, ww * 1.4), houseWinMat);
+      w.position.set(wx, wy, wx > 4 ? Z + 0.62 : Z + 0.81);
+      const c1 = new THREE.Mesh(new THREE.BoxGeometry(ww + 0.2, 0.08, 0.06), houseDark);
+      const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, ww * 1.4 + 0.2, 0.06), houseDark);
+      c1.position.copy(w.position); c2.position.copy(w.position);
+      c1.position.z += 0.03; c2.position.z += 0.03;
+      g.add(w, c1, c2);
+    }
+    g.traverse((o) => { if (o.isMesh && o.material !== houseWinMat && o.material !== gateHoleMat) { o.castShadow = o.receiveShadow = true; } });
+    g.position.set(x, top, 0);
+    add(g);
+    portals.push({ kind: 'casa', x, top, group: g, runes: [], used: false });
   }
 
   // =================== MUNDOS ===================
