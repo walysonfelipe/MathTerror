@@ -23,6 +23,7 @@ import { setupFullscreen } from './fullscreen.js';
 import { createBootScreen, decodeImages, PRELOAD_IMAGES, PRELOAD_SOUNDS } from './preload.js';
 import { loadGhost } from './lady.js';
 import { warmScene, nextFrame } from './warmup.js';
+import { showControls, hideControls } from './controls-tip.js';
 
 // tela de carregamento: baixa tudo antes de mostrar o menu
 const boot = createBootScreen();
@@ -36,7 +37,7 @@ const ui = {
   title: $('title-screen'), over: $('over-screen'), overlay: $('overlay'),
   start: $('btn-start'), again: $('btn-again'),
   hearts: $('hearts'), coins: $('coins'), dist: $('dist'), best: $('best'),
-  toast: $('toast'), power: $('power'), overStats: $('over-stats'), hud: $('hud'),
+  toast: $('toast'), overStats: $('over-stats'), hud: $('hud'),
 };
 
 // ---------- renderer / cena ----------
@@ -279,19 +280,12 @@ function applyBiome(b) {
   world.setBiome(b);
 }
 
-// ---------- lanterna: o óleo acaba e a escuridão fecha ----------
-const OIL_DRAIN = 0.7;      // por segundo (~140 s com o tanque cheio)
-let oil = 100;
-let lowWarned = false;
-let lampOutPlayed = false;
-let ghostTimer = 6;
-function addOil(v) {
-  oil = Math.min(100, oil + v);
-  if (oil > 30) lowWarned = false;
-}
+// ---------- óleo = poder ----------
+// O óleo que se pega enche a barra do poder (bola de fogo); a lanterna fica sempre acesa.
+function addOil(v) { powers.addFuel(v); }
 let darkKey = '';
 function updateDarkness(P, view = 0) {
-  const k = oil / 100;
+  const k = 1; // lanterna sempre acesa
   const v = new THREE.Vector3(P.x, P.y + 1, 0).project(camera);
   // olhando o quadro: o centro da luz vai para o meio da tela e abre um pouco
   const e = view * view * (3 - 2 * view);
@@ -360,9 +354,6 @@ function startGame() {
   const firstBiome = startBiome(); // mundo inicial sorteado
   world.reset((Math.random() * 1e9) | 0, firstBiome);
   applyBiome(firstBiome);
-  oil = 100;
-  lowWarned = false;
-  ghostTimer = 6;
   darkEl.hidden = false;
   portalsPassed = 0;
   enter = null;
@@ -392,12 +383,13 @@ function startGame() {
     enter = { p: { x: 0, top: 0, kind: 'plano' } };
     enterFlat();
     if (qs.has('arena')) flat.toArena();
-  }
+  } else showControls('trilha'); // andar, correr, pular, fogo e usar: só na primeira vez
 }
 
 // ---------- portal ----------
 function beginPortal(p) {
   promptEl.hidden = true;
+  hideControls();
   closeBridge();
   state = 'entering';
   enter = { t: 0, p, x0: player.P.x, y0: player.P.y, z0: cam.z ?? CAM_Z, cx: cam.x, cy: cam.y };
@@ -465,6 +457,7 @@ function enterFlat() {
     'Tudo é chato neste lugar, menos o que quer te queimar.',
   ];
   toast('Dimensão Plana', flatIntro[Math.floor(Math.random() * flatIntro.length)], 3.6);
+  showControls('plano'); // só o que ainda não foi mostrado (ex.: bola de fogo)
 }
 
 // venceu o boss da arena e desmaiou (o sonho é desenhado em flat-fight.js): volta para a trilha, num reino novo
@@ -512,6 +505,7 @@ const CAM_Z_CASTLE = 13;
 
 function beginCastle(p) {
   promptEl.hidden = true;
+  hideControls();
   closeBridge();
   state = 'castleEnter';
   castleGate = { t: 0, p, x0: player.P.x };
@@ -546,6 +540,7 @@ function enterCastle() {
   Object.assign(cam, { x: sx, y: 3.2, focusY: 0, z: CAM_Z_CASTLE });
   fadeOut = 1;
   toast('O portão se fechou atrás de você…', 'A saída pede a Chave do Corvo, e ela está em três pedaços.', 3.6);
+  showControls('castelo'); // as interações do castelo aparecem toda vez
 }
 
 function finishCastle() {
@@ -583,8 +578,6 @@ function finishPortal() {
   const realm = nextBiome(biome.id, Math.floor(portalsPassed / 3));
   world.warp(x, (Math.random() * 1e9) | 0, realm);
   applyBiome(realm);
-  oil = 100;
-  lowWarned = false;
   scene.add(character.root);
   character.root.scale.setScalar(1);
   character.root.rotation.set(0, 0, 0);
@@ -659,13 +652,13 @@ const DEATH_TITLES = {
   drown: 'Você se afogou…',
 };
 function deathTitle(P) {
-  if (P.deathCause === 'ghost' && oil <= 0) return 'A escuridão te levou…';
   if (active === flat && P.deathCause === 'drown') return 'A lava te engoliu…';
   return DEATH_TITLES[P.deathCause] ?? 'Você caiu…';
 }
 
 function gameOver() {
   state = 'over';
+  hideControls();
   resetPortraitView();
   $('over-title').textContent = deathTitle(player.P);
   castle.stop();
@@ -809,12 +802,11 @@ function updateTrailPrompt(P) {
 
 // Os elementos dos sinais vitais são criados uma vez só e depois só trocam de classe,
 // para não reiniciar as animações (chama, batimento) a cada atualização.
-const heartEls = [], orbEls = [];
+const heartEls = [];
 let shownHearts = -1;
 function renderVitals(P) {
   if (!heartEls.length) {
     for (let i = 0; i < 3; i++) { const h = document.createElement('i'); h.className = 'heart'; ui.hearts.append(h); heartEls.push(h); }
-    for (let i = 0; i < powers.MAX_CHARGES; i++) { const o = document.createElement('i'); o.className = 'orb'; o.append(document.createElement('b')); ui.power.append(o); orbEls.push(o); }
   }
   if (P.hearts !== shownHearts) {
     heartEls.forEach((h, i) => {
@@ -827,10 +819,6 @@ function renderVitals(P) {
     ui.hearts.classList.toggle('low', P.hearts === 1);
     shownHearts = P.hearts;
   }
-  orbEls.forEach((o, i) => {
-    o.classList.toggle('on', i < powers.charges);
-    o.style.setProperty('--p', i === powers.charges ? powers.rechargeProgress.toFixed(2) : '0');
-  });
 }
 
 const fireBtn = document.querySelector("[data-key='TouchFire']");
@@ -839,15 +827,14 @@ function updateHud() {
   // botão de fogo apagado sem carga (e no castelo, onde não há bola de fogo)
   fireBtn?.classList.toggle('empty', powers.charges === 0 || state === 'castle');
   const meters = Math.max(0, Math.floor(P.maxX));
-  const prog = Math.round(powers.rechargeProgress * 10);
-  const oilK = Math.ceil(oil / 5);
-  const key = `${P.hearts}|${world.stats.coins}|${meters}|${best}|${powers.charges}|${prog}|${oilK}`;
+  const oilK = Math.round(powers.fuel * 100);
+  const key = `${P.hearts}|${world.stats.coins}|${meters}|${best}|${oilK}|${state}`;
   if (key === lastHud) return;
   lastHud = key;
   renderVitals(P);
   ui.coins.textContent = world.stats.coins;
-  oilEl.style.setProperty('--oil', (oil / 100).toFixed(2));
-  oilEl.classList.toggle('low', oil < 25);
+  oilEl.style.setProperty('--oil', powers.fuel.toFixed(2));
+  oilEl.classList.toggle('low', powers.charges === 0);
   ui.dist.textContent = `${meters} m`;
   ui.best.textContent = `${Math.max(best, meters)} m`;
 }
@@ -940,7 +927,6 @@ function frameCastle(dt) {
     } else input.consumeJump();
     input.consumeFire(); // sem bola de fogo dentro do castelo
     if (state === 'castle') castle.update(dt, time, input, camera);
-    if (!castle.paused && !P.dead) oil = Math.max(0, oil - OIL_DRAIN * 0.6 * dt);
     if (player.deathDone()) gameOver();
     updateHud();
   }
@@ -1031,8 +1017,8 @@ function frame() {
     input.consumeLook(); input.consumeBack(); // "olhar o quadro" só existe no castelo
     world.prune(cam.x - halfW - 25);
     for (const ev of world.events.splice(0)) {
-      if (ev.type === 'checkpoint') { toast('Vigília acesa', '+1 ♥ · +óleo · se cair, você volta daqui', 2.4); addOil(25); }
-      else if (ev.type === 'oil') { addOil(35); sfx.oil(); toast('+ Óleo'); }
+      if (ev.type === 'checkpoint') { toast('Vigília acesa', '+1 ♥ · +poder · se cair, você volta daqui', 2.4); addOil(25); }
+      else if (ev.type === 'oil') { addOil(35); sfx.oil(); toast('+ Óleo', 'Seu poder de fogo recarregou.', 1.6); }
       else if (ev.type === 'corpse') { sfx.playClip('respiracao', 0.6); sfx.playClip('sussurros', 0.35); }
       else if (ev.type === 'drop') sfx.drop();
       else if (ev.type === 'trap') toast('Armadilha!');
@@ -1046,7 +1032,7 @@ function frame() {
       else if (ev.type === 'bridgeShort') {
         toast('Curta demais… as tábuas caíram no rio');
         sfx.gateBad(); sfx.playClip('rosnado', 0.5);
-        oil = Math.max(0, oil - 12);
+        addOil(-12);
         bloodEl.style.opacity = '0.7';
       }
       else if (ev.type === 'bridgeLong') { toast('Comprida demais: não encaixa'); sfx.creak(); }
@@ -1057,21 +1043,6 @@ function frame() {
     whisperCooldown -= dt;
     crowTimer -= dt;
     if (crowTimer <= 0) { sfx.playClip('corvo', 0.35); if (Math.random() < 0.4) sfx.playClip('asas', 0.25); crowTimer = 18 + Math.random() * 25; }
-    if (!P.dead) {
-      oil = Math.max(0, oil - OIL_DRAIN * dt);
-      if (oil < 25 && !lowWarned) { lowWarned = true; toast('A lanterna está apagando…', 'No escuro, eles enxergam melhor que você.', 3); sfx.playClip('tensao', 0.45); }
-      if (oil <= 0 && !lampOutPlayed) { lampOutPlayed = true; sfx.lampOut(); }
-      if (oil > 0) lampOutPlayed = false;
-      // no escuro total, eles vêm
-      if (oil <= 0) {
-        ghostTimer -= dt;
-        if (ghostTimer <= 0) {
-          ghostTimer = 6 + Math.random() * 3;
-          world.spawnGhost(P.x + (Math.random() < 0.5 ? -7 : 9), P.y + 1.5);
-          sfx.playClip('sussurros', 0.5);
-        }
-      }
-    }
     if (player.deathDone()) gameOver();
     updateTrailPrompt(P);
     const gate = !P.dead && world.portalAt(P);
@@ -1133,10 +1104,8 @@ function frame() {
   sun.position.set(cam.x - 10, cam.y + 22, 16);
   sun.target.position.set(cam.x, cam.y - 4, 0);
   lantern.position.set(P.x + P.facing * 0.4, P.y + 1.4, 1.4);
-  const oilK = oil / 100;
-  lantern.distance = 10 + 10 * oilK;
-  lantern.intensity = (14 + 26 * oilK) * (0.9 + Math.sin(time * 13) * 0.04 + Math.sin(time * 7.3) * 0.06) *
-    (oil < 15 && Math.sin(time * 23) > 0.6 ? 0.4 : 1); // pisca quando está acabando
+  lantern.distance = 20;
+  lantern.intensity = 40 * (0.9 + Math.sin(time * 13) * 0.04 + Math.sin(time * 7.3) * 0.06);
   if (state === 'play' || state === 'over') updateDarkness(P);
 
   // relâmpago: clarão rápido + trovão

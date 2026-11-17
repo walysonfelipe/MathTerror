@@ -19,7 +19,7 @@ export const PRELOAD_SOUNDS = [
 ].map((n) => `${BASE}sounds/${n}.mp3`);
 
 const TIPS = [
-  'A lanterna bebe óleo. Quando ela apaga, a trilha some no escuro…',
+  'O óleo alimenta o fogo das suas mãos. Sem óleo, nada de bola de fogo…',
   'Na ponte, escolha tábuas que somem exatamente o tamanho do buraco.',
   'Dentro da Fenda, só a conta certa abre o caminho de volta.',
   'Junte os 3 pedaços da chave para sair do castelo.',

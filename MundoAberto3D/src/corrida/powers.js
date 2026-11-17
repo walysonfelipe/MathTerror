@@ -16,8 +16,10 @@ import { createFireMaterial, createTrail, makeRuneTexture, makeStarTexture, make
  *                fogo no chão + marca de queimado, tremor de câmera e tela aquecida
  */
 
-const MAX_CHARGES = 3;
-const RECHARGE = 0.95;   // s por carga
+// O poder vem do óleo: a barra (0..100) só enche com o óleo que se pega; cada bola de fogo gasta COST.
+const FUEL_MAX = 100;
+const COST = 20;         // 5 bolas de fogo com a barra cheia
+const MAX_CHARGES = FUEL_MAX / COST;
 const COOLDOWN = 0.25;   // s entre lançamentos
 const SPEED = 18;
 const LIFETIME = 1.2;
@@ -72,8 +74,8 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
   let flashI = 0;
 
   // ---------- estado ----------
-  let charges = MAX_CHARGES;
-  let recharge = 0;
+  let fuel = FUEL_MAX;
+  const canFire = () => fuel >= COST - 1e-6;
   let cooldown = 0;
   let castT = 0;
   let castW = 0;
@@ -543,8 +545,7 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
   function reset() {
     for (const s of shots) if (!s.dead) removeShot(s);
     shots.length = 0;
-    charges = MAX_CHARGES;
-    recharge = 0;
+    fuel = FUEL_MAX;
     cooldown = 0;
     castT = 0;
     aimTarget = null;
@@ -560,16 +561,26 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
 
   // Dimensão Plana (2D): gasta e recarrega as cargas sem os efeitos 3D
   function spend() {
-    if (charges <= 0 || cooldown > 0) return false;
-    charges--;
+    if (!canFire() || cooldown > 0) return false;
+    fuel -= COST;
     cooldown = COOLDOWN;
     return true;
   }
-  function tick(dt) {
-    cooldown -= dt;
-    if (charges >= MAX_CHARGES) { recharge = 0; return; }
-    recharge += dt;
-    if (recharge >= RECHARGE) { recharge = 0; charges++; sfx.recharge?.(); }
+  function tick(dt) { cooldown -= dt; }
+  // óleo pego: enche a barra do poder (v negativo tira)
+  function addFuel(v) {
+    const before = fuel;
+    fuel = Math.max(0, Math.min(FUEL_MAX, fuel + v));
+    // atravessou um tiro: brilho na mão (só na trilha 3D, com a coruja na cena)
+    if (v > 0 && Math.floor(fuel / COST) > Math.floor(before / COST) && lastP && !lastP.dead && character.root.parent) {
+      handPos(lastP.facing, va);
+      for (let i = 0; i < 12; i++) {
+        const a = Math.random() * Math.PI * 2;
+        fx.glow({ x: va.x, y: va.y, z: va.z, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2 + 0.5, color: FIRE, colorEnd: FIRE_END, size: 0.12, sizeEnd: 0, life: 0.4, drag: 3 });
+      }
+      ring(va.x, va.y, va.z, 0.6, 0xffa040, 0.25);
+    }
+    if (v > 0) sfx.recharge?.();
   }
 
   /**
@@ -608,30 +619,13 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
 
   function update(dt, time, P, playing) {
     lastP = P;
-    // recarga
     cooldown -= dt;
-    if (charges < MAX_CHARGES) {
-      recharge += dt;
-      if (recharge >= RECHARGE) {
-        recharge = 0;
-        charges++;
-        if (playing && !P.dead) {
-          handPos(P.facing, va);
-          for (let i = 0; i < 12; i++) {
-            const a = Math.random() * Math.PI * 2;
-            fx.glow({ x: va.x, y: va.y, z: va.z, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2 + 0.5, color: FIRE, colorEnd: FIRE_END, size: 0.12, sizeEnd: 0, life: 0.4, drag: 3 });
-          }
-          ring(va.x, va.y, va.z, 0.6, 0xffa040, 0.25);
-          sfx.recharge?.();
-        }
-      }
-    } else recharge = 0;
 
     // iniciar conjuração
     if (fireQueued) {
       fireQueued = false;
-      if (playing && !P.dead && charges > 0 && cooldown <= 0 && pending < 0) {
-        charges--;
+      if (playing && !P.dead && canFire() && cooldown <= 0 && pending < 0) {
+        fuel -= COST;
         cooldown = COOLDOWN;
         castT = CAST_TIME;
         pending = CAST_DELAY;
@@ -644,7 +638,7 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
         if (P.grounded && Math.abs(P.vx) < 1.5 && character.actions?.spell_throw) {
           character.play('spell_throw', { from: 1.2, timeScale: 0.8 / CAST_DELAY, fade: 0.05, restart: true, lock: CAST_DELAY + 0.35 });
         }
-      } else if (playing && charges === 0) {
+      } else if (playing && !canFire()) {
         sfx.empty?.();
       }
     }
@@ -665,10 +659,10 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
     if (pending < 0) handLight.intensity *= Math.exp(-dt * 12);
 
     // brasas flutuando da mão quando há carga
-    if (playing && !P.dead && charges > 0) {
+    if (playing && !P.dead && canFire()) {
       emberT -= dt;
       if (emberT <= 0) {
-        emberT = 0.07 / charges;
+        emberT = 0.07 / Math.max(1, Math.floor(fuel / COST));
         handPos(P.facing, va);
         fx.glow({
           x: va.x + rnd(-0.05, 0.05), y: va.y, z: va.z, vx: rnd(-0.3, 0.3), vy: rnd(0.4, 1.1), vz: rnd(-0.2, 0.2),
@@ -814,8 +808,9 @@ export function createPowers({ scene, world, particles, sfx, character, tex }) {
     tick,
     prewarm,
     timeScale,
-    get charges() { return charges; },
-    get rechargeProgress() { return charges >= MAX_CHARGES ? 1 : recharge / RECHARGE; },
+    get charges() { return Math.floor(fuel / COST + 1e-6); },
+    get fuel() { return fuel / FUEL_MAX; }, // 0..1, a barra do HUD
+    addFuel,
     get shake() { return shake; },
     get heat() { return heat; },
     MAX_CHARGES,
