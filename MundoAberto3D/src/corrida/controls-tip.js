@@ -11,6 +11,7 @@ const C = {
   correr: ['<kbd>Shift</kbd>', '<b class="pb pb-wide">RT</b>', IMG('correr-ligado'), 'correr'],
   pular: ['<kbd>Espaço</kbd>', '<b class="pb pb-a">A</b>', IMG('pular-normal'), 'pular <em>(segure: mais alto)</em>'],
   fogo: ['<kbd>F</kbd>', '<b class="pb pb-b">B</b>', IMG('bola-de-fogo-normal'), 'bola de fogo <em>(gasta óleo)</em>'],
+  pulo: ['<kbd>Espaço</kbd>', '<b class="pb pb-a">A</b>', IMG('pular-normal'), 'pular <em>(toque: curto · segure: longo)</em>'],
   usar: ['<kbd>E</kbd>', '<b class="pb pb-y">Y</b>', IMG('interagir-normal'), 'examinar / usar <em>(quando aparecer)</em>'],
   ler: ['<kbd>E</kbd>', '<b class="pb pb-y">Y</b>', IMG('interagir-normal'), 'ler, abrir, esconder no armário'],
   quadro: ['<kbd>E</kbd><kbd>G</kbd>', '<b class="pb pb-y">Y</b><b class="pb pb-wide">RS</b>', IMG('olhar-quadro'), 'olhar o quadro de perto'],
@@ -28,6 +29,11 @@ const SETS = {
   // Dimensão Plana: só os básicos que ainda não foram mostrados
   plano: { title: 'Controles', once: ['andar', 'correr', 'pular', 'fogo'], always: [] },
   // Casa do Mago: só andar; a conversa e o livro avançam com E / toque
+  // Trem Fantasma: a câmera muda de lugar, mas os botões não mudam
+  trem: {
+    title: 'Em cima do trem', once: ['andar'], always: ['pulo'],
+    note: 'Toque = próximo vagão · Segure = pula um vagão. → é sempre a frente do trem.',
+  },
   casa: { title: 'Na casa', once: ['andar', 'pular'], always: [], note: 'Ande até o fundo da casa. Alguém está à sua espera.' },
 };
 const seen = new Set();

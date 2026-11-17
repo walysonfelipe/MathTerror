@@ -363,6 +363,47 @@ export function createSfx() {
       noise(0.5, { type: 'lowpass', f0: 1200, f1: 100, vol: 0.2, delay: 0.1 });
       tone(62, 2.2, { type: 'sine', vol: 0.18, delay: 0.3 });
     },
+    // ----- Trem Fantasma -----
+    // rodas passando na emenda do trilho: "ta-tac"
+    trainClack: (vol = 1) => {
+      noise(0.05, { type: 'bandpass', f0: 900, f1: 500, q: 2, vol: 0.13 * vol });
+      tone(64, 0.07, { type: 'triangle', vol: 0.16 * vol });
+      noise(0.05, { type: 'bandpass', f0: 800, f1: 450, q: 2, vol: 0.1 * vol, delay: 0.11 });
+      tone(58, 0.07, { type: 'triangle', vol: 0.12 * vol, delay: 0.11 });
+    },
+    // apito de trem velho: duas notas roucas que caem no fim
+    trainWhistle: (vol = 1) => {
+      for (const f of [466, 554]) {
+        tone(f, 1.5, { type: 'sawtooth', slide: 0.93, vol: 0.035 * vol });
+        tone(f * 1.005, 1.5, { type: 'triangle', slide: 0.93, vol: 0.06 * vol });
+      }
+      noise(1.5, { type: 'bandpass', f0: 1600, f1: 1100, q: 1.5, vol: 0.12 * vol, attack: 0.08 });
+    },
+    // vagão podre cedendo: madeira estalando e ferro soltando
+    trainCrack: () => {
+      noise(0.16, { type: 'bandpass', f0: 1800, f1: 500, q: 2, vol: 0.4 });
+      noise(0.5, { type: 'lowpass', f0: 700, f1: 90, vol: 0.4, delay: 0.08 });
+      tone(88, 0.5, { type: 'sawtooth', slide: 0.5, vol: 0.1, delay: 0.05 });
+      tone(1500, 0.3, { type: 'square', slide: 0.9, vol: 0.02, delay: 0.1 });
+    },
+    // freio: ferro guinchando até parar
+    trainBrake: (dur = 3.2) => {
+      noise(dur, { type: 'bandpass', f0: 3600, f1: 1300, q: 7, vol: 0.2, attack: 0.3 });
+      noise(dur * 0.8, { type: 'bandpass', f0: 2500, f1: 900, q: 9, vol: 0.1, attack: 0.5, delay: dur * 0.15 });
+      tone(1980, dur * 0.95, { type: 'sawtooth', slide: 0.72, vol: 0.022 });
+      tone(1320, dur * 0.7, { type: 'sawtooth', slide: 0.6, vol: 0.014, delay: dur * 0.3 });
+      noise(dur + 0.2, { type: 'lowpass', f0: 520, f1: 50, vol: 0.42, attack: 0.2 });
+    },
+    // vapor escapando: "tssss"
+    trainHiss: (dur = 1.4, vol = 1) => noise(dur, { type: 'highpass', f0: 5200, f1: 2600, vol: 0.2 * vol, attack: 0.04 }),
+    // engates batendo um no outro quando o trem para de vez
+    trainClank: () => {
+      for (let i = 0; i < 5; i++) {
+        noise(0.09, { type: 'bandpass', f0: 1500 - i * 150, f1: 500, q: 3, vol: 0.34 - i * 0.04, delay: i * 0.13 });
+        tone(110 - i * 8, 0.22, { type: 'triangle', slide: 0.6, vol: 0.26 - i * 0.03, delay: i * 0.13 });
+      }
+      noise(0.7, { type: 'lowpass', f0: 300, f1: 40, vol: 0.5 });
+    },
     hurt: () => tone(520, 0.45, { type: 'sawtooth', slide: 0.25, vol: 0.05 }),
     // fósforo riscando + chama pegando + sino distante (nada de musiquinha alegre)
     checkpoint: () => {

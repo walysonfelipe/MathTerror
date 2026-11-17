@@ -236,7 +236,9 @@ export function createPlayer(ch, world, sfx, impale) {
 
     // ---------- movimento horizontal ----------
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    const max = input.run ? MAX_RUN : MAX_WALK;
+    // o lugar pode ajustar o passo (Trem Fantasma: velocidade fixa, para o pulo ter sempre o mesmo tamanho)
+    const tune = world.tune?.();
+    const max = (input.run && !tune?.noRun ? MAX_RUN : MAX_WALK) * (tune?.speed ?? 1);
     const acc = P.grounded ? ACC_GROUND : ACC_AIR;
     if (dir) {
       const turning = Math.sign(P.vx) === -dir;
@@ -248,7 +250,7 @@ export function createPlayer(ch, world, sfx, impale) {
     }
     if (Math.abs(P.vx) > max) {
       // soltou o "correr": desacelera aos poucos
-      P.vx = Math.sign(P.vx) * Math.max(max, Math.abs(P.vx) - FRICTION * dt);
+      P.vx = Math.sign(P.vx) * Math.max(max, Math.abs(P.vx) - (FRICTION + (tune?.strict ? acc : 0)) * dt);
     }
 
     // ---------- pulo (buffer + coyote time + altura variável) ----------

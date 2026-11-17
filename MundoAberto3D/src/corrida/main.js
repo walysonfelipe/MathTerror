@@ -19,6 +19,7 @@ import { BIOMES, biomeIntro, nextBiome, startBiome } from './biomes.js';
 import { createCastle } from './castle.js';
 import { createFlat } from './flat.js';
 import { createHouse } from './house.js';
+import { createTrain } from './train.js';
 import { applyHudAssets } from '../hud-assets.js';
 import { setupFullscreen } from './fullscreen.js';
 import { createBootScreen, decodeImages, PRELOAD_IMAGES, PRELOAD_SOUNDS } from './preload.js';
@@ -189,6 +190,7 @@ const place = {
   clearEnemiesNear: (x, r) => active.clearEnemiesNear(x, r),
   pitFall: (x) => active.pitFall?.(x),
   isWater: () => active.isWater?.(),
+  tune: () => active.tune,
 };
 player = createPlayer(character, place, sfx, impale);
 const powers = createPowers({ scene, world, particles, sfx, character, tex });
@@ -242,6 +244,18 @@ const house = createHouse({
     onCine: (on) => { touchEl.hidden = on || state !== 'house'; if (on) { hideControls(); promptEl.hidden = true; useBtn.hidden = true; } },
     onExit: () => finishHouse(),
     onLose: () => { player.P.deathCause = 'mago'; gameOver(); },
+  },
+});
+// Trem Fantasma: corrida por cima dos vagões, com a câmera mudando de lugar o tempo todo
+const train = createTrain({
+  sfx, character, stats: world.stats,
+  el: { blood: bloodEl },
+  cb: {
+    toast: (t, s, time) => toast(t, s, time),
+    rumble: (k, ms) => rumble(k, ms),
+    onCine: (on) => { touchEl.hidden = on || state !== 'train'; if (on) hideControls(); },
+    onPlay: () => showControls('trem', { delay: 300 }), // primeira regra lida: mostra como pular
+    onExit: () => finishTrain(),
   },
 });
 // clique na tela também lança
@@ -307,7 +321,7 @@ function updateDarkness(P, view = 0) {
   const scale = (Math.min(innerWidth, innerHeight) / 700) * (1 + e * 0.6);
   const flick = 1 + Math.sin(time * 13) * 0.02 + Math.sin(time * 7.3) * 0.03;
   const r = (170 + 340 * Math.sqrt(k)) * scale * flick;
-  const a = Math.min(0.9, (state === 'castle' || state === 'house' ? 0.5 : biome.dark) + (1 - k) * 0.2);
+  const a = Math.min(0.9, (state === 'castle' || state === 'house' ? 0.5 : active === train ? 0.22 : biome.dark) + (1 - k) * 0.2);
   const key = `${sx | 0}|${sy | 0}|${r | 0}|${a.toFixed(2)}`;
   if (key === darkKey) return;
   darkKey = key;
@@ -360,6 +374,7 @@ function startGame() {
   castle.stop();
   flat.stop();
   house.stop();
+  leaveTrain();
   flatVisits = 0;
   active = world;
   castlesPassed = 0;
@@ -392,7 +407,9 @@ function startGame() {
   // teste: index.html?castelo (ou ?sala=masmorra…) começa direto dentro do castelo
   const qs = new URLSearchParams(location.search);
   // teste: index.html?casa começa direto dentro da Casa do Mago
-  if (qs.has('casa')) { castleGate = { p: { x: 0, top: 0, kind: 'casa' } }; enterHouse(); }
+  // teste: index.html?trem começa direto em cima do Trem Fantasma
+  if (qs.has('trem')) { castleGate = { p: { x: 0, top: 0, kind: 'trem' } }; enterTrain(); }
+  else if (qs.has('casa')) { castleGate = { p: { x: 0, top: 0, kind: 'casa' } }; enterHouse(); }
   else if (qs.has('castelo') || qs.has('sala')) { castleGate = { p: { x: 0, top: 0 } }; enterCastle(); }
   // teste: index.html?plano começa direto na Dimensão Plana
   // (index.html?arena pula direto para a luta com o boss)
@@ -599,6 +616,103 @@ function frameHouse(dt) {
   house.render(renderer, camera);
 }
 
+// ---------- Trem Fantasma ----------
+// Aparece na trilha sorteado como os outros lugares: uma estação abandonada com o trem parado.
+// Lá em cima, só os vagões que seguem a regra aguentam o peso. No fim, a coruja puxa o freio.
+let trainsPassed = 0;
+let trainMaxX = 0; // a distância da trilha não conta lá em cima
+// enquanto a câmera passeia (abertura, volta no vagão seguro, freio) os botões não mexem a coruja
+const noInput = { left: false, right: false, run: false, jumpHeld: false, consumeJump: () => false };
+function enterTrain() {
+  state = 'train';
+  active = train;
+  trainMaxX = player.P.maxX;
+  character.root.rotation.set(0, 0, 0);
+  player.teleport(3, 0);
+  player.P.maxX = trainMaxX;
+  train.start(trainsPassed, player);
+  promptEl.hidden = true;
+  useBtn.hidden = true;
+  darkEl.hidden = false;
+  ui.hud.hidden = false;
+  fadeOut = 1;
+  sfx.ambience(1, 800);
+  toast('O Trem Fantasma', 'A porta trancou e o trem partiu. A única saída é o freio, lá na locomotiva.', 4.6);
+}
+
+// devolve a câmera do jeito que a trilha e os outros lugares esperam
+function leaveTrain() {
+  train.stop();
+  camera.up.set(0, 1, 0);
+  resize();
+}
+
+// freio puxado: o trem para e a coruja desce num reino novo
+function finishTrain() {
+  leaveTrain();
+  resetPortraitView();
+  trainsPassed++;
+  portalsPassed++;
+  const x = Math.ceil((castleGate?.p.x ?? trainMaxX) + 6);
+  castleGate = null;
+  active = world;
+  const realm = nextBiome(biome.id, Math.floor(portalsPassed / 3));
+  world.warp(x, (Math.random() * 1e9) | 0, realm);
+  applyBiome(realm);
+  scene.add(character.root);
+  character.root.rotation.set(0, 0, 0);
+  character.root.scale.setScalar(1);
+  player.P.maxX = trainMaxX;
+  player.teleport(x, 0);
+  player.heal();
+  powers.reset();
+  addOil(100);
+  particles.clear();
+  Object.assign(cam, { x: x + 3, y: 4, focusY: 0, z: CAM_Z });
+  camera.position.set(cam.x, cam.y, cam.z);
+  input.clear();
+  darkEl.hidden = false;
+  ui.hud.hidden = false;
+  touchEl.hidden = false;
+  fadeEl.style.opacity = 0;
+  state = 'play';
+  toast('Última parada', `O trem sumiu na névoa. À sua frente: ${realm.name}.`, 3.8);
+  sfx.ambience(1, 1500);
+  sfx.playClip('corvo', 0.45);
+  sfx.playClip('asas', 0.4);
+}
+
+function frameTrain(dt) {
+  time += dt;
+  const P = player.P;
+  if (state === 'train') {
+    const res = player.update(dt, train.busy ? noInput : input, train.minX, time);
+    if (P.x > train.maxX - P.w / 2) { P.x = train.maxX - P.w / 2; P.vx = 0; }
+    if (res === 'respawn') train.onRespawn();
+    P.maxX = trainMaxX;
+    // sem bola de fogo, "usar" e "olhar" lá em cima
+    input.consumeFire(); input.consumeUse(); input.consumeLook(); input.consumeBack();
+    train.update(dt, time, input);
+    if (state === 'train' && player.deathDone()) gameOver();
+    updateHud();
+  }
+  if (active === train) {
+    player.sync(dt, time);
+    if (train.busy) character.root.visible = true; // sem piscar de "invulnerável" no meio da cena
+    train.placeCamera(dt, camera, time);
+  }
+  character.mixer.update(dt);
+  if (active === train) train.afterAnim(); // a coruja segurando a alavanca do freio
+  darkEl.hidden = state === 'over';
+  if (!darkEl.hidden) { camera.updateMatrixWorld(); updateDarkness(P); }
+  const bl = parseFloat(bloodEl.style.opacity) || 0;
+  if (bl > 0) bloodEl.style.opacity = String(Math.max(0, bl - dt * 0.9));
+  if (fadeOut > 0) { fadeOut = Math.max(0, fadeOut - dt * 1.2); fadeEl.style.opacity = String(fadeOut); }
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) ui.toast.classList.remove('show'); }
+  renderer.clear();
+  if (active === train) train.render(renderer, camera);
+}
+
 // ---------- castelo ----------
 let castlesPassed = 0;
 let castleGate = null;
@@ -629,7 +743,7 @@ function updateCastleEnter(realDt) {
   cam.x += (g.p.x - cam.x) * Math.min(1, realDt * 2);
   cam.z += (11 - cam.z) * Math.min(1, realDt * 1.5);
   fadeEl.style.opacity = String(Math.max(0, (k - 0.5) / 0.5));
-  if (g.t >= 1.7) g.p.kind === 'casa' ? enterHouse() : enterCastle();
+  if (g.t >= 1.7) g.p.kind === 'casa' ? enterHouse() : g.p.kind === 'trem' ? enterTrain() : enterCastle();
 }
 
 function enterCastle() {
@@ -756,6 +870,7 @@ const DEATH_TITLES = {
 };
 function deathTitle(P) {
   if (active === flat && P.deathCause === 'drown') return 'A lava te engoliu…';
+  if (active === train) return 'O trem seguiu sem você…';
   return DEATH_TITLES[P.deathCause] ?? 'Você caiu…';
 }
 
@@ -766,6 +881,7 @@ function gameOver() {
   $('over-title').textContent = deathTitle(player.P);
   castle.stop();
   house.stop();
+  train.stop();
   closeBridge();
   promptEl.hidden = true;
   const meters = Math.max(0, Math.floor(player.P.maxX));
@@ -784,7 +900,7 @@ function gameOver() {
   const tile = (ico, n, lbl) => `<div class="go-tile">${ICO[ico]}<b data-count="${n}">0</b><span>${lbl}</span></div>`;
   ui.overStats.innerHTML =
     `<div class="go-hero"><div class="go-dist"><span data-count="${meters}">0</span><small>M</small></div>` +
-    `<div class="go-biome">${active === flat ? 'Dimensão Plana' : active === house ? 'A Casa do Mago' : biome.name}</div>` +
+    `<div class="go-biome">${active === flat ? 'Dimensão Plana' : active === house ? 'A Casa do Mago' : active === train ? 'O Trem Fantasma' : biome.name}</div>` +
     (record && meters > 0 ? '<div class="go-stamp">Novo recorde!</div>' : '') + '</div>' +
     `<div class="go-track"><div class="bar"><div class="go-fill"></div></div>` +
     `<div class="go-track-lbl"><span>Distância</span><span>Recorde <b>${best} m</b></span></div></div>` +
@@ -828,7 +944,7 @@ new MutationObserver(fitSoon).observe(document.getElementById('cmodal'), { attri
 
 let lastHud = '';
 // só no modo de desenvolvimento: atalhos para testar as telas (layout)
-if (import.meta.env.DEV) window.__ts = { castle, flat, house, player, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
+if (import.meta.env.DEV) window.__ts = { castle, flat, house, train, player, input, gameOver, openBridge: (...a) => openBridge(...a), world, help: (on) => openHelp(on) };
 // ---------- ponte quebrada: escolher tábuas que somam a medida do buraco ----------
 const cm = { modal: $('cmodal'), card: $('cm-card'), title: $('cm-title'), body: $('cm-body'), close: $('cm-close') };
 let bridgeUI = null; // { bridge, hole, sel:Set }
@@ -929,7 +1045,7 @@ const fireBtn = document.querySelector("[data-key='TouchFire']");
 function updateHud() {
   const P = player.P;
   // botão de fogo apagado sem carga (e no castelo, onde não há bola de fogo)
-  fireBtn?.classList.toggle('empty', powers.charges === 0 || state === 'castle');
+  fireBtn?.classList.toggle('empty', powers.charges === 0 || state === 'castle' || state === 'train');
   const meters = Math.max(0, Math.floor(P.maxX));
   const oilK = Math.round(powers.fuel * 100);
   const key = `${P.hearts}|${world.stats.coins}|${meters}|${best}|${oilK}|${state}`;
@@ -1063,7 +1179,7 @@ const portraitMQ = matchMedia('(orientation: portrait) and (max-width: 700px)');
 const portraitPhone = { get matches() { return portraitMQ.matches && document.documentElement.classList.contains('touch'); } };
 function frame() {
   checkSize();
-  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal' || state === 'flat' || state === 'house')) {
+  if (portraitPhone.matches && (state === 'play' || state === 'castle' || state === 'portal' || state === 'flat' || state === 'house' || state === 'train')) {
     clock.getDelta(); // não acumula o tempo parado
     input.clear();
     requestAnimationFrame(frame);
@@ -1074,8 +1190,8 @@ function frame() {
   {
     const P = player.P, gk = P.groundKind;
     const surface = gk === 'plank' ? 'madeira' : gk === 'block' || gk === 'pillar' || gk === 'roof' ? 'pedra'
-      : state === 'flat' ? 'pedra' : biome.id === 'pantano' ? 'lama' : 'terra';
-    sfx.steps((state === 'play' || state === 'flat' || (state === 'house' && !house.busy)) && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
+      : state === 'flat' ? 'pedra' : state === 'train' ? 'madeira' : biome.id === 'pantano' ? 'lama' : 'terra';
+    sfx.steps((state === 'play' || state === 'flat' || (state === 'house' && !house.busy) || (state === 'train' && !train.busy)) && P.grounded && !P.dead ? Math.abs(P.vx) : 0, realDt, surface);
   }
 
   // dentro do castelo: outra cena, mesma física de lado
@@ -1088,6 +1204,13 @@ function frame() {
   // Casa do Mago: outra cena, mesma física de lado
   if (state === 'house' || (state === 'over' && active === house)) {
     frameHouse(realDt);
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  // Trem Fantasma: outra cena, mesma física de lado, câmera para todo lado
+  if (state === 'train' || (state === 'over' && active === train)) {
+    frameTrain(realDt);
     requestAnimationFrame(frame);
     return;
   }
@@ -1157,7 +1280,7 @@ function frame() {
     if (player.deathDone()) gameOver();
     updateTrailPrompt(P);
     const gate = !P.dead && world.portalAt(P);
-    if (gate) gate.kind === 'castelo' || gate.kind === 'casa' ? beginCastle(gate) : beginPortal(gate);
+    if (gate) gate.kind === 'castelo' || gate.kind === 'casa' || gate.kind === 'trem' ? beginCastle(gate) : beginPortal(gate);
     updateHud();
   } else if (state === 'title') {
     updateTitlePose(realDt);
@@ -1255,7 +1378,7 @@ await extrasReady;
 await flat.ready;
 {
   const biomes = Object.values(BIOMES);
-  const steps = biomes.length + 5;
+  const steps = biomes.length + 7;
   let done = 0;
   const shaderTask = boot.track('Acendendo as tochas…', 3);
   const step = () => shaderTask.progress(++done / steps);
@@ -1304,7 +1427,7 @@ await flat.ready;
   step();
 
   // castelo (salas, armadura, Dama de Branco) e a Fenda, cada um com suas luzes
-  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom], ['Achatando o multiverso…', flat], ['Acordando o Mago…', house]]) {
+  for (const [label, place] of [['Abrindo os portões do castelo…', castle], ['Rasgando a Fenda…', gateRoom], ['Achatando o multiverso…', flat], ['Acordando o Mago…', house], ['Soltando o Trem Fantasma…', train]]) {
     shaderTask.label(label);
     place.prewarm();
     const s = place.scene;

@@ -160,9 +160,9 @@ export function createWorld(scene, tex, sfx) {
   let warps = 0; // cada reino novo começa um pouco mais difícil
   let eventCount = 0;
   // lugares da trilha: saem de um saco embaralhado (todos aparecem, em ordem sorteada, sem repetir seguido)
-  const PLACES = ['castelo', 'fenda', 'rio', 'plano', 'casa'];
+  const PLACES = ['castelo', 'fenda', 'rio', 'plano', 'casa', 'trem'];
   const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
-  // teste: index.html?lugar=castelo|fenda|rio|plano|casa faz esse lugar ser o primeiro, logo no começo
+  // teste: index.html?lugar=castelo|fenda|rio|plano|casa|trem faz esse lugar ser o primeiro, logo no começo
   const LEGACY = { fendateste: 'fenda', rioteste: 'rio', portalteste: 'castelo' };
   const testPlace = PLACES.includes(qs.get('lugar')) ? qs.get('lugar') : Object.keys(LEGACY).map((k) => qs.has(k) && LEGACY[k]).find(Boolean);
   let placeBag = [], lastPlace = null;
@@ -444,6 +444,7 @@ export function createWorld(scene, tex, sfx) {
     patCoins(x0 + 3, level);
     if (place === 'castelo') addCastleGate(x0 + 17, level);
     else if (place === 'casa') addHouseFront(x0 + 17, level);
+    else if (place === 'trem') addStation(x0 + 17, level);
     else addPortal(x0 + 17, level, place);
     eventCount++;
     nextPortal = x0 + 17 + 220 + rand() * 120;
@@ -893,6 +894,73 @@ export function createWorld(scene, tex, sfx) {
     g.position.set(x, top, 0);
     add(g);
     portals.push({ kind: 'casa', x, top, group: g, runes: [], used: false });
+  }
+
+  // ----- estação abandonada com o Trem Fantasma parado (entrada da fase do trem) -----
+  const stationIron = std({ color: 0x26262c, roughness: 0.5, metalness: 0.6 });
+  const stationCar = std({ color: 0x3a2a2e, roughness: 0.9 });
+  const stationWinMat = new THREE.MeshBasicMaterial({ color: 0x9aff6a });
+  const stationLampMat = new THREE.MeshBasicMaterial({ color: 0xffc070 });
+  function addStation(x, top) {
+    const g = new THREE.Group();
+    const Z = -4.2;
+    const box = (w, h, d, mat, px, py, pz) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(px, py, pz); g.add(m); return m; };
+    // plataforma de tábuas e a cobertura torta, em postes de ferro
+    box(15, 0.3, 3.0, bridgeMat, 0, 0.15, Z + 2.3);
+    for (const px of [-6.6, -2.2, 2.2, 6.6]) {
+      box(0.18, 4.6, 0.18, stationIron, px, 2.5, Z + 3.6);
+      const arm = box(1.5, 0.12, 0.12, stationIron, px, 4.3, Z + 3.0);
+      arm.rotation.x = 0.5;
+    }
+    const cover = box(15.6, 0.2, 3.8, roofMat, 0, 4.9, Z + 2.4);
+    cover.rotation.set(0.1, 0, -0.012);
+    // lampiões pendurados na cobertura
+    for (const px of [-4.4, 4.4]) {
+      box(0.04, 0.8, 0.04, stationIron, px, 4.4, Z + 3.4);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), stationLampMat);
+      lamp.position.set(px, 3.9, Z + 3.4);
+      g.add(lamp);
+    }
+    // o trem parado atrás da plataforma: vagões escuros com janelas acesas de verde
+    for (const cx of [-10.4, 0, 10.4]) {
+      box(9.8, 3.6, 2.4, stationCar, cx, 2.5, Z);
+      box(10, 0.3, 2.7, roofMat, cx, 4.45, Z);
+      box(9.2, 0.4, 2, stationIron, cx, 0.5, Z);
+      for (let wx = -3.6; wx <= 3.7; wx += 1.8) {
+        if (cx === 0 && Math.abs(wx) < 0.1) continue; // no vagão do meio fica a porta
+        const w = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), stationWinMat);
+        w.position.set(cx + wx, 3.0, Z + 1.21);
+        g.add(w);
+      }
+      for (const wx of [-3.2, 3.2]) {
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.2, 12), stationIron);
+        wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(cx + wx, 0.5, Z + 1.1);
+        g.add(wheel);
+      }
+    }
+    // porta aberta do vagão do meio (escuro lá dentro)
+    const hole = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 3.1), gateHoleMat);
+    hole.position.set(0, 1.9, Z + 1.21);
+    g.add(hole);
+    const leaf = box(0.9, 3.0, 0.1, stationCar, -1.5, 1.9, Z + 1.3);
+    leaf.rotation.y = 0.25;
+    // placa da estação e o relógio parado
+    const sign = box(4.4, 0.9, 0.12, houseDark, -3.6, 5.75, Z + 3.5);
+    sign.rotation.z = 0.06;
+    const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.14, 20), std({ color: 0xd8cfae, roughness: 0.6 }));
+    clock.rotation.x = Math.PI / 2;
+    clock.position.set(2.6, 5.9, Z + 3.5);
+    g.add(clock);
+    for (const [len, rot] of [[0.42, 0.9], [0.3, -2.1]]) {
+      const hand = box(0.05, len, 0.04, stationIron, 2.6, 5.9, Z + 3.6);
+      hand.rotation.z = rot;
+      hand.translateY(len / 2);
+    }
+    g.traverse((o) => { if (o.isMesh && !o.material.isMeshBasicMaterial) { o.castShadow = o.receiveShadow = true; } });
+    g.position.set(x, top, 0);
+    add(g);
+    portals.push({ kind: 'trem', x, top, group: g, runes: [], used: false });
   }
 
   // =================== MUNDOS ===================

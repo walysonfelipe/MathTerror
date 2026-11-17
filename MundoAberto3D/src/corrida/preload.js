@@ -30,6 +30,7 @@ const TIPS = [
   'Segure Shift (ou RT) para correr — mas o barulho atrai olhares.',
   'Os retratos do castelo guardam números. Olhe bem para eles.',
   'Na Casa do Mago, cada conta certa é um verso do feitiço que abre a porta.',
+  'No Trem Fantasma, leia a regra antes de pular: vagão errado desaba.',
 ];
 
 const $ = (id) => document.getElementById(id);
