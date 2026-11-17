@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createLady } from './lady.js';
+import { uiZoom } from './ui-zoom.js';
 import { createArmor } from './armor.js';
 import { makeLockPuzzle, makeScalePuzzle, makeSequencePuzzle, PORTRAIT_NAMES } from './castle-math.js';
 
@@ -1039,8 +1040,8 @@ export function createCastle({ tex, sfx, character, stats, el, cb }) {
       const v = new THREE.Vector3(near.x, 3.0, 0).project(camera);
       const key = near.label();
       if (key !== promptKey) { promptKey = key; el.promptText.textContent = key; }
-      el.prompt.style.left = `${((v.x + 1) / 2) * innerWidth}px`;
-      el.prompt.style.top = `${((1 - v.y) / 2) * innerHeight}px`;
+      el.prompt.style.left = `${((v.x + 1) / 2) * innerWidth / uiZoom()}px`;
+      el.prompt.style.top = `${((1 - v.y) / 2) * innerHeight / uiZoom()}px`;
       el.prompt.hidden = false;
       el.useBtn.hidden = false;
       if (input.consumeUse()) near.use();

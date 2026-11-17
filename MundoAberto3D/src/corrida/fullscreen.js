@@ -65,7 +65,8 @@ export function setupFullscreen() {
     const hud = document.getElementById('hud');
     const right = hud && !hud.hidden && hud.querySelector('.right');
     const r = right && right.getBoundingClientRect();
-    const top = r && r.height ? `${Math.round(r.bottom + 10)}px` : '';
+    const z = parseFloat(document.documentElement.style.zoom) || 1; // r vem em px da tela; o CSS em px com zoom
+    const top = r && r.height ? `${Math.round(r.bottom / z + 10)}px` : '';
     if (top !== lastTop) {
       lastTop = top;
       if (top) btn.style.setProperty('--fs-top', top);

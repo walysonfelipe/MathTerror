@@ -908,6 +908,13 @@
       .gate-hint.ok .gh-text { color: #cfe8a8; text-shadow: 0 1px 0 #000, 0 0 14px #4a8a2a88; }
       .gate-hint.bad .gh-text { color: #ff8a7a; text-shadow: 0 1px 0 #000, 0 0 16px #ff1a0aaa; }
       .gate-hint.bad { animation: gateShake .4s; }
+      /* tela baixa (celular deitado): título mais enxuto, sobra altura para a conta e os ossos */
+      @media (max-height: 460px) {
+        #gate-hud .gate-title { font-size: 28px; }
+        #gate-hud .gate-orn { display: none; }
+        .gate-hint { margin-top: 4px; gap: 3px; }
+        .gate-hint .gh-text { font-size: 15px; }
+      }
 
       /* ---------- controles de toque ---------- */
       #touch { display: none; }
@@ -1015,6 +1022,18 @@
           || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)); // iPad se passando por Mac
         if (mobile) root.classList.add('touch');
         addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch') root.classList.add('touch'); }, true);
+      })();
+      // TV / monitor grande: a interface foi desenhada para até ~1920x1080. Acima disso
+      // (4K com escala 100%, por exemplo) tudo é ampliado por igual, como se a tela fosse Full HD.
+      // O canvas 3D continua cobrindo a tela inteira (position: fixed; inset: 0).
+      (function () {
+        var root = document.documentElement;
+        function fit() {
+          var k = Math.min(innerWidth / 1920, innerHeight / 1080);
+          root.style.zoom = k > 1.05 ? k.toFixed(3) : '';
+        }
+        fit();
+        addEventListener('resize', fit);
       })();
     </script>
   </head>

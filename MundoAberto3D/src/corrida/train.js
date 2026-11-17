@@ -16,7 +16,8 @@ import { makeRounds } from './train-math.js';
 
 // Medidas pensadas para o pulo normal (andando, sem correr):
 // toque rápido no pulo = cai no próximo vagão; pulo segurado = passa por cima de um vagão inteiro.
-const CAR_LEN = 3.2;          // vagão numerado
+const CAR_LEN = 3.8;          // vagão numerado
+const CK = CAR_LEN / 3.2;     // escala dos detalhes (pensados para o vagão de 3,2 m)
 const GAP = 1.0;              // vão entre vagões
 const PITCH = CAR_LEN + GAP;
 const SAFE_LEN = 12;          // vagão de passageiros (seguro) entre as rodadas
@@ -127,6 +128,10 @@ const CSS = `
 @keyframes trGo { 50% { opacity: .35; } }
 #train-hud.show.big { transform: translate(-50%, 9vh) scale(1.3); transform-origin: 50% 0; box-shadow: inset 0 0 0 1px #c8a05a, 0 0 0 200vmax #0008, 0 8px 22px #000c; }
 #train-hud.big .tr-go { display: block; }
+/* celular deitado: a regra em destaque desceria por cima dos corações; fica logo abaixo do HUD */
+@media (max-height: 460px) { #train-hud.show.big { transform: translate(-50%, 70px) scale(1.12); } }
+/* celular deitado estreito: a faixa da regra no topo bateria no painel de vida; desce abaixo do HUD */
+@media (max-height: 460px) and (max-width: 760px) { #train-hud.show { transform: translate(-50%, 64px); } }
 #train-hud.big .tr-h { display: block; }
 :root.touch #train-hud .key-only, :root:not(.touch) #train-hud .touch-only { display: none; }
 #train-hud.flip .tr-t { animation: trFlip .7s cubic-bezier(.3,1.5,.5,1); }
@@ -213,8 +218,8 @@ export function createTrain({ sfx, character, stats, el, cb }) {
     wheel: new THREE.CylinderGeometry(0.4, 0.4, 0.16, 9),
     link: new THREE.BoxGeometry(GAP + 0.2, 0.14, 0.22),
     post: new THREE.BoxGeometry(0.1, 1.7, 0.1),
-    board: new THREE.PlaneGeometry(2.4, 1.5),
-    roofBoard: new THREE.PlaneGeometry(2.7, 1.69),
+    board: new THREE.PlaneGeometry(2.4 * CK, 1.5 * CK),
+    roofBoard: new THREE.PlaneGeometry(2.7 * CK, 1.69 * CK),
     debris: new THREE.BoxGeometry(0.8, 0.08, 0.28),
   };
 
@@ -256,26 +261,26 @@ export function createTrain({ sfx, character, stats, el, cb }) {
       mesh(G.ladder, ironMat, CAR_LEN / 2 - 0.12, -1.35, HALF_W + 0.05, g);
     } else if (type === 1) { // gôndola aberta, cheia de carvão até a boca
       mesh(G.gondola, gondolaMat, 0, -1.55, 0, g);
-      for (const x of [-1.45, -0.5, 0.5, 1.45]) mesh(G.gondolaRib, ironMat, x, -1.55, 0, g);
+      for (const x of [-1.45, -0.5, 0.5, 1.45].map((v) => v * CK)) mesh(G.gondolaRib, ironMat, x, -1.55, 0, g);
       mesh(G.gondolaRim, ironMat, 0, -0.62, 0, g);
       mesh(G.cargo, coalMat, 0, -0.31, 0, g);
     } else if (type === 2) { // vagão-tanque, com passarela em cima
       mesh(G.tank, tankMat, 0, -1.3, 0, g).rotation.z = Math.PI / 2;
       for (const sx of [-1, 1]) mesh(G.tankCap, tankMat, sx * (CAR_LEN / 2 - 0.25), -1.3, 0, g).scale.x = 0.32;
-      for (const x of [-0.75, 0.75]) mesh(G.tankBand, ironMat, x, -1.3, 0, g).rotation.z = Math.PI / 2;
+      for (const x of [-0.75 * CK, 0.75 * CK]) mesh(G.tankBand, ironMat, x, -1.3, 0, g).rotation.z = Math.PI / 2;
       mesh(G.tankWalk, deckWoodMat, 0, -0.1, 0, g);
-      mesh(G.tankDome, ironMat, 0.75, -0.05, -0.85, g);
+      mesh(G.tankDome, ironMat, 0.75 * CK, -0.05, -0.85, g);
       mesh(G.ladder, ironMat, -CAR_LEN / 2 + 0.3, -1.3, 1.06, g);
       sideZ = 1.07;
     } else { // plataforma de madeira carregando um caixote
       mesh(G.flatDeck, deckWoodMat, 0, -2.36, 0, g);
       mesh(G.crate, crateMat, 0, -1.1, 0, g);
-      for (const x of [-0.95, 0.95]) mesh(G.crateBand, ironMat, x, -1.1, 0, g);
+      for (const x of [-0.95 * CK, 0.95 * CK]) mesh(G.crateBand, ironMat, x, -1.1, 0, g);
       sideZ = HALF_W - 0.13;
     }
     mesh(G.carBase, ironMat, 0, -2.62, 0, g);
     mesh(G.link, ironMat, CAR_LEN / 2 + GAP / 2, -2.6, 0, g);
-    addWheels(g, [-1.0, 1.0], wheels);
+    addWheels(g, [-1.0 * CK, 1.0 * CK], wheels);
     const boardMat = new THREE.MeshBasicMaterial({ map: tex });
     mesh(G.board, boardMat, 0, -1.3, sideZ, g);
     const roofPaint = mesh(G.roofBoard, std({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45, roughness: 1 }), 0, 0.012, 0, g);

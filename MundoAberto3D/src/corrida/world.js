@@ -66,6 +66,21 @@ export function createWorld(scene, tex, sfx) {
   const coinGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.1, 28).rotateX(Math.PI / 2);
   const coinMat = std({ color: 0xffc627, metalness: 0.35, roughness: 0.3, emissive: 0x8a5a00, emissiveIntensity: 0.6 });
 
+  // coração que às vezes sai do bloco "?": pegar devolve uma vida
+  const HEART_CHANCE = 0.25;
+  const heartGeo = (() => {
+    const sh = new THREE.Shape();
+    sh.moveTo(0, -0.42);
+    sh.bezierCurveTo(-0.12, -0.28, -0.5, -0.06, -0.5, 0.16);
+    sh.bezierCurveTo(-0.5, 0.42, -0.14, 0.48, 0, 0.26);
+    sh.bezierCurveTo(0.14, 0.48, 0.5, 0.42, 0.5, 0.16);
+    sh.bezierCurveTo(0.5, -0.06, 0.12, -0.28, 0, -0.42);
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 3, curveSegments: 14 });
+    g.center();
+    return g;
+  })();
+  const heartMat = std({ color: 0xe0202c, roughness: 0.35, metalness: 0.1, emissive: 0x900810, emissiveIntensity: 0.9 });
+
   // ----- criaturas -----
   // Rastejante: aranha gigante (modelo procedural em spider.js)
   const spiders = createSpiderFactory();
@@ -178,6 +193,7 @@ export function createWorld(scene, tex, sfx) {
 
   // ---------- estado ----------
   let rand = Math.random;
+  let hearts = [];
   let solids = [], coins = [], enemies = [], decor = [], effects = [], checkpoints = [], portals = [];
   let swingers = [], traps = [], flasks = [];
   let biome = BIOMES.cemiterio;
@@ -1420,6 +1436,8 @@ export function createWorld(scene, tex, sfx) {
   function clearAll() {
     for (const s of solids) s.objs.forEach(drop);
     for (const c of coins) drop(c.mesh);
+    for (const h of hearts) drop(h.mesh);
+    hearts = [];
     for (const e of enemies) drop(e.mesh);
     for (const o of decor) drop(o.obj);
     for (const f of effects) drop(f.mesh);
@@ -1545,6 +1563,17 @@ export function createWorld(scene, tex, sfx) {
     });
   }
 
+  // o coração sobe de dentro do bloco e fica flutuando em cima dele até ser pego
+  function heartPop(s) {
+    const x = (s.minX + s.maxX) / 2;
+    const m = add(new THREE.Mesh(heartGeo, heartMat));
+    m.position.set(x, s.maxY - 0.4, 0);
+    m.scale.setScalar(0.2);
+    hearts.push({ x, y: s.maxY + 0.75, mesh: m, t: 0, taken: false });
+    sfx.recharge();
+    puff(x, s.maxY + 0.3, 0.6, 0.9, 0xff5a6a);
+  }
+
   function collectCoin(c) {
     drop(c.mesh);
     c.taken = true;
@@ -1566,9 +1595,13 @@ export function createWorld(scene, tex, sfx) {
     if (s.type === 'q') {
       s.type = 'used';
       s.mesh.material = usedMat;
-      stats.coins++;
-      sfx.coin();
-      coinPop((s.minX + s.maxX) / 2, s.maxY + 0.3);
+      if (Math.random() < HEART_CHANCE) {
+        heartPop(s);
+      } else {
+        stats.coins++;
+        sfx.coin();
+        coinPop((s.minX + s.maxX) / 2, s.maxY + 0.3);
+      }
     } else {
       sfx.bump();
     }
@@ -1743,6 +1776,25 @@ export function createWorld(scene, tex, sfx) {
     }
     coins = coins.filter((c) => !c.taken);
 
+    // corações
+    for (const h of hearts) {
+      h.t += dt;
+      const k = Math.min(1, h.t / 0.45);
+      const e = 1 - (1 - k) * (1 - k);
+      h.mesh.position.y = h.y - 1.15 * (1 - e) + (k === 1 ? Math.sin((h.t - 0.45) * 3) * 0.12 : 0);
+      h.mesh.scale.setScalar((0.2 + 0.8 * e) * (1 + Math.sin(h.t * 7) * 0.05));
+      h.mesh.rotation.y = h.t * 2.4;
+      if (k > 0.5 && !P.dead && Math.abs(h.x - P.x) < 0.75 && h.mesh.position.y > P.y - 0.4 && h.mesh.position.y < P.y + P.h + 0.4) {
+        h.taken = true;
+        drop(h.mesh);
+        player.heal();
+        sfx.checkpoint();
+        puff(h.x, h.mesh.position.y, 0.6, 1.2, 0xff5a6a);
+        events.push({ type: 'heart' });
+      }
+    }
+    hearts = hearts.filter((h) => !h.taken);
+
     // inimigos
     for (const e of enemies) {
       if (e.state === 'walk') {
@@ -1889,6 +1941,7 @@ export function createWorld(scene, tex, sfx) {
       return false;
     });
     coins = coins.filter((c) => (c.x >= leftX ? true : (drop(c.mesh), false)));
+    hearts = hearts.filter((h) => (h.x >= leftX ? true : (drop(h.mesh), false)));
     enemies = enemies.filter((e) => (e.x >= leftX ? true : (drop(e.mesh), false)));
     decor = decor.filter((o) => (o.maxX >= leftX ? true : (drop(o.obj), false)));
     checkpoints = checkpoints.filter((c) => c.x >= leftX);

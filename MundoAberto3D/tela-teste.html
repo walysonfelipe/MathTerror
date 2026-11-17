@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Teste de tela</title>
+<style>html,body{margin:0;background:#333;overflow:hidden}iframe{border:0;transform-origin:0 0;background:#000}</style>
+<iframe id="f"></iframe>
+<script>
+// Teste de tamanho de tela (só no npm run dev; não entra no build): /tela-teste.html?w=3840&h=2160&q=castelo
+// q = os mesmos atalhos do dev.html (castelo, sala=masmorra, casa, casa%26feitico, trem, plano, arena, lugar=fenda, mundo=floresta...)
+// ?titulo = fica no menu; no console: tamanho(844, 390) troca o tamanho sem recarregar
+const p=new URLSearchParams(location.search), W=+p.get('w')||3840, H=+p.get('h')||2160, q=p.get('q')||'';
+const f=document.getElementById('f'); f.style.width=W+'px'; f.style.height=H+'px'; f.src='/index.html'+(q?'?'+q:'');
+let cw=W, ch=H; const fit=()=>f.style.transform=`scale(${Math.min(1,innerWidth/cw,innerHeight/ch)})`; fit(); addEventListener('resize',fit);
+// tamanho(w,h): troca o "monitor" sem recarregar
+window.tamanho=(w,h)=>{cw=w;ch=h;f.style.width=w+'px';f.style.height=h+'px';fit();};
+if(!p.has('titulo')){const t=setInterval(()=>{const d=f.contentDocument, b=d?.getElementById('btn-start'), hud=d?.getElementById('hud'); if(hud&&!hud.hidden) return clearInterval(t); if(b&&b.offsetParent) b.click();},1000);}
+</script>

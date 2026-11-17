@@ -26,6 +26,7 @@ import { createBootScreen, decodeImages, PRELOAD_IMAGES, PRELOAD_SOUNDS } from '
 import { loadGhost } from './lady.js';
 import { warmScene, nextFrame } from './warmup.js';
 import { showControls, hideControls } from './controls-tip.js';
+import { uiZoom } from './ui-zoom.js';
 
 // tela de carregamento: baixa tudo antes de mostrar o menu
 const boot = createBootScreen();
@@ -317,8 +318,9 @@ function updateDarkness(P, view = 0) {
   const v = new THREE.Vector3(P.x, P.y + 1, 0).project(camera);
   // olhando o quadro: o centro da luz vai para o meio da tela e abre um pouco
   const e = view * view * (3 - 2 * view);
-  const sx = (((v.x + 1) / 2) * (1 - e) + 0.5 * e) * innerWidth, sy = (((1 - v.y) / 2) * (1 - e) + 0.5 * e) * innerHeight;
-  const scale = (Math.min(innerWidth, innerHeight) / 700) * (1 + e * 0.6);
+  const z = uiZoom(), W = innerWidth / z, H = innerHeight / z; // px do CSS (o #dark está dentro do zoom)
+  const sx = (((v.x + 1) / 2) * (1 - e) + 0.5 * e) * W, sy = (((1 - v.y) / 2) * (1 - e) + 0.5 * e) * H;
+  const scale = (Math.min(W, H) / 700) * (1 + e * 0.6);
   const flick = 1 + Math.sin(time * 13) * 0.02 + Math.sin(time * 7.3) * 0.03;
   const r = (170 + 340 * Math.sqrt(k)) * scale * flick;
   const a = Math.min(0.9, (state === 'castle' || state === 'house' ? 0.5 : active === train ? 0.22 : biome.dark) + (1 - k) * 0.2);
@@ -931,9 +933,16 @@ function fitCards() {
   for (const card of document.querySelectorAll('#overlay .card, #cm-card')) {
     if (!card.getClientRects().length) continue;
     card.style.zoom = '';
+    card.style.maxHeight = '';
     const pad = 2 * Math.max(16, parseFloat(getComputedStyle(card.parentElement).paddingTop) || 16);
-    const avail = innerHeight - pad, h = card.scrollHeight;
-    if (h > avail) card.style.zoom = Math.max(0.6, avail / h).toFixed(3);
+    const avail = innerHeight / uiZoom() - pad, h = card.scrollHeight;
+    if (h > avail) {
+      const z = avail / h;
+      card.style.zoom = Math.max(0.6, z).toFixed(3);
+      // o max-height (100dvh) encolhe junto com o zoom e cortaria o conteúdo de novo:
+      // se o zoom sozinho já faz caber, a placa fica sem limite e mostra tudo sem rolar
+      if (z >= 0.6) card.style.maxHeight = 'none';
+    }
   }
 }
 const fitSoon = () => requestAnimationFrame(fitCards);
@@ -1013,8 +1022,8 @@ function updateTrailPrompt(P) {
   if (!it) { promptEl.hidden = true; useBtn.hidden = true; input.consumeUse(); return; }
   const v = new THREE.Vector3(it.x, it.y, 0).project(camera);
   promptText.textContent = it.label;
-  promptEl.style.left = `${((v.x + 1) / 2) * innerWidth}px`;
-  promptEl.style.top = `${((1 - v.y) / 2) * innerHeight}px`;
+  promptEl.style.left = `${((v.x + 1) / 2) * innerWidth / uiZoom()}px`;
+  promptEl.style.top = `${((1 - v.y) / 2) * innerHeight / uiZoom()}px`;
   promptEl.hidden = false;
   useBtn.hidden = false;
   if (input.consumeUse()) it.use();
@@ -1103,8 +1112,8 @@ function updatePortraitView(dt, P) {
   const showHint = !!near && !v.target && !castle.paused;
   if (showHint) {
     const p3 = new THREE.Vector3(near.x, near.plateY - 0.55, near.z).project(camera);
-    lookHint.style.left = `${((p3.x + 1) / 2) * innerWidth}px`;
-    lookHint.style.top = `${((1 - p3.y) / 2) * innerHeight}px`;
+    lookHint.style.left = `${((p3.x + 1) / 2) * innerWidth / uiZoom()}px`;
+    lookHint.style.top = `${((1 - p3.y) / 2) * innerHeight / uiZoom()}px`;
   }
   lookHint.hidden = !showHint;
   lookHint.classList.toggle('alt-key', !useFree); // o E/Y já é de outro objeto: mostra G/RS
@@ -1252,6 +1261,7 @@ function frame() {
     world.prune(cam.x - halfW - 25);
     for (const ev of world.events.splice(0)) {
       if (ev.type === 'checkpoint') { toast('Vigília acesa', '+1 ♥ · +poder · se cair, você volta daqui', 2.4); addOil(25); }
+      else if (ev.type === 'heart') toast('+1 ♥', 'Um coração saiu do bloco.', 1.6);
       else if (ev.type === 'oil') { addOil(35); sfx.oil(); toast('+ Óleo', 'Seu poder de fogo recarregou.', 1.6); }
       else if (ev.type === 'corpse') { sfx.playClip('respiracao', 0.6); sfx.playClip('sussurros', 0.35); }
       else if (ev.type === 'drop') sfx.drop();

@@ -586,14 +586,29 @@ export function createGateRoom({ character, sfx, tex, el }) {
   const tmpV = new THREE.Vector3();
   function layout() {
     if (!puzzle) return;
-    fitCam.copy(camera);
-    fitCam.position.copy(EYE);
-    fitCam.lookAt(LOOK);
-    fitCam.updateMatrixWorld();
-    fitCam.updateProjectionMatrix();
+    const syncFit = () => {
+      fitCam.copy(camera);
+      fitCam.position.copy(EYE);
+      fitCam.lookAt(LOOK);
+      fitCam.updateMatrixWorld();
+      fitCam.updateProjectionMatrix();
+    };
     // parte de cima da tela fica para o título e a dica
     const hudPx = el.root.hidden ? 120 : el.root.getBoundingClientRect().bottom + 12;
     const topNdc = Math.min(0.9, 1 - (2 * Math.max(110, hudPx)) / innerHeight);
+    // tela baixa (celular deitado): o título ocupa uma fatia grande da altura e a conta, que
+    // fica sempre na mesma altura da imagem, ficaria escondida atrás dele. Desce a imagem
+    // inteira (lente deslocada) só o que falta para o topo da conta sair de baixo do título.
+    camera.clearViewOffset();
+    syncFit();
+    const panelTop = tmpV.set(PANEL_X, PANEL_Y + 0.53, 0).project(fitCam).y;
+    // ...mas sem empurrar a fileira de ossos (base em ~0.45 de altura) para fora da tela embaixo
+    const bonesBottom = tmpV.set(TILE_X, 0.45, 0).project(fitCam).y;
+    const shift = Math.min(0.7, bonesBottom + 0.94, Math.max(0, panelTop - topNdc + 0.1)); // em NDC (0..2)
+    if (shift > 0) {
+      camera.setViewOffset(innerWidth, innerHeight, 0, (-shift * innerHeight) / 2, innerWidth, innerHeight);
+      syncFit();
+    }
     const box = (x, y, z, hw, hh) => {
       let ok = true;
       for (const [dy, dz] of [[-hh, -hw], [-hh, hw], [hh, -hw], [hh, hw]]) {
@@ -793,6 +808,7 @@ export function createGateRoom({ character, sfx, tex, el }) {
     phase = 'intro';
     t = 0;
     shake = 0;
+    camera.clearViewOffset(); // o deslocamento de tela baixa (layout) é só da hora da conta
     camera.fov = camera.aspect < 1 ? 72 : 55;
     camera.updateProjectionMatrix();
     buildPuzzle(level);

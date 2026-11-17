@@ -162,6 +162,8 @@ html.touch #fight-ui .fu-opts button kbd { display: none; }
 @keyframes dream-white { 0%, 12% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes dream-lid { 0%, 28% { opacity: 0; } 38% { opacity: .85; } 48%, 62% { opacity: 0; } 72% { opacity: .65; } 84%, 100% { opacity: 0; } }
 @media (max-height: 460px) { #fight-ui { top: 46px; gap: 5px; } #fight-ui .fu-card { padding: 6px 12px 8px; gap: 6px; } #fight-ui .fu-opts button { padding: 6px 4px; } #fight-ui .fu-name { font-size: 16px; } }
+/* celular deitado estreito: o nome do chefe cairia entre o painel de vida e a distância; desce abaixo do HUD */
+@media (max-height: 460px) and (max-width: 760px) { #fight-ui { top: 74px; } }
 `;
 
 function makePanel() {
